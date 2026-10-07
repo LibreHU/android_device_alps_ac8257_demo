@@ -147,6 +147,19 @@ Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+
 TWRP n'a pas de navigation au clavier : `back` = page precedente, `home` = menu principal, `power` = verrouillage,
 `enter` = valider un champ texte, `bl+`/`bl-` = luminosite ; `volup`/`voldown` ne font rien dans TWRP seul.
 
+### 9. Partition boot, misc, RAM : pour tester un noyau
+- La partition `boot` stock se termine par un **footer AVB** (son propre vbmeta, cle Jancar) : sans lui le LK
+  refuse l'image (logo puis reboot, aucun journal noyau). Le garder en reconditionnant (`mkboot.py`,
+  `tools/ac8257/repack_boot.py` du depot noyau).
+- `fastboot boot` ne demarre pas l'image (le LK redemarre) : tester un noyau depuis la partition **recovery**
+  (`fastboot oem reboot-recovery`), un crash finit alors sur le boot normal.
+- Le « misc » Android de cette unite est la partition **`para`** (message bootloader, commande `boot-recovery`
+  de Rescue Party) ; la partition nommee `misc` sert a autre chose. En sauvegarder une copie avant tout test.
+- SP Flash Tool reinitialise la RAM : pstore / `last_kmsg` sont alors perdus.
+- 6 Go de RAM mais Trusty 32 bits et GPU : le noyau stock alloue leurs tampons sous 4 Go (`GFP_DMA`).
+Reconstruction du noyau AC8257 (sources, etat, procedure de test) :
+[LibreHU/android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9).
+
 ## Correctif build.prop (zip TWRP, optionnel)
 Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fingerprint d'une autre plateforme
 (`evb3561sv`, Android 6.0) dans `/system/build.prop`. `tools/buildprop_fix/build.sh` construit deux zips TWRP :
