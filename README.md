@@ -22,8 +22,17 @@ fastboot flash recovery twrp_ujc201.img
 fastboot oem reboot-recovery
 ```
 Retour au recovery stock : `fastboot flash recovery <recovery stock>.img`.
-Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, Readback : `EMMC_BOOT_1` 0x0/0x400000,
-`EMMC_USER` 0x0/0x1A0000000, fin de disque `EMMC_USER` 0x1D1A000000/0x4000000).
+Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, onglet Readback, une ligne par zone) :
+
+| Nom | Region | Adresse | Longueur | Contenu |
+|---|---|---|---|---|
+| `ROM_0` | `EMMC_BOOT_1` | 0x0 | 0x400000 | preloader |
+| `ROM_1` | `EMMC_BOOT_2` | 0x0 | 0x400000 | 2e zone de boot (souvent vide) |
+| `ROM_2` | `EMMC_USER` | 0x0 | 0x1A0000000 | pgpt -> cache (tout sauf userdata) |
+| `ROM_3` | `EMMC_USER` | 0x1D1A000000 | 0x4000000 | fin de disque (otp, flashinfo, sgpt) |
+| `ROM_4` | `EMMC_USER` | 0x1A0000000 | 0x1B7A000000 | userdata (optionnel, tres gros) |
+
+Adresses du scatter `MT6761_Android_scatter.txt` de l'appareil.
 
 **Flasher `twrp_ujc201.img` (post-traite), jamais le `recovery.img` brut du build.**
 
