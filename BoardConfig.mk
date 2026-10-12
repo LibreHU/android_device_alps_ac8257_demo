@@ -50,7 +50,7 @@ BOARD_KERNEL_SEPARATED_DTBO := true
 TARGET_KERNEL_CONFIG := ac8257_demo_defconfig
 TARGET_KERNEL_SOURCE := kernel/alps/ac8257_demo
 
-# Kernel - prebuilt : noyau stock UJC201-V1.1.35R6-250718 (#25, 18/07/2025), extrait du recovery stock,
+# Kernel - prebuilt : noyau stock UJC201-V1.151R6-260122_0427-RH-C0-CYA (#72 du 22 janvier 2026), extrait du recovery stock,
 # patche "skip_initramfs" -> "want_initramfs" (le LK ajoute skip_initramfs hors mode recovery).
 # prebuilt/dtbo.img = recovery_dtbo du recovery stock 250718.
 TARGET_FORCE_PREBUILT_KERNEL := true
