@@ -30,6 +30,9 @@ tools/audio/no_deep_buffer.sh status    # deep_buffer : 0, une seule sortie (Aud
 tools/audio/no_deep_buffer.sh restore   # retour au fichier d'origine
 ```
 Il faut `adb root` et `/vendor` inscriptible (`adb disable-verity`, redemarrage, `adb remount`).
+
+Sans `adb root` (ROM `user` d'origine) : zips TWRP `ujc201_nodeepbuffer_install.zip` / `_restore.zip`
+(`tools/audio/twrp/build.sh`, voir le README) ; ils s'arretent sans rien modifier si `/vendor` est sous dm-verity.
 Le fichier est reecrit sur place (`cat > fichier`) pour garder son label SELinux.
 
 Effet de bord : traitement par blocs de 1024 trames, donc un peu plus de charge CPU pour les effets lourds

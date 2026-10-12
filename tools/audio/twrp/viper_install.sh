@@ -5,6 +5,7 @@
 # dm-verity : si /vendor (ou /system quand sa configuration est modifiee) est verifie (fs_mgr "avb"/"verify") et que
 # vbmeta ne l'a pas desactive (adb disable-verity), s'arrete sans rien modifier.
 # Retour : zip ujc201_viper_restore.
+# Avec KernelSU (Next), le module d'origine s'installe sans toucher aux partitions.
 
 UUID=90380da3-8536-4744-a6a3-5731970e640f
 ui_print "UJC201 - ViPER4Android RE (pilote $V4A_VERSION) sans Magisk"
@@ -19,35 +20,15 @@ SDK=$(grep -m1 '^ro.build.version.sdk=' $SYS/build.prop 2>/dev/null | cut -d= -f
 ui_print "Android SDK ${SDK:-?}"
 case "$SDK" in 3[4-9]|[4-9][0-9]) abort "Android 14+ : il faut la variante AIDL du pilote";; esac
 
-STAMP=$(date +%Y%m%d-%H%M%S)
-BKDIR=$SDCARD/UJC201_viper_backup/$STAMP
-mkdir -p $BKDIR || abort "dossier $BKDIR impossible"
-
 CFGS=$(effect_configs)
 [ -n "$CFGS" ] || abort "aucun audio_effects.xml / .conf dans vendor ni system"
 
 # --- dm-verity : vendor (pilote), et system si sa configuration est modifiee
-FLAGS=$(fsmgr_flags vendor | tr '\n' ' ')
-ui_print "fs_mgr /vendor : ${FLAGS:-(introuvable)}"
-case "$CFGS" in $(sysdir)/*)
-	SFLAGS=$(fsmgr_flags system | tr '\n' ' ')
-	ui_print "fs_mgr /system : ${SFLAGS:-(introuvable)}"
-	FLAGS="$FLAGS $SFLAGS";;
-esac
-if echo "$FLAGS" | grep -qE 'avb|verify'; then
-	if vbmeta_ok && hashtree_disabled; then
-		ui_print "dm-verity deja desactive dans vbmeta : OK"
-	else
-		ui_print " "
-		ui_print "dm-verity est actif : modifier la partition empecherait Android de demarrer."
-		ui_print "Rien n'a ete modifie. Au choix :"
-		ui_print " - installer le module d'origine depuis KernelSU (Next) > Modules (ne touche pas aux partitions) ;"
-		ui_print " - ou desactiver dm-verity vous-meme (Android demarre : adb root puis adb disable-verity), puis reflasher ce zip."
-		abort "dm-verity actif"
-	fi
-else
-	ui_print "partitions non verifiees (pas de avb / verify) : OK"
-fi
+case "$CFGS" in $(sysdir)/*) require_no_verity vendor system;; *) require_no_verity vendor;; esac
+
+STAMP=$(date +%Y%m%d-%H%M%S)
+BKDIR=$SDCARD/UJC201_viper_backup/$STAMP
+mkdir -p $BKDIR || abort "dossier $BKDIR impossible"
 
 # --- pilote
 LIBS=0
