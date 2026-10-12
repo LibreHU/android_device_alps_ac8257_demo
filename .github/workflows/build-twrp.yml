@@ -1,6 +1,9 @@
 name: Build TWRP (UJC201 / AC8257)
 
 on:
+  push:
+    paths:
+      - '.github/workflows/build-twrp.yml'
   workflow_dispatch:
     inputs:
       MANIFEST_BRANCH:
@@ -56,7 +59,7 @@ jobs:
         mkdir workspace && cd workspace
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@users.noreply.github.com"
-        repo init --depth=1 -u $MANIFEST_URL -b ${{ github.event.inputs.MANIFEST_BRANCH }}
+        repo init --depth=1 -u "$MANIFEST_URL" -b "${{ github.event.inputs.MANIFEST_BRANCH || 'twrp-12.1' }}"
         repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
     - name: Place device tree
