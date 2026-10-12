@@ -115,7 +115,8 @@ jobs:
         tag_name: twrp-build-${{ github.run_number }}
         prerelease: true
         body: |
-          TWRP pour Jancar UJC201 (AC8257, carte JAC_8258C), firmware stock UJC201-V1.1.35R6-250718.
+          TWRP pour Jancar UJC201 (AC8257, carte JAC_8258C), composants stock issus du firmware UJC201-V1.151R6-260122_0427-RH-C0-CYA.
+          Noyau : Linux 4.9.117+ #72, compile le 22 janvier 2026.
           Manifeste : ${{ github.event.inputs.MANIFEST_BRANCH }}
           Fichier a flasher : twrp_ujc201.img (post-traite, signature AVB du recovery stock).
           NE PAS flasher recovery.img brut (ecran noir).
