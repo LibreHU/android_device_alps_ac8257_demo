@@ -1,9 +1,6 @@
 name: Build TWRP (UJC201 / AC8257)
 
 on:
-  push:
-    paths:
-      - 'tools/apply_twrp_patches.py'
   workflow_dispatch:
     inputs:
       MANIFEST_BRANCH:
