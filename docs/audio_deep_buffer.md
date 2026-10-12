@@ -30,10 +30,30 @@ tools/audio/no_deep_buffer.sh status    # deep_buffer : 0, une seule sortie (Aud
 tools/audio/no_deep_buffer.sh restore   # retour au fichier d'origine
 ```
 Il faut `adb root` et `/vendor` inscriptible (`adb disable-verity`, redemarrage, `adb remount`).
+Le fichier est reecrit sur place (`cat > fichier`) pour garder son label SELinux.
 
 Sans `adb root` (ROM `user` d'origine) : zips TWRP `ujc201_nodeepbuffer_install.zip` / `_restore.zip`
 (`tools/audio/twrp/build.sh`, voir le README) ; ils s'arretent sans rien modifier si `/vendor` est sous dm-verity.
-Le fichier est reecrit sur place (`cat > fichier`) pour garder son label SELinux.
 
 Effet de bord : traitement par blocs de 1024 trames, donc un peu plus de charge CPU pour les effets lourds
 (Convolver avec un long IRS, reverberation).
+
+## Cause racine : non identifiee
+Retirer `deep_buffer` est un **contournement** : la sortie est facultative (economie d'energie, inutile sur un
+autoradio alimente), mais on ne sait pas encore **pourquoi** MultiMedia2 est muet. Pistes, du plus probable au moins :
+1. Routage ALSA : chez MediaTek, chaque frontal (MultiMedia1 = memif DL1, MultiMedia2 = DL2) doit etre relie a la
+   sortie (I2S / codec) par des controles de mixage DAPM que le HAL pose a l'ouverture du flux (chemins decrits dans
+   `/vendor/etc/audio_device.xml` du HAL MTK). Si DL2 n'est jamais relie, les trames sont lues (`RUNNING`) mais
+   n'arrivent nulle part.
+2. Noyau reconstruit : si le symptome n'existe qu'avec le noyau LibreHU, c'est un manque du pilote ASoC (route DL2).
+3. Pile Jancar : `ivi-services` (absent avec LibreHU-service) poserait ces controles lui-meme.
+
+Pour trancher (root, pendant la lecture d'une musique) :
+```
+cat /proc/asound/pcm; cat /proc/asound/card0/pcm3p/sub0/status    # DL2 RUNNING, pointeurs qui avancent
+tinymix > /sdcard/mix_deep.txt                                     # avec deep_buffer
+# idem apres retrait de deep_buffer (musique sur pcm0) -> /sdcard/mix_primary.txt, puis comparer les deux
+grep -n -i "dl2\|deep\|MultiMedia2" /vendor/etc/audio_device.xml
+```
+et noter si le probleme existe avec le noyau stock. Si un controle manque, le vrai correctif est de le poser
+(chemin du HAL, ou au demarrage), et `deep_buffer` peut rester.
