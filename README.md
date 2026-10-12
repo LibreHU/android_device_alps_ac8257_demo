@@ -1,7 +1,7 @@
 # TWRP – Jancar UJC201 (Autochips AC8257, carte JAC_8258C)
 
 Arbre TWRP (branche **twrp-12.1**) pour les autoradios Android « UJC201 » (SIXWIN, Podofo, Hikity…).
-**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25`).
+**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.151R6-260122_0427-RH-C0-CYA` (noyau `4.9.117+ #72, 22/01/2026`).
 
 | Fonction | Etat |
 |---|---|
