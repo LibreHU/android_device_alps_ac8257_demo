@@ -3,6 +3,17 @@
 Arbre TWRP (branche **twrp-12.1**) pour les autoradios Android « UJC201 » (SIXWIN, Podofo, Hikity…).
 **Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.151R6-260122_0427-RH-C0-CYA` (noyau `4.9.117+ #72, 22/01/2026`).
 
+
+## Changelog récent
+
+### 2026-10-12
+- Mise à jour du noyau précompilé vers le noyau stock UJC201-V1.151R6-260122_0427-RH-C0-CYA, Linux 4.9.117+ #72, avec le patch `skip_initramfs` → `want_initramfs` ; la zone DTB ajoutée au flux gzip est conservée.
+- Mise à jour de `prebuilt/dtbo.img` depuis le `recovery_dtbo` du nouveau `recovery.img`.
+- Mise à jour du contenu de `prebuilt/avb/recovery_stock_vbmeta_250718.bin` avec le VBMeta extrait du nouveau recovery stock ; le nom de fichier historique est conservé. L'empreinte de la clé publique reste `0aa0987116fc792f36bc909b0a4d530413f02a54`.
+- Ajout de l'entrée `System Image` dans `recovery.fstab` pour les sauvegardes/restaurations brutes de la partition `system`, en conservant l'entrée de sauvegarde au niveau des fichiers.
+- Ajout d'un correctif dans `tools/apply_twrp_patches.py` : si la fstab par défaut ne contient pas `/misc`, le code AOSP `bootloader_message` utilise `/dev/block/platform/bootdevice/by-name/para`, où cet appareil stocke le BCB (`boot-recovery --wipe_data`). Ce correctif vise à éviter de rester bloqué dans TWRP après une réinitialisation d'usine ; il doit être confirmé par le build et un test sur l'appareil.
+
+
 | Fonction | Etat |
 |---|---|
 | Demarrage sans bootloop d'Android | OK (signature AVB du recovery stock) |
