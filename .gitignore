@@ -3,3 +3,4 @@ __pycache__/
 tools/bootmenu/ui_data.h
 *.img
 tools/buildprop_fix/out/
+tools/viper_fx/out/

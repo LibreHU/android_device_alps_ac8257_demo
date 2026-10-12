@@ -180,6 +180,23 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
   et `/system/etc/init/ujc201_version.rc` (reimpose a chaque demarrage) ;
 - `ujc201_buildprop_restore.zip` : remet l'original (`.bak`, sinon la derniere copie de `/sdcard`).
 
+## Pilote ViPER4Android sans Magisk (zip TWRP, optionnel)
+Magisk ne tient pas dans le `boot` de l'unite (ramdisk trop gros). `tools/viper_fx/build.sh <ViPER4Android-RE-vX.zip>`
+(le module non-AIDL de [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE)) en fait deux zips TWRP :
+- `ujc201_viper_install.zip` : copie `libv4a_re.so` dans `/vendor/lib/soundfx` (et `lib64`) et declare l'effet
+  (librairie `v4a_re`, UUID `90380da3-8536-4744-a6a3-5731970e640f`) dans les `audio_effects*.xml` / `.conf` de
+  `/vendor/etc`, ceux qu'Android 9 lit en priorite (ceux de `/system/etc` seulement si vendor n'en a pas) ;
+  sauvegarde `<fichier>.v4a-orig` a cote et copie dans `/sdcard/UJC201_viper_backup/<date>/`.
+  **dm-verity** : si la partition modifiee est verifiee (drapeaux fs_mgr `avb` / `verify` du fstab du device tree)
+  et que vbmeta ne l'a pas desactive (drapeau `HASHTREE_DISABLED`, pose par `adb disable-verity`), le zip
+  s'arrete sans rien modifier : modifier une partition sous dm-verity empeche Android de demarrer.
+  Reinstallable (repart du `.v4a-orig`) ;
+- `ujc201_viper_restore.zip` : remet les fichiers d'origine et supprime `libv4a_re.so` (dm-verity reste desactive).
+
+Avec KernelSU (Next), le module d'origine s'installe aussi tel quel depuis le gestionnaire (Modules), sans toucher
+aux partitions : il monte ses fichiers au demarrage. L'appli ViPER4Android elle-meme s'installe a part (en
+`/system/priv-app` pour le mode par appli sans root, voir LibreHU Apps).
+
 ## Fichiers
 - `prebuilt/kernel` : noyau stock 250718 (#25) + patch `want_initramfs`
 - `prebuilt/dtbo.img` : recovery_dtbo du recovery stock 250718
@@ -188,6 +205,7 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
 - `tools/touchfix/` : source de `touchfix` (C autonome, sans libc) + `build.sh`
 - `tools/apply_twrp_patches.py` : patchs du source TWRP (applique par le workflow)
 - `tools/buildprop_fix/` : zips TWRP correctif / restauration du build.prop
+- `tools/viper_fx/` : zips TWRP du pilote ViPER4Android RE sans Magisk (installation / retrait)
 - `tools/ujc201_theme.py` : entrees Advanced + page graphique (partage source / post-traitement)
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)
 - `tools/mcu/` : analyse du firmware MCU (`mdis.py`, `ana*.py`) et `jacmcu.py` (trames, decodage de `/tmp/mcu.log`, moniteur serie)
