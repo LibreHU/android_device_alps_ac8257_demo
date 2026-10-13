@@ -241,6 +241,8 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - `docs/audio_stock.md` : chaine audio de la ROM stock (politique, HAL MediaTek et Autochips, effets, FM, deep_buffer)
 - `docs/projection_stock.md` : CarPlay (CPLink, CarplayService), Android Auto, SpeedPlay, CarbitLink, Jlink de la ROM
   stock, ce qu'ivi-services fait pour eux, gain micro et ECNR des reglages usine
+- `docs/ethernet.md` : Ethernet par adaptateur USB (pilotes du noyau stock : ASIX oui, Realtek et partage USB du
+  telephone non), EthernetService d'Android 9, pistes pour ajouter les pilotes manquants
 - `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
 
