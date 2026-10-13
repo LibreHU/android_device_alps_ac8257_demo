@@ -99,3 +99,10 @@ La musique d'un telephone (A2DP sink) passe par la pile Bluetooth puis AudioFlin
 `audio_param/`, `vendor/etc/init/android.hardware.audio@4.0-service-mediatek.rc`,
 `vendor.autochips.hardware.audio@1.0-service.rc`, `vendor/lib[64]/hw/audio.primary.ac8257.so`,
 `vendor/etc/vintf/manifest.xml`.
+
+## Micro [D]
+Gain materiel `MIC1_HW_GAIN` / `MIC2_HW_GAIN` = 3, 4 ou 5 (`AudioManager.setParameters`, `AudioALSAHardware`),
+garde dans `persist.jancar.mic.hw.gain` (`MIC1_HW_GAIN=3` sur l'unite) ; ECNR par
+`persist.audiohal.third_ecnr_lib.enable` / `vendor.audiohal.third_ecnr_lib.enable`. Details et reprise par
+LibreHU-service : [projection_stock.md](projection_stock.md#micro--gain-et-annulation-decho-reglages-usine).
+

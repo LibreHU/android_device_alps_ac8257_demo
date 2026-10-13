@@ -239,6 +239,8 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - App Android JacMCU (etat, commandes, console MCU ; mode service Jancar ou root) : deplacee dans [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app)
 - `docs/reglages_caches.md` : ATC Settings (Autochips) cache dans les Reglages, Engineer Mode, adresses metazone, config Jancar
 - `docs/audio_stock.md` : chaine audio de la ROM stock (politique, HAL MediaTek et Autochips, effets, FM, deep_buffer)
+- `docs/projection_stock.md` : CarPlay (CPLink, CarplayService), Android Auto, SpeedPlay, CarbitLink, Jlink de la ROM
+  stock, ce qu'ivi-services fait pour eux, gain micro et ECNR des reglages usine
 - `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
 
