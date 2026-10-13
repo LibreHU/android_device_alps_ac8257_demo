@@ -63,11 +63,28 @@ Depuis LibreHU Apps → Zips → **Noyau** → « Ethernet USB et partage de con
 flashe avec TWRP ; dm-verity desactive sur `/vendor` (sinon le zip s'arrete sans rien modifier).
 - Modules dans `/vendor/lib/modules/librehu-usbnet/`, script `/vendor/etc/init/init.librehu_usbnet.rc`, comme les
   modules stock (`init.bt_drv.rc`, `init.wmt_drv.rc`).
-- Chargement une fois Android demarre (`sys.boot_completed=1`), avec une protection : `persist.librehu.usbnet.loading`
+- Chargement une fois Android demarre (`sys.boot_completed=1`), avec une protection : `persist.vendor.librehu.usbnet.loading`
   vaut 1 pendant le chargement ; si l'autoradio redemarre pendant ce temps, le demarrage suivant les laisse de cote
-  (`persist.librehu.usbnet.off=1`) jusqu'a reactivation (LibreHU-service, ou `setprop persist.librehu.usbnet.off 0`).
-  Charger tout de suite : `setprop sys.librehu.usbnet.arm 1`.
+  (`persist.vendor.librehu.usbnet.off=1`) jusqu'a reactivation (LibreHU-service, ou `setprop persist.vendor.librehu.usbnet.off 0`).
+  Charger tout de suite : `setprop vendor.librehu.usbnet.arm 1`.
 - Retrait : zip `usb-net-restore`.
+
+## Compatibilite ROM stock et noyau stock
+- **Noyau** : modules pour le noyau stock Jancar 4.9.117+ (#25 et #72 ; aussi le #72 patche `want_initramfs` du menu de
+  demarrage et de TWRP v7, meme binaire a 4 octets pres, et la reconstruction LibreHU qui exporte les CRC stock).
+  Pas de noyau a flasher.
+- **ROM stock** : rien a remplacer ; ajout de fichiers dans `/vendor` (pas dans `/system`), comme les modules stock.
+  Il faut seulement TWRP et dm-verity desactive sur `/vendor` (`androidboot.veritymode=disabled` dans la ligne de
+  commande relevee sur l'unite).
+- **SELinux** (la ligne de commande stock ne le passe pas en permissive) : la politique stock autorise `init` et
+  `vendor_init` a charger des modules etiquetes `vendor_file` (`allow vendor_init vendor_file (system (module_load))`
+  dans `vendor_sepolicy.cil`) ; le zip pose ce label. Les proprietes du script sont en `vendor.*` /
+  `persist.vendor.*` (contexte `vendor_default_prop`), les seules que `vendor_init` peut ecrire (`sys.*` et `persist.*`
+  generiques sont des proprietes « core » qu'il ne peut pas poser :
+  [vendor_init.te](https://github.com/LineageOS/android_system_sepolicy/blob/lineage-16.0/public/vendor_init.te),
+  [property_contexts](https://github.com/LineageOS/android_system_sepolicy/blob/lineage-16.0/private/property_contexts)).
+- **Root** : pas necessaire pour que les pilotes se chargent et que l'Ethernet marche ; seulement pour la page Reseau de
+  LibreHU-service (lecture des appareils, reactivation, iPhone).
 
 ## LibreHU-service : Systeme → Reseau
 Adaptateurs et telephones branches (puce reconnue, pilote lie ou manquant), interfaces `eth*` / `usb*` (MAC, debit,
