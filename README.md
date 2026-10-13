@@ -26,6 +26,9 @@ Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, Readback : `EMMC
 `EMMC_USER` 0x0/0x1A0000000, fin de disque `EMMC_USER` 0x1D1A000000/0x4000000).
 
 **Flasher `twrp_ujc201.img` (post-traite), jamais le `recovery.img` brut du build.**
+Depuis Android (root), l'onglet Zips de LibreHU Apps peut aussi l'ecrire dans `recovery` (zip `twrp-ujc201` de
+[LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips) : derniere release, taille et SHA-256
+verifies, recovery actuel sauvegarde dans `/sdcard/LibreHU/backup`).
 
 ## Build
 GitHub Actions (`.github/workflows/build-twrp.yml`, lancement manuel) :
@@ -194,6 +197,11 @@ ces modifications audio passent par TWRP. `tools/audio/twrp/build.sh [ViPER4Andr
   `/sdcard/UJC201_viper_backup/<date>/`. L'appli ViPER4Android s'installe a part (en `/system/priv-app` pour le
   mode par appli sans root, voir LibreHU Apps). Avec KernelSU (Next), le module d'origine s'installe aussi tel quel
   depuis le gestionnaire, sans toucher aux partitions.
+
+Zips prets a flasher : [LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips) (release `zips`,
+reconstruite par la CI a chaque push et chaque jour : pilote ViPER, deep_buffer, derniere TWRP de ce depot), classes
+par categorie et installables depuis l'onglet Zips de LibreHU Apps (flash TWRP automatique, ou image TWRP ecrite
+directement dans `recovery` en root, avec sauvegarde).
 
 Tous reinstallables (repartent de l'original sauvegarde). **dm-verity** : si la partition a modifier est verifiee
 (drapeaux fs_mgr `avb` / `verify` du fstab du device tree) et que vbmeta ne l'a pas desactive (drapeau
