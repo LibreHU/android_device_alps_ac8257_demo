@@ -82,6 +82,18 @@ La musique d'un telephone (A2DP sink) passe par la pile Bluetooth puis AudioFlin
   `cat /proc/asound/pcm` (numero de `Deep_Buffer_PLayback`) ; (3) `tinymix` pendant une musique et pendant une
   sonnerie, a comparer. Commandes : [audio_deep_buffer.md](audio_deep_buffer.md).
 
+## ViPER4Android et routage : ce que confirme l'analyse
+| Point | Conclusion | Base |
+|---|---|---|
+| Ou mettre le pilote ViPER | `/vendor/lib[64]/soundfx/libv4a_re.so` + declaration dans `/vendor/etc/audio_effects.xml` : c'est ce que fait `tools/audio/twrp/viper_install.sh` | les effets tournent dans le processus du HAL vendor [D] |
+| L'appli ViPER dans `/system/priv-app` | ne remplace pas le pilote : elle ne fait que piloter l'effet (et obtenir ses permissions) | idem |
+| Fichier de politique a modifier | `/vendor/etc/audio_policy_configuration.xml` (celui de `/system/etc` est ignore) : c'est celui que modifie `nodeep_install.sh` | ordre de lecture d'Android 9 [D] |
+| ViPER en mode global (session 0) | suit la sortie de la musique : sur `deep_buffer` tant qu'elle existe (donc muet avec elle), sur `primary` une fois `deep_buffer` retiree | politique [D] + essais (`audio_deep_buffer.md`) |
+| Traitements empiles | Android → (MTK BesSound sur `PLAYBACK_NORMAL` / `LOW_LATENCY`) → ViPER → I2S → BD37534 (volume, graves / mediums / aigus, loudness, fader). Avec l'egaliseur de ViPER, laisser la tonalite et le loudness de la puce a plat pour eviter double correction et saturation | aurisys [D], puce [N] |
+| Niveau numerique | le flux media Android reste a niveau fixe (`persist.action.volume.percent`), le volume est dans la puce : la marge de ViPER ne depend pas du volume | [N] |
+| AUX avec Android (LibreHU-service) | le son d'Android, deja traite par ViPER, arrive par l'entree de mixage mono de la puce pendant l'AUX | `AudioBD37534::setMixer` / `setMonoVolume` (libJanCarIVI) |
+| Cause du silence de `deep_buffer` | **non confirmee** : piste la plus concrete `Audio_DL2_DataTransfer` (memif DL2), voir `audio_deep_buffer.md` | a mesurer sur l'unite [?] |
+
 ## Fichiers du dump utiles
 `vendor/etc/audio_policy_configuration.xml`, `audio_device.xml`, `audio_effects.xml`, `aurisys_config.xml`,
 `audio_param/`, `vendor/etc/init/android.hardware.audio@4.0-service-mediatek.rc`,

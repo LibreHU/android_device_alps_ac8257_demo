@@ -56,6 +56,10 @@ cat /proc/asound/pcm; cat /proc/asound/card0/pcm3p/sub0/status    # DL2 RUNNING,
 tinymix > /sdcard/mix_deep.txt                                     # avec deep_buffer
 # idem apres retrait de deep_buffer (musique sur pcm0) -> /sdcard/mix_primary.txt, puis comparer les deux
 grep -n -i "dl2\|deep\|MultiMedia2" /vendor/etc/audio_device.xml
+tinymix "Audio_DL2_DataTransfer"                                   # controle du HAL MTK (voir audio_stock.md)
 ```
+Piste concrete : le HAL MediaTek de cette ROM contient un controle `Audio_DL2_DataTransfer` (lu dans
+`audio.primary.ac8257.so`). Si sa valeur est `Off` pendant une musique sur `deep_buffer`, essayer
+`tinymix "Audio_DL2_DataTransfer" On` : si le son revient, c'est la cause (a confirmer, non verifie sur l'unite).
 et noter si le probleme existe avec le noyau stock. Si un controle manque, le vrai correctif est de le poser
 (chemin du HAL, ou au demarrage), et `deep_buffer` peut rester.
