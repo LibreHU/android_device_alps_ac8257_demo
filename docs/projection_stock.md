@@ -32,6 +32,12 @@ CarbitLink et Jlink sont des alternatives payantes ou sous licence, liees a l'ap
   `persist.carplay.wirelessCarPlay_2G`, `persist.carplay.autoconnect.enable` (vrai), `persist.carplay.drop.latency`,
   `persist.carplay.v.keyframe`, `persist.carplay.mic.algorithm` (`atc` sur l'unite).
 - **Sans fil** : point d'acces Wi-Fi de l'autoradio (`HotSpotUtil`) et Bluetooth.
+- **Puce MFi** : le service `iapd` (`/vendor/bin/hw/vendor.autochips.hardware.iap@1.0-service`, demarre par
+  `vendor.iapd.start=1`, utilisateur system) passe par `libcoprocessor.so` : `MFICoprocessor` ouvre `/dev/i2c-%d`, prend
+  le bus, l'adresse esclave (essaie l'autre adresse si la version ne se lit pas) et des donnees de certificat dans la
+  **metazone** (`initMetaZone`, `getI2cBus`, `setCertificateData`) ; il lit le certificat de la puce et lui fait
+  signer le defi de l'iPhone (puce v2 ou v3 « Auth3 »). Une autre appli peut donc parler a la meme puce (SpeedPlay le
+  fait par `/dev/i2c-%d`), a condition d'avoir acces au noeud (root) et que `iapd` ne l'utilise pas en meme temps.
 - **Dependance a ivi-services** : CPLink lui envoie (diffusion reservee au paquet `com.jancar.services`)
   `com.jancar.carplay_connected` / `_disconnect` / `_show` / `_hidden`, `com.jancar.action.CARPLAY_PHONE_START` /
   `_RINGING` / `_END`, `action.android.carplay.send` (`MAIN_AUDIO_START` / `MAIN_AUDIO_STOP`). ivi-services
@@ -85,5 +91,12 @@ Dans ivi-settings (`com.jancar.settings` 2.7.4), Reglages usine :
   pause des autres medias, mode nuit de CarPlay. Les diffusions de CPLink sont reservees a `com.jancar.services` ;
   la piste est l'API `CarplayManager` de `CarplayService` (rappel d'etat, mode nuit) et, pour Android Auto, ses
   diffusions `android_auto_start` / `_end` et `NIGHT_MODE`.
-- Alternative libre : Open Headunit (ex-Headunit Revived, AGPL-3.0) pour Android Auto ; pour CarPlay, rien de libre
-  d'utilisable (authentification Apple obligatoire).
+- Alternatives libres :
+  - Android Auto : [Open Headunit](https://github.com/andreknieriem/headunit-revived) (ex-Headunit Revived,
+    AGPL-3.0), appli Android, USB et sans fil.
+  - CarPlay : [xcertplay](https://github.com/shilapi/xcertplay) (GPL-3.0), recepteur CarPlay en appli Android
+    (Android 9 minimum), filaire et sans fil, qui authentifie avec **la puce MFi de la carte** (`/dev/i2c-N`) ou un
+    adaptateur CH341 ; sur Android 9 le sans fil passe par `LocalOnlyHotspot` (pas de Wi-Fi Direct 5 GHz). Autres
+    projets : [LIVI](https://f-io.github.io/LIVI/) (Linux / macOS), [CatPlay](https://github.com/sonodima/catplay)
+    (Rust). Experimentaux : un iOS peut les casser. A tester sur l'unite : acces root a `/dev/i2c-6`, `iapd` arrete
+    pendant ce temps (sinon deux clients sur la puce), port USB en hote.
