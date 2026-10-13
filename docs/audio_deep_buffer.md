@@ -1,5 +1,7 @@
 # Musique muette, sonneries OK : retirer la sortie `deep_buffer`
 
+Chaine audio complete de la ROM stock : [audio_stock.md](audio_stock.md).
+
 ## Symptome
 Sur l'UJC201 (AC8257, Android 9), toute la musique est muette (lecteur, Android Auto, radio FM), alors que les
 sonneries et les clics du clavier s'entendent. ViPER4Android coupe ou non : aucun changement.

@@ -215,6 +215,7 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)
 - `tools/mcu/` : analyse du firmware MCU (`mdis.py`, `ana*.py`) et `jacmcu.py` (trames, decodage de `/tmp/mcu.log`, moniteur serie)
 - App Android JacMCU (etat, commandes, console MCU ; mode service Jancar ou root) : deplacee dans [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app)
+- `docs/audio_stock.md` : chaine audio de la ROM stock (politique, HAL MediaTek et Autochips, effets, FM, deep_buffer)
 - `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
 
