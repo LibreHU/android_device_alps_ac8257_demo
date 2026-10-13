@@ -25,15 +25,20 @@ Adresses metazone (`AtcMetazone.readval/writeval`, puis `flush`) :
 | 65594..65597 / 65601..65604 | recadrage x, y, largeur, hauteur (selon la source) |
 | 65598 | nettete |
 | 65599 | tramage |
-| 65605 | mode camera AHD (4 = 720p, 6 = 1080p) |
+| 65605 | mode camera (0 auto, 1 NTSC, 2 PAL, 3 720p25, 4 720p30, 5 1080p25, 6 1080p30 ; ATC Settings ne propose que 4 / 6) |
 | 65606 | mode camera AVM (0 auto, 1 NTSC, 2 PAL, 3 720p25, 4 720p30, 5 1080p25, 6 1080p30) |
-| 65607 | source du recul (0 debug, 1 CVBS, 2 MIPI / AHD, 3 360) |
+| 65607 | source du recul (0 debug, 1 CVBS, 2 MIPI, 3 360 / AVM : l'AHD de l'UJC201 passe par 3 selon Jancar) |
+| 66018 | valeur capteur Jancar (0 AHD 720p25, 1 1080p25, 2 720p30, 3 1080p30) |
 | 65608 | AVM rapide |
 | 65611 | AVM sur CVBS |
 | 65616 | mode USB du port 0 (2 hote, 1 peripherique) |
 | 65617 / 65618 | protocole des ports USB 0 / 1, amelioration DVR (bits 0 / 1) |
 | 65634 | mode capteur AHD |
 | 65635 | mode capteur AVM |
+
+Format de la camera selon Jancar (`ImportSingleConfigUtil.importBackCarVideoSource`, `BackCarVideoSource` de
+`ivi-customer.ini`) : 65607 = 3, 66018, 65605 = 65606 = index + 2, recadrage AHD 65601..65604, puis redemarrage ;
+detail dans [LibreHU-service/docs/atc.md](https://github.com/LibreHU/LibreHU-service/blob/main/docs/atc.md#format-de-la-caméra).
 
 Logo : `AtcLogo.writelogo(2, 0, taille, donnees)`, pixels BGRA a la taille reelle de l'ecran, ligne du haut en
 premier, alpha 0xFF. USB : `UsbManager.setPortRoles(port, 1, role)` (role de donnees 1 hote, 2 peripherique) apres
