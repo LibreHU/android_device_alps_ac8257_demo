@@ -94,8 +94,21 @@ Dans ivi-settings (`com.jancar.settings` 2.7.4), Reglages usine :
 - **Fait dans LibreHU** : Android Auto par Open Headunit (ou son fork LibreHU `org.librehu.headunit`, signe avec la
   cle LibreHU) pilote par LibreHU-service (onglet Android Auto : etat, commandes, jour / nuit selon les phares, ses
   reglages modifiables) et LibreHU Launcher (carte de session et prochaine manoeuvre). Forks :
-  [LibreHU-open-headunit-app](https://github.com/Dok-T/LibreHU-open-headunit-app) (Open Headunit) et
-  [LibreHU-xcertplay-app](https://github.com/LibreHU/LibreHU-xcertplay-app) (xcertplay).
+  [LibreHU-open-headunit-app](https://github.com/LibreHU/LibreHU-open-headunit-app) (Open Headunit, affiche
+  « Android Auto ») et [LibreHU-xcertplay-app](https://github.com/LibreHU/LibreHU-xcertplay-app) (xcertplay,
+  affiche « CarPlay »). Leurs icones sont originales (glyphes Material, colores par l'accent de LibreHU Launcher) :
+  les logos de Google et d'Apple sont des marques reservees et ne sont pas dans ces depots publics ; LibreHU
+  Launcher permet de choisir n'importe quelle image comme icone d'une appli (appui long → « Changer l'icone »).
+- **Vehicule decrit une fois** : LibreHU-service (onglet Vehicule) garde le nom de la voiture, la marque, le modele,
+  l'annee, la couleur, la plaque, l'energie, le cote conducteur, et lit (root, une fois) les vraies adresses
+  Bluetooth et Wi-Fi de l'autoradio, qu'Android cache aux applis. Il les partage par
+  `content://org.librehu.service.vehicle/info` (permission signature `org.librehu.permission.VEHICLE`, donc
+  seulement les applis signees LibreHU) avec : le premier demarrage et l'ecran SOS de LibreHU Launcher, Open
+  Headunit LibreHU (reglages vehicule envoyes au telephone) et CarPlay LibreHU (nom affiche sur l'iPhone, marque,
+  modele, cote conducteur, adresses). Renommer la voiture renomme aussi le Bluetooth, le point d'acces et le nom
+  Wi-Fi Direct.
+- **Puce MFi** : CarPlay LibreHU trouve le bus seul (reglage I2C `auto` : chaque `/dev/i2c-N` accessible est sonde
+  aux adresses 0x10 et 0x11) au lieu de demander `/dev/i2c-6`.
 - Alternatives libres :
   - Android Auto : [Open Headunit](https://github.com/andreknieriem/headunit-revived) (ex-Headunit Revived,
     AGPL-3.0), appli Android, USB et sans fil.
