@@ -3,6 +3,12 @@
 ## Non publie
 
 ### Nouveau
+- **Noyau #72** : `prebuilt/kernel` = noyau stock de la mise a jour officielle Jancar de janvier 2026 (#72 du
+  22/01/2026, patch `want_initramfs`, celui de TWRP v7) ; configuration, exports et CRC identiques a #25.
+- **Ethernet et partage de connexion USB** (`docs/ethernet.md`, `tools/usbnet/`) : modules pour le noyau stock
+  (Realtek RTL8152 / RTL8153, RNDIS pour le partage d'un telephone Android, iPhone, LAN78xx, SMSC, DM9601, SR9700 /
+  SR9800, MCS7830, CH9200, RTL8150, Pegasus, CDC EEM), verifies contre les CRC stock ; zip flashable `usb-net`
+  (LibreHU-flashablesZips, categorie Noyau).
 - **Audio : musique muette** (`tools/audio/no_deep_buffer.sh`, `docs/audio_deep_buffer.md`) : retire la sortie
   `deep_buffer` (PCM MultiMedia2, muette sur l'unite) de `audio_policy_configuration.xml` pour faire passer la
   musique par `primary`. Sauvegarde, verification et retour arriere (`restore`).

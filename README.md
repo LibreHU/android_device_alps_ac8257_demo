@@ -1,7 +1,9 @@
 # TWRP – Jancar UJC201 (Autochips AC8257, carte JAC_8258C)
 
 Arbre TWRP (branche **twrp-12.1**) pour les autoradios Android « UJC201 » (SIXWIN, Podofo, Hikity…).
-**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25`).
+**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25`) puis la
+mise a jour officielle Jancar de janvier 2026 (noyau `4.9.117+ #72` du 22/01/2026 : meme configuration, memes symboles
+exportes et memes CRC que #25, donc memes modules).
 
 | Fonction | Etat |
 |---|---|
@@ -224,7 +226,8 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 `fastboot --disable-verity flash vbmeta vbmeta.img` avec cette sauvegarde (pas `--disable-verification`).
 
 ## Fichiers
-- `prebuilt/kernel` : noyau stock 250718 (#25) + patch `want_initramfs`
+- `prebuilt/kernel` : noyau stock de la mise a jour Jancar de janvier 2026 (#72, 22/01/2026, celui de TWRP v7) + patch
+  `want_initramfs` (avant : 250718, #25)
 - `prebuilt/dtbo.img` : recovery_dtbo du recovery stock 250718
 - `prebuilt/avb/recovery_stock_vbmeta_250718.bin` : vbmeta (footer) du recovery stock
 - `recovery/root/` : rc, `touchfix`, `usbmode`, `powerinfo`, `mcuinfo`, `wheelkeys`, `ujc201_keys.conf`
@@ -241,8 +244,9 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - `docs/audio_stock.md` : chaine audio de la ROM stock (politique, HAL MediaTek et Autochips, effets, FM, deep_buffer)
 - `docs/projection_stock.md` : CarPlay (CPLink, CarplayService), Android Auto, SpeedPlay, CarbitLink, Jlink de la ROM
   stock, ce qu'ivi-services fait pour eux, gain micro et ECNR des reglages usine
-- `docs/ethernet.md` : Ethernet par adaptateur USB (pilotes du noyau stock : ASIX oui, Realtek et partage USB du
-  telephone non), EthernetService d'Android 9, pistes pour ajouter les pilotes manquants
+- `docs/ethernet.md` : Ethernet par adaptateur USB et partage de connexion USB (pilotes du noyau stock, modules
+  ajoutes : Realtek, RNDIS, iPhone…, zip `usb-net`, page Reseau de LibreHU-service)
+- `tools/usbnet/` : construction et verification (CRC stock) des modules reseau USB
 - `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
 
