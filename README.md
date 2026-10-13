@@ -209,6 +209,7 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - `tools/touchfix/` : source de `touchfix` (C autonome, sans libc) + `build.sh`
 - `tools/apply_twrp_patches.py` : patchs du source TWRP (applique par le workflow)
 - `tools/buildprop_fix/` : zips TWRP correctif / restauration du build.prop
+- `tools/dump/collecte_audio_camera.sh` : extrait d'un dump stock (system / vendor) les fichiers audio, camera, FM et Jancar a analyser
 - `tools/audio/` : `no_deep_buffer.sh` (adb root) et `twrp/` : zips TWRP deep_buffer et pilote ViPER4Android RE
 - `tools/ujc201_theme.py` : entrees Advanced + page graphique (partage source / post-traitement)
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)
