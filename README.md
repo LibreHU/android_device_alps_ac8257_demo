@@ -171,6 +171,18 @@ TWRP n'a pas de navigation au clavier : `back` = page precedente, `home` = menu 
 Reconstruction du noyau AC8257 (sources, etat, procedure de test) :
 [LibreHU/android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9).
 
+### 10. /system en ecriture (root)
+- System-as-root (`BOARD_BUILD_SYSTEM_ROOT_IMAGE`) : /system est un dossier de `/`, qui apparait comme `/dev/root`
+  dans `/proc/mounts`, un noeud qui n'existe pas. Le fs_mgr met le bloc en lecture seule (BLKROSET) :
+  `mount -o rw,remount /` echoue (« write-protected ») tant que `blockdev --setrw` n'est pas fait sur le vrai bloc
+  (`/dev/block/platform/bootdevice/by-name/system`).
+- Methode sure (LibreHU Apps) : `blockdev --setrw` sur ce bloc, le monter une seconde fois dans un dossier prive,
+  `mount -o remount,rw` de ce montage, ecrire dedans (sous-dossier `system/`), puis `remount,ro`, `umount`,
+  `blockdev --setro`. Le montage d'Android reste en lecture seule, et on evite le tmpfs de Magisk sur
+  `/system/priv-app`.
+- Sous dm-verity (le bloc est esclave d'un `/dev/block/dm-*`), ne rien ecrire : Android ne demarrerait plus.
+  Desactiver soi-meme : `fastboot --disable-verity flash vbmeta vbmeta.img`.
+
 ## Correctif build.prop (zip TWRP, optionnel)
 Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fingerprint d'une autre plateforme
 (`evb3561sv`, Android 6.0) dans `/system/build.prop`. `tools/buildprop_fix/build.sh` construit deux zips TWRP :
