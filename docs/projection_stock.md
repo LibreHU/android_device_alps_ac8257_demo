@@ -93,7 +93,11 @@ Dans ivi-settings (`com.jancar.settings` 2.7.4), Reglages usine :
   diffusions `android_auto_start` / `_end` et `NIGHT_MODE`.
 - **Fait dans LibreHU** : Android Auto par Open Headunit (ou son fork LibreHU `org.librehu.headunit`, signe avec la
   cle LibreHU) pilote par LibreHU-service (onglet Android Auto : etat, commandes, jour / nuit selon les phares, ses
-  reglages modifiables) et LibreHU Launcher (carte de session et prochaine manoeuvre). Forks :
+  reglages modifiables) et LibreHU Launcher (carte de session et prochaine manoeuvre). Avec le fork : capteurs de la
+  voiture envoyes au telephone (frein a main, vitesse, regime, carburant, temperature, phares / clignotants ; chacun
+  coupable, le frein a main peut ne plus etre transmis), touches volant vers Android Auto (Assistant vocal compris),
+  retour a la projection apres la camera de recul, export du journal, theme et accent du launcher suivis,
+  pre-configuration UJC201, et image d'Android Auto dans la carte du launcher (experimental). Forks :
   [LibreHU-open-headunit-app](https://github.com/LibreHU/LibreHU-open-headunit-app) (Open Headunit, affiche
   « Android Auto ») et [LibreHU-xcertplay-app](https://github.com/LibreHU/LibreHU-xcertplay-app) (xcertplay,
   affiche « CarPlay »). Leurs icones sont originales (glyphes Material, colores par l'accent de LibreHU Launcher) :
