@@ -91,6 +91,10 @@ Dans ivi-settings (`com.jancar.settings` 2.7.4), Reglages usine :
   pause des autres medias, mode nuit de CarPlay. Les diffusions de CPLink sont reservees a `com.jancar.services` ;
   la piste est l'API `CarplayManager` de `CarplayService` (rappel d'etat, mode nuit) et, pour Android Auto, ses
   diffusions `android_auto_start` / `_end` et `NIGHT_MODE`.
+- **Fait dans LibreHU** : Android Auto par Open Headunit (ou son fork LibreHU `org.librehu.headunit`, signe avec la
+  cle LibreHU) pilote par LibreHU-service (onglet Android Auto : etat, commandes, jour / nuit selon les phares, ses
+  reglages modifiables) et LibreHU Launcher (carte de session et prochaine manoeuvre). Forks locaux en preparation :
+  `LibreHU-Headunit` (Open Headunit) et `LibreHU-CarPlay` (xcertplay).
 - Alternatives libres :
   - Android Auto : [Open Headunit](https://github.com/andreknieriem/headunit-revived) (ex-Headunit Revived,
     AGPL-3.0), appli Android, USB et sans fil.
