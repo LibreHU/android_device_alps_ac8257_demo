@@ -111,6 +111,9 @@ Dans ivi-settings (`com.jancar.settings` 2.7.4), Reglages usine :
   Headunit LibreHU (reglages vehicule envoyes au telephone) et CarPlay LibreHU (nom affiche sur l'iPhone, marque,
   modele, cote conducteur, adresses). Renommer la voiture renomme aussi le Bluetooth, le point d'acces et le nom
   Wi-Fi Direct.
+- **CarPlay LibreHU** : ecrans de l'appli au theme clair / sombre et a l'accent de LibreHU Launcher ; mode nuit de
+  CarPlay donne par LibreHU-service selon les phares (rubrique Projection → CarPlay, sinon sombre du launcher, sinon
+  celui d'Android) ; etat de session (connexion, active, terminee, echec) remonte a la page CarPlay du service.
 - **Puce MFi** : CarPlay LibreHU trouve le bus seul (reglage I2C `auto` : chaque `/dev/i2c-N` accessible est sonde
   aux adresses 0x10 et 0x11) au lieu de demander `/dev/i2c-6`.
 - Alternatives libres :
