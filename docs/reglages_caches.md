@@ -19,17 +19,29 @@ Adresses metazone (`AtcMetazone.readval/writeval`, puis `flush`) :
 
 | Adresse | Valeur |
 |---|---|
-| 65588 / 65600 | miroir (selon la source : CVBS / AHD) |
+| 65550 | ecran arriere (0 / 1) |
+| 65587 / 65589..65593 | rotation / zone d'affichage et direction forcee (orientation de l'ecran) |
+| 65588 / 65600 | miroir (selon la source : CVBS / AHD), 1 gauche-droite + 2 haut-bas |
 | 65594..65597 / 65601..65604 | recadrage x, y, largeur, hauteur (selon la source) |
 | 65598 | nettete |
 | 65599 | tramage |
-| 65605 | mode camera AHD |
-| 65606 | mode camera AVM |
-| 65607 | source du recul |
+| 65605 | mode camera AHD (4 = 720p, 6 = 1080p) |
+| 65606 | mode camera AVM (0 auto, 1 NTSC, 2 PAL, 3 720p25, 4 720p30, 5 1080p25, 6 1080p30) |
+| 65607 | source du recul (0 debug, 1 CVBS, 2 MIPI / AHD, 3 360) |
 | 65608 | AVM rapide |
 | 65611 | AVM sur CVBS |
+| 65616 | mode USB du port 0 (2 hote, 1 peripherique) |
+| 65617 / 65618 | protocole des ports USB 0 / 1, amelioration DVR (bits 0 / 1) |
 | 65634 | mode capteur AHD |
 | 65635 | mode capteur AVM |
+
+Logo : `AtcLogo.writelogo(2, 0, taille, donnees)`, pixels BGRA a la taille reelle de l'ecran, ligne du haut en
+premier, alpha 0xFF. USB : `UsbManager.setPortRoles(port, 1, role)` (role de donnees 1 hote, 2 peripherique) apres
+l'ecriture de 65616.
+
+**Dans LibreHU-service** (Avance → Autochips, sans ATC Settings) : mode USB, reglages du recul rapide de l'ARM2 puis
+envoi a l'ARM2, logo de demarrage (avec copie prealable de la partition logo), boutons vers Engineer Mode / ATC
+Settings / ATCLogger : [LibreHU-service/docs/atc.md](https://github.com/LibreHU/LibreHU-service/blob/main/docs/atc.md).
 
 ## Engineer Mode MediaTek
 `adb shell am start -n com.mediatek.engineermode/.EngineerMode` (`system/priv-app/EngineerMode`), aussi via l'onglet
