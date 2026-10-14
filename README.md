@@ -225,6 +225,23 @@ Tous reinstallables (repartent de l'original sauvegarde). **dm-verity** : si la 
 demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 `fastboot --disable-verity flash vbmeta vbmeta.img` avec cette sauvegarde (pas `--disable-verification`).
 
+## Applis LibreHU : root (SuperSU) et mises a jour
+- **SuperSU est obligatoire** dans la ROM : LibreHU-service, LibreHU Launcher, LibreHU Apps, la radio FM,
+  ViPER4Android, MCU Toolkit et Android Auto (Open Headunit LibreHU) passent par lui, et chaque demande doit etre
+  accordee avec « Se souvenir ». L'assistant de premier demarrage du launcher le dit et propose **« Autoriser le
+  root pour toutes les applis LibreHU »** : chaque appli installee demande le root l'une apres l'autre (diffusions
+  `org.librehu.action.REQUEST_ROOT` / `ROOT_RESULT`, l'appli lance seulement `su -c id`), donc toutes les fenetres
+  SuperSU arrivent une seule fois, au meme endroit.
+- **Mises a jour** : LibreHU Apps lit la `release.txt` de la pre-version `latest-<branche>` de chaque appli (branche
+  de l'edition choisie : `librehu-service`, `ivi` ou `main`) et propose la mise a jour quand son `versionCode`
+  (nombre de commits de la branche) depasse celui installe. Un correctif pousse seulement sur `main` n'arrive dans
+  une edition qu'une fois `main` fusionnee dans sa branche ; `tools/check_releases.py` du depot LibreHU-OTA-app
+  verifie toutes les applis et toutes les branches.
+- **Forks** : les modifications LibreHU des applis reprises d'autres projets sont listees fichier par fichier dans
+  leur `README_LIBREHU.md` : [Open Headunit](https://github.com/LibreHU/LibreHU-open-headunit-app/blob/main/README_LIBREHU.md),
+  [xcertplay](https://github.com/LibreHU/LibreHU-xcertplay-app/blob/master/README_LIBREHU.md),
+  [ViPER4Android](https://github.com/LibreHU/LibreHU-ViPER4Android-app/blob/main/README_LIBREHU.md).
+
 ## Fichiers
 - `prebuilt/kernel` : noyau stock de la mise a jour Jancar de janvier 2026 (#72, 22/01/2026, celui de TWRP v7) + patch
   `want_initramfs` (avant : 250718, #25)

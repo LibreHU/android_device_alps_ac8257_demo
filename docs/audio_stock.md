@@ -68,6 +68,14 @@ Puce combo MediaTek, `/dev/fm` (`vendor/lib/modules/fmradio_drv.ko`) ; le HAL ro
 Dans la politique : `FM Tuner In` (attache) et `FM Tuner Out`. Appli stock : `com.jancar.radio` (`vendor/app/ivi-radio`),
 emetteur FM : `vendor/app/ivi-FmTransmit`.
 
+Configuration de la bande : `/system/lib64/libfmcust.so` (`CUST_get_cfg`, desassemble) donne la puce `0x6631` quand
+`persist.vendor.connsys.chipid` vaut `0x8257`, la bande US / Europe en **pas de 10 kHz** (8750 a 10800), pas de
+recherche 100 kHz, 80 stations au plus, seuil RSSI -102. Une appli FM installee en priv-app charge cette bibliotheque ;
+la mise sous tension du pilote se fait pourtant en pas de 100 kHz (1000 = 100 MHz) : comparer la frequence a la bande
+dans la meme unite (cause du « La puce FM n'a pas demarre » de LibreHU FM, journal `FMR_pwr_up error freq: 1000`, et
+dans `dmesg` : `/dev/fm` ouvert, identifiant lu, ferme sans `POWERUP`). SELinux est permissif sur la ROM stock
+(`avc: denied { ioctl } ... permissive=1`).
+
 ## Bluetooth [D]
 Appels : PCM `BTCVSD_Playback` / `_Capture` (CVSD / mSBC par le SoC) ; A2DP en sortie via le module `a2dp`.
 La musique d'un telephone (A2DP sink) passe par la pile Bluetooth puis AudioFlinger [?] (`MtkBluetooth`,
