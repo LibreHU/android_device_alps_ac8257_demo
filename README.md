@@ -259,7 +259,7 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - App Android JacMCU (etat, commandes, console MCU ; mode service Jancar ou root) : deplacee dans [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app)
 - `docs/reglages_caches.md` : ATC Settings (Autochips) cache dans les Reglages, Engineer Mode, adresses metazone, config Jancar
 - `docs/audio_stock.md` : chaine audio de la ROM stock (politique, HAL MediaTek et Autochips, effets, FM, deep_buffer)
-- `docs/video_stock.md` : entrees CVBS IN 1 / 2 (commutateur GPIO 167 / 165, camera 3), VIDEO OUT (metazone, `hwc.rear_disp_*`, `com.jancar.usbdisplay`), AUDIO OUT
+- `docs/video_stock.md` : entrees CVBS IN 1 / 2 (commutateur GPIO 167 / 165, camera 3), VIDEO OUT (puce USB MacroSilicon pilotee par `com.jancar.usbdisplay`), AUDIO OUT
 - `docs/projection_stock.md` : CarPlay (CPLink, CarplayService), Android Auto, SpeedPlay, CarbitLink, Jlink de la ROM
   stock, ce qu'ivi-services fait pour eux, gain micro et ECNR des reglages usine
 - `docs/ethernet.md` : Ethernet par adaptateur USB et partage de connexion USB (pilotes du noyau stock, modules

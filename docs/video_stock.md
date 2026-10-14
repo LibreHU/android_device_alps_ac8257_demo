@@ -21,20 +21,19 @@ Analyse de la ROM Jancar (UJC201, AC8257) pour les RCA du faisceau : **CVBS IN 1
   n'ont pas de son.
 
 ## VIDEO OUT
-- ATC Settings (`com.autochips.atcsettings`, Affichage) : interrupteur **Rear display** = metazone `65550`
-  (`AtcDisplaySettingsUtils.setRearDisplay`), visible si `hwc.external_display_enable=1`, redemarrage necessaire.
-- `hwcomposer.ac8257.so` : ecran externe en miroir (`createExternalDisplay`, `setMirror`), publie
-  `hwc.external_display_enable` / `hwc.external_display_open` (contexte SELinux `atc_hwc_prop`). Vus a `0` / `0` dans
-  les getprop collectes.
-- ivi-settings, `RearOutputActivity` (« Rear output settings ») : `hwc.rear_disp_fmt` (`P` / `N`),
-  `hwc.rear_disp_lb_y_top`, `_y_bottom`, `_x_left`, `_x_right` (0..50), sauves dans
-  `/jancar/config/jac_rear_output.json` ; `Settings.Global key_rear_display` ; puis
-  `SettingsService.setRearDisplay` -> `startService(com.jancar.usbdisplay/.service.CaptureService,
-  action change_rear_display, extra change)`.
-- `com.jancar.usbdisplay` (`/vendor/app/ivi-usbdisplay`, uid system, persistant) : lit `key_rear_display` au demarrage
-  (journal `MainService onCreate: key_rear_display = 1`), gere aussi les ecrans USB et l'AVM 360. APK absent de la
-  collecte : son `CaptureService` n'est pas decompile, et le lecteur de `hwc.rear_disp_*` n'est pas identifie (pas le
-  compositeur).
+Verifie avec l'APK `ivi-usbdisplay` (`com.jancar.usbdisplay` 2.1.6, fourni depuis l'autoradio, decompile) : VIDEO OUT
+est une **puce d'affichage USB MacroSilicon** (USB `534d:6021` ou `345f:9132`, sortie CVBS PAL / NTSC), alimentee
+par une capture d'ecran, pas une sortie du SoC.
+- `Settings.Global key_rear_display = 1` : `MainService` (appli persistante, uid system) lance `CaptureService` au
+  demarrage ; `UsbReceiver` le lance quand la puce apparait.
+- `CaptureService` : attend la sortie de l'ARM2 (`BackCar.getArm2Status() == 2`), trouve la puce (USBMonitor, point
+  d'acces 0x04), `MediaProjectionActivity` (capture accordee d'office, `CAPTURE_VIDEO_OUTPUT`), envoi USB bulk ;
+  `change_rear_display` (extra `change`) demarre / arrete, `runtime.reardisplay.status` 54 = envoi, 55 = arret.
+- Reglages : `SettingActivity` (exportee) -> `/jancar/config/usb_display.json` (qualite, dimension, decalages,
+  echelle).
+- Non lus par cette appli : metazone `65550` (« Rear display » d'ATC Settings, `hwc.external_display_*` du
+  compositeur) et `hwc.rear_disp_*` (`RearOutputActivity` d'ivi-settings, puis `SettingsService.setRearDisplay` ->
+  `CaptureService`).
 
 ## AUDIO OUT
 Sortie ligne du BD37534 (meme son que les haut-parleurs). Aucun reglage dedie dans ivi-settings / ivi-audio-settings
