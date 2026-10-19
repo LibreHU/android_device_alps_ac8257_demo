@@ -90,6 +90,25 @@ reconstruction ; le Wi-Fi, le BT, le GPS et la FM y marchent avec les modules st
 - Des en-tetes et une config exacts pour compiler des modules (`tools/usbnet/` compile aujourd'hui contre un 4.9.117
   standard puis verifie les CRC du stock).
 
+## Sources publiques de remplacement
+- **Connectivite (WMT, BT, GPS, FM, Wi-Fi gen4m), `met`, `fpsgo`** : disponibles dans les sources GPL Samsung du
+  Galaxy Tab A7 Lite (MT6765, Linux 4.19,
+  [gta7lite/android_kernel_samsung_mt6765](https://github.com/gta7lite/android_kernel_samsung_mt6765)), compilees
+  dans l'arbre : `drivers/misc/mediatek/connectivity/{common,bt,gps,fmradio,wlan/core/gen4m}` (924 fichiers), avec
+  la plateforme WMT `mt6761.c` (l'AC8257 derive du MT6761) et la puce FM `mt6631` ; `met_drv`, `performance/fpsgo_v3`.
+  A porter vers 4.9 (API du noyau) et a accorder aux firmwares et au userspace du stock (`/vendor/firmware`,
+  `wmt_loader`, `wmt_launcher`) : versions differentes de celles du #72, adaptations Autochips (`CONSYS_8257`)
+  possibles. Les modules stock marchent deja dans le noyau reconstruit : c'est une solution de secours, pas un
+  besoin immediat.
+- **Tactiles** Himax `hxchipset`, ILITEK v3, Synaptics TCM2 : meme arbre Samsung. Inutiles pour l'unite (GT928,
+  present dans le paquet).
+- **Capteur `tp9963`** (decodeur AHD Techpoint) : aucune source publique trouvee. Les pilotes Techpoint sont fournis
+  sous accord aux fabricants ; `tp2850` / `tp2854` sont dans le paquet. Quel decodeur porte l'unite :
+  `dmesg | grep -iE "tp28|tp99"` sur le noyau stock.
+- **Code Jancar** (`JANCAR_SOLUTION`, `gpios_ioctl`, LCM `jac_*`, `lowmemorykiller`, `rc-jancar`, identifiant de
+  carte) : n'existe nulle part ailleurs ; seul Jancar peut le fournir. Le noyau reconstruit en reimplemente une
+  partie (`/dev/gpios_ioctl`, lecture de la metazone).
+
 ## Suite
 - Redemander a SIXWIN / Jancar les parties manquantes, nommees ci-dessus (la GPLv2 couvre tout le code compile dans
   le noyau distribue, pilotes Jancar inclus) : sources de `CONFIG_JANCAR_SOLUTION` et `CONFIG_JANCAR_GPIOS`, des
