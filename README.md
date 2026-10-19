@@ -1,9 +1,19 @@
 # TWRP – Jancar UJC201 (Autochips AC8257, carte JAC_8258C)
 
 Arbre TWRP (branche **twrp-12.1**) pour les autoradios Android « UJC201 » (SIXWIN, Podofo, Hikity…).
-**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25`) puis la
-mise a jour officielle Jancar de janvier 2026 (noyau `4.9.117+ #72` du 22/01/2026 : meme configuration, memes symboles
-exportes et memes CRC que #25, donc memes modules).
+**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.151R6-260122_0427-RH-C0-CYA` (noyau `4.9.117+ #72, 22/01/2026`),
+auparavant `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25` : meme configuration, memes symboles exportes et memes
+CRC que #72, donc memes modules).
+
+## Changelog récent
+
+### 2026-10-12
+- Mise à jour du noyau précompilé vers le noyau stock UJC201-V1.151R6-260122_0427-RH-C0-CYA, Linux 4.9.117+ #72, avec le patch `skip_initramfs` → `want_initramfs` ; la zone DTB ajoutée au flux gzip est conservée.
+- Mise à jour de `prebuilt/dtbo.img` depuis le `recovery_dtbo` du nouveau `recovery.img`.
+- Mise à jour du contenu de `prebuilt/avb/recovery_stock_vbmeta_250718.bin` avec le VBMeta extrait du nouveau recovery stock ; le nom de fichier historique est conservé. L'empreinte de la clé publique reste `0aa0987116fc792f36bc909b0a4d530413f02a54`.
+- Ajout de l'entrée `System Image` dans `recovery.fstab` pour les sauvegardes/restaurations brutes de la partition `system`, en conservant l'entrée de sauvegarde au niveau des fichiers.
+- Ajout d'un correctif dans `tools/apply_twrp_patches.py` : si la fstab par défaut ne contient pas `/misc`, le code AOSP `bootloader_message` utilise `/dev/block/platform/bootdevice/by-name/para`, où cet appareil stocke le BCB (`boot-recovery --wipe_data`). Ce correctif vise à éviter de rester bloqué dans TWRP après une réinitialisation d'usine ; il doit être confirmé par le build et un test sur l'appareil.
+
 
 | Fonction | Etat |
 |---|---|
@@ -24,8 +34,17 @@ fastboot flash recovery twrp_ujc201.img
 fastboot oem reboot-recovery
 ```
 Retour au recovery stock : `fastboot flash recovery <recovery stock>.img`.
-Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, Readback : `EMMC_BOOT_1` 0x0/0x400000,
-`EMMC_USER` 0x0/0x1A0000000, fin de disque `EMMC_USER` 0x1D1A000000/0x4000000).
+Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, onglet Readback, une ligne par zone) :
+
+| Nom | Region | Adresse | Longueur | Contenu |
+|---|---|---|---|---|
+| `ROM_0` | `EMMC_BOOT_1` | 0x0 | 0x400000 | preloader |
+| `ROM_1` | `EMMC_USER` | 0x0 | 0x1A0000000 | pgpt -> cache (tout sauf userdata) |
+| `ROM_2` | `EMMC_USER` | 0x1A0000000 | 0x1B7A000000 | userdata (optionnel, tres gros) |
+| `ROM_3` | `EMMC_BOOT_2` | 0x0 | 0x400000 | 2e zone de boot (souvent vide) |
+| `ROM_4` | `EMMC_USER` | 0x1D1A000000 | 0x4000000 | fin de disque (otp, flashinfo, sgpt) |
+
+Adresses du scatter `MT6761_Android_scatter.txt` de l'appareil.
 
 **Flasher `twrp_ujc201.img` (post-traite), jamais le `recovery.img` brut du build.**
 Depuis Android (root), l'onglet Zips de LibreHU Apps peut aussi l'ecrire dans `recovery` (zip `twrp-ujc201` de

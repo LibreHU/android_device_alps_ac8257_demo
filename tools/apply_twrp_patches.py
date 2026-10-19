@@ -54,6 +54,38 @@ DATA_INIT_NEW = '''	printf("UJC201-statustext\\n");
 UI_OLD = '<text>{@cpu_temp=CPU: %tw_cpu_temp% °C}</text>'
 UI_NEW = '<text>%tw_cpu_temp%</text>'
 
+MISC_OLD = '''  if (!ReadDefaultFstab(&fstab)) {
+    *err = "failed to read default fstab";
+    return "";
+  }
+  for (const auto& entry : fstab) {
+    if (entry.mount_point == "/misc") {
+      return entry.blk_device;
+    }
+  }
+
+  *err = "failed to find /misc partition";
+  return "";'''
+
+MISC_NEW = '''  if (ReadDefaultFstab(&fstab)) {
+    for (const auto& entry : fstab) {
+      if (entry.mount_point == "/misc") {
+        return entry.blk_device;
+      }
+    }
+  }
+
+  // UJC201-misc-para-fallback: on AC8257, the bootloader message (BCB) is stored in "para".
+  // TWRP's generated /etc/fstab does not expose this partition as /misc.
+  const std::string ujc201_para = "/dev/block/platform/bootdevice/by-name/para";
+  struct stat st;
+  if (stat(ujc201_para.c_str(), &st) == 0) {
+    return ujc201_para;
+  }
+
+  *err = "failed to read default fstab or find /misc/UJC201 para device";
+  return "";'''
+
 
 PAGES_RENDER_OLD = """int PageManager::Render(void)
 {
@@ -258,6 +290,7 @@ def patch(path, old, new, done_marker, count=1):
 def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'bootable/recovery'
     j = lambda p: os.path.join(root, p)
+    patch(j('bootloader_message/bootloader_message.cpp'), MISC_OLD, MISC_NEW, 'UJC201-misc-para-fallback')
     patch(j('data.cpp'), DATA_OLD, DATA_NEW, 'UJC201-statustext : ligne')
     patch(j('data.cpp'), DATA_INIT_OLD, DATA_INIT_NEW, 'printf("UJC201-statustext')
     patch(j('gui/theme/landscape_hdpi/ui.xml'), UI_OLD, UI_NEW, UI_NEW, count=1)

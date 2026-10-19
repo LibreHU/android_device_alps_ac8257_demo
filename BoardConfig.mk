@@ -50,9 +50,10 @@ BOARD_KERNEL_SEPARATED_DTBO := true
 TARGET_KERNEL_CONFIG := ac8257_demo_defconfig
 TARGET_KERNEL_SOURCE := kernel/alps/ac8257_demo
 
-# Kernel - prebuilt : noyau stock de la mise a jour Jancar de janvier 2026 (#72, 22/01/2026 ; avant : 250718, #25),
+# Kernel - prebuilt : noyau stock UJC201-V1.151R6-260122_0427-RH-C0-CYA (#72 du 22 janvier 2026 ; avant : 250718, #25),
+# extrait du recovery stock,
 # patche "skip_initramfs" -> "want_initramfs" (le LK ajoute skip_initramfs hors mode recovery).
-# prebuilt/dtbo.img = recovery_dtbo du recovery stock 250718.
+# prebuilt/dtbo.img = recovery_dtbo du recovery stock de la mise a jour 2026 (V1.151R6-260122).
 TARGET_FORCE_PREBUILT_KERNEL := true
 ifeq ($(TARGET_FORCE_PREBUILT_KERNEL),true)
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
