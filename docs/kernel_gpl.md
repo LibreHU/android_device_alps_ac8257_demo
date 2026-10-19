@@ -28,7 +28,7 @@ defconfigs et aux symboles des `Kconfig` du paquet (rien n'a ete compile ni exec
   - `CONFIG_JANCAR_SOLUTION`, `CONFIG_JANCAR_GPIOS` : les pilotes propres a Jancar ; le mot « jancar »
     n'apparait dans aucun fichier source du paquet ;
   - `CONFIG_TOUCHSCREEN_FTS` (FocalTech), `CONFIG_TOUCHSCREEN_SYNA_TCM2`, `CONFIG_TOUCHSCREEN_SYNA_TCM2_I2C`
-    (Synaptics) : pilotes tactiles ;
+    (Synaptics) : pilotes tactiles d'autres ecrans (celui de l'unite, GT928, est present) ;
   - overlay de device tree `mediatek/UJC201_64` ;
   - pilote du capteur `tp9963_yuv` (decodeur video AHD / CVBS) ;
   - pilotes tactiles listes par le noyau stock (chemins `__FILE__`) : `ILITEK_V3`, `hxchipset` (Himax),
@@ -47,8 +47,10 @@ defconfigs et aux symboles des `Kconfig` du paquet (rien n'a ete compile ni exec
   hors GPL du noyau.
 
 Conclusion : c'est le noyau Autochips de reference de la plateforme, presque identique en configuration, **sans les
-ajouts Jancar**. Un noyau compile depuis ce paquet ne gererait ni le tactile, ni les GPIO Jancar, ni la camera
-`tp9963`, ni la description materielle de l'UJC201 : pas de noyau de remplacement pour l'instant.
+ajouts Jancar**. Le tactile de l'unite (Goodix GT928, `CONFIG_TOUCHSCREEN_MTK_GT928`) est dans le paquet
+(`drivers/input/touchscreen/mediatek/GT928`) ; les pilotes tactiles absents servent aux autres ecrans de la gamme.
+Un noyau compile depuis ce paquet seul n'aurait ni les GPIO Jancar, ni la camera `tp9963`, ni la description
+materielle de l'UJC201 : pas de noyau de remplacement direct, mais de quoi completer le noyau reconstruit.
 
 ## Apport pour le noyau reconstruit
 [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (base publique
