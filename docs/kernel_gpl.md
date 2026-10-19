@@ -30,11 +30,38 @@ defconfigs et aux symboles des `Kconfig` du paquet (rien n'a ete compile ni exec
   - `CONFIG_TOUCHSCREEN_FTS` (FocalTech), `CONFIG_TOUCHSCREEN_SYNA_TCM2`, `CONFIG_TOUCHSCREEN_SYNA_TCM2_I2C`
     (Synaptics) : pilotes tactiles ;
   - overlay de device tree `mediatek/UJC201_64` ;
-  - pilote du capteur `tp9963_yuv` (decodeur video AHD / CVBS).
+  - pilote du capteur `tp9963_yuv` (decodeur video AHD / CVBS) ;
+  - pilotes tactiles listes par le noyau stock (chemins `__FILE__`) : `ILITEK_V3`, `hxchipset` (Himax),
+    `synaptics_dsx`, `synaptics_tcm2` (14 fichiers).
+- **Absent aussi : les modules de connectivite et de performance**, compiles hors de l'arbre du noyau chez MediaTek
+  (`drivers/misc/mediatek/connectivity/Makefile` : « move to standalone repo »,
+  `vendor/mediatek/kernel_modules/connectivity/...`), charges depuis `/vendor/lib/modules` (lsmod du stock) :
+  `wmt_drv` (CONSYS / WMT, socle commun), `bt_drv` (Bluetooth), `gps_drv` (GPS), `fmradio_drv` (FM MT6631),
+  `wmt_chrdev_wifi` et `wlan_drv_gen4m` (Wi-Fi), `fpsgo`. Seul l'adaptateur integre (`connadp` :
+  `connectivity_build_in_adapter.c`, `wmt_build_in_adapter.c`) est dans le paquet. Ces modules se chargent dans le
+  noyau et MediaTek les publie sous GPLv2 ailleurs (ex. arbres de Google Nest) : leurs sources sont dues aussi. A
+  verifier sur l'unite : `strings /vendor/lib/modules/wmt_drv.ko | grep license=` (idem pour les autres).
+- **RIL** : rien a reclamer cote noyau. Le noyau stock n'a pas de pilote de modem USB (`USB_SERIAL_OPTION`,
+  `USB_NET_QMI_WWAN`, `USB_ACM`, `USB_WDM` non actives) ; `MTK_ECCCI` (modem integre MediaTek) est actif par la base
+  `ac8257_demo` et present dans le paquet. Le RIL lui-meme (`rild`, bibliotheques vendor) est du code utilisateur,
+  hors GPL du noyau.
 
 Conclusion : c'est le noyau Autochips de reference de la plateforme, presque identique en configuration, **sans les
 ajouts Jancar**. Un noyau compile depuis ce paquet ne gererait ni le tactile, ni les GPIO Jancar, ni la camera
 `tp9963`, ni la description materielle de l'UJC201 : pas de noyau de remplacement pour l'instant.
+
+## Apport pour le noyau reconstruit
+[android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (base publique
+MediaTek MT6761 + reconstruction, demarre la ROM stock) liste les sources du noyau stock qu'il n'a pas
+(`reference/stock-source-files.txt`) et les options sans `Kconfig` (`reference/stock-config-missing-symbols.txt`) :
+- 107 des 121 fichiers source manquants ou renommes sont dans le paquet ; il ne manque que les 14 fichiers tactiles
+  ci-dessus ;
+- 36 des 42 options sans `Kconfig` sont dans le paquet (`ATC_AVIN`, `ATC_BACKCAR`, `ATC_BOOT_STATE`...) ; restent
+  `JANCAR_GPIOS`, `JANCAR_SOLUTION`, `TOUCHSCREEN_FTS`, `TOUCHSCREEN_FTS_DIRECTORY`, `TOUCHSCREEN_SYNA_TCM2`,
+  `TOUCHSCREEN_SYNA_TCM2_I2C`.
+Les pilotes Autochips qui manquaient a la reconstruction (camera de recul / AV-in / AVM : `tvd`, `di`, `nr`, `wch`,
+`backcar`, `avin` ; ARM2 : `dualarm`) sont donc disponibles. Le tactile GT928 de l'unite marche deja dans la
+reconstruction ; le Wi-Fi, le BT, le GPS et la FM y marchent avec les modules stock (CRC du stock exportes).
 
 ## Ce que le paquet apporte deja
 - Les pilotes de plateforme a lire au lieu de desassembler : metazone (`metazone_drv.c`, format de la partition),
@@ -45,8 +72,9 @@ ajouts Jancar**. Un noyau compile depuis ce paquet ne gererait ni le tactile, ni
 ## Suite
 - Redemander a SIXWIN / Jancar les parties manquantes, nommees ci-dessus (la GPLv2 couvre tout le code compile dans
   le noyau distribue, pilotes Jancar inclus) : sources de `CONFIG_JANCAR_SOLUTION` et `CONFIG_JANCAR_GPIOS`, des
-  pilotes tactiles FTS / Synaptics TCM2, du capteur `tp9963`, du device tree `UJC201_64`, et la defconfig utilisee
-  pour le #72.
+  pilotes tactiles FTS / Synaptics TCM2 (et ILITEK, Himax, Synaptics DSX), du capteur `tp9963`, du device tree
+  `UJC201_64`, des modules `/vendor/lib/modules` (connectivite `wmt_drv`, `bt_drv`, `gps_drv`, `fmradio_drv`,
+  `wmt_chrdev_wifi`, `wlan_drv_gen4m` ; `fpsgo`), et la defconfig utilisee pour le #72.
 - Garder une copie du paquet (les liens OneDrive partages expirent) ; la GPL permet de le redistribuer.
 - Aucun flash de noyau n'est automatise : il demande vbmeta sans verification, fait a la main
   (`fastboot --disable-verity flash vbmeta vbmeta.img`).

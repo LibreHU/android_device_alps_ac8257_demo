@@ -265,7 +265,7 @@ demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
 - `docs/ethernet.md` : Ethernet par adaptateur USB et partage de connexion USB (pilotes du noyau stock, modules
   ajoutes : Realtek, RNDIS, iPhone…, zip `usb-net`, page Reseau de LibreHU-service)
 - `tools/usbnet/` : construction et verification (CRC stock) des modules reseau USB
-- `docs/kernel_gpl.md` : sources GPL du noyau envoyees par SIXWIN / Jancar (19/10/2026) : base Autochips presque identique au noyau stock, pilotes Jancar (tactile, GPIO, camera tp9963, device tree UJC201) absents
+- `docs/kernel_gpl.md` : sources GPL du noyau envoyees par SIXWIN / Jancar (19/10/2026) : base Autochips presque identique au noyau stock, pilotes Jancar (tactile, GPIO, camera tp9963, device tree UJC201) et modules de connectivite (Wi-Fi, BT, GPS, FM) absents ; 107 des 121 sources qui manquaient au noyau reconstruit y sont
 - `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
 
