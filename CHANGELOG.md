@@ -3,6 +3,9 @@
 ## Non publie
 
 ### Nouveau
+- **Sources GPL du noyau** (`docs/kernel_gpl.md`) : paquet `kernel-4.9.tgz` recu de SIXWIN / Jancar le 19/10/2026,
+  compare au noyau stock #72 : base Autochips `ac8257_demo` (428 / 435 options), sans les pilotes Jancar
+  (`CONFIG_JANCAR_SOLUTION`, `CONFIG_JANCAR_GPIOS`, tactile FTS / Synaptics TCM2, capteur `tp9963`, overlay `UJC201_64`).
 - **Noyau #72** : `prebuilt/kernel` = noyau stock de la mise a jour officielle Jancar de janvier 2026 (#72 du
   22/01/2026, patch `want_initramfs`, celui de TWRP v7) ; configuration, exports et CRC identiques a #25.
 - **Ethernet et partage de connexion USB** (`docs/ethernet.md`, `tools/usbnet/`) : modules pour le noyau stock
