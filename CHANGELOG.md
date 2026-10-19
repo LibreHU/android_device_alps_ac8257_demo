@@ -3,21 +3,20 @@
 ## Non publie
 
 ### Nouveau
-- **Sources GPL du noyau** (`docs/kernel_gpl.md`) : paquet `kernel-4.9.tgz` recu de SIXWIN / Jancar le 19/10/2026,
-  compare au noyau stock #72 : base Autochips `ac8257_demo` (428 / 435 options), sans les pilotes Jancar
-  (`CONFIG_JANCAR_SOLUTION`, `CONFIG_JANCAR_GPIOS`, tactile FTS / Synaptics TCM2, capteur `tp9963`, overlay `UJC201_64`)
-  ni les modules de connectivite hors arbre (`wmt_drv`, `bt_drv`, `gps_drv`, `fmradio_drv`, `wlan_drv_gen4m`) ; il
-  apporte 107 des 121 sources qui manquaient au noyau reconstruit (Autochips : TVD, AV-in, recul, ARM2...).
-  Manquent aussi les modifications Jancar de fichiers existants (LCM `jac_*`, `lowmemorykiller`, IR `rc-jancar`).
 - **Noyau #72** : `prebuilt/kernel` = noyau stock de la mise a jour officielle Jancar de janvier 2026 (#72 du
-  22/01/2026, patch `want_initramfs`, celui de TWRP v7) ; configuration, exports et CRC identiques a #25.
-- **Ethernet et partage de connexion USB** (`docs/ethernet.md`, `tools/usbnet/`) : modules pour le noyau stock
-  (Realtek RTL8152 / RTL8153, RNDIS pour le partage d'un telephone Android, iPhone, LAN78xx, SMSC, DM9601, SR9700 /
-  SR9800, MCS7830, CH9200, RTL8150, Pegasus, CDC EEM), verifies contre les CRC stock ; zip flashable `usb-net`
-  (LibreHU-flashablesZips, categorie Noyau).
-- **Audio : musique muette** (`tools/audio/no_deep_buffer.sh`, `docs/audio_deep_buffer.md`) : retire la sortie
-  `deep_buffer` (PCM MultiMedia2, muette sur l'unite) de `audio_policy_configuration.xml` pour faire passer la
-  musique par `primary`. Sauvegarde, verification et retour arriere (`restore`).
+  22/01/2026, patch `want_initramfs`) ; `prebuilt/dtbo.img` et vbmeta du recovery 2026 ; configuration, exports et
+  CRC identiques a #25.
+- **fstab** : entree `System Image` (sauvegarde / restauration brute de `system`) en plus de « System (fichiers) ».
+- **BCB** : `tools/apply_twrp_patches.py` replie le message bootloader sur la partition `para` quand la fstab n'a pas
+  `/misc` (eviter de rester dans TWRP apres une reinitialisation d'usine) ; a confirmer sur l'unite.
+
+### Deplace
+- Le depot ne garde que l'arbre TWRP (19/10/2026). Notes de l'appareil et de la ROM stock (sources GPL du noyau,
+  Ethernet, audio, video, projection, reglages caches, tester un noyau, /system, applis LibreHU) et outils `usbnet`,
+  `audio`, `dump` : depot noyau
+  [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
+  (`docs/ujc201/`, `tools/ac8257/`). MCU (`docs/mcu_firmware.md`, `tools/mcu/`, appli JacMCU) :
+  [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app).
 
 ## v1.1 — depuis 3.7.1_12 (`858a3c4`)
 

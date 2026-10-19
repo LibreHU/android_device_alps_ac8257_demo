@@ -171,41 +171,6 @@ Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+
 TWRP n'a pas de navigation au clavier : `back` = page precedente, `home` = menu principal, `power` = verrouillage,
 `enter` = valider un champ texte, `bl+`/`bl-` = luminosite ; `volup`/`voldown` ne font rien dans TWRP seul.
 
-### 9. Partition boot, misc, RAM : pour tester un noyau
-- La partition `boot` stock se termine par un **footer AVB** (son propre vbmeta, cle Jancar) : sans lui le LK
-  refuse l'image (logo puis reboot, aucun journal noyau). Le garder en reconditionnant (`mkboot.py`,
-  `tools/ac8257/repack_boot.py` du depot noyau).
-- `fastboot boot` ne demarre pas l'image (le LK redemarre) : tester un noyau depuis la partition **recovery**
-  (`fastboot oem reboot-recovery`), un crash finit alors sur le boot normal.
-- Le « misc » Android de cette unite est la partition **`para`** (message bootloader, commande `boot-recovery`
-  de Rescue Party) ; la partition nommee `misc` sert a autre chose. En sauvegarder une copie avant tout test.
-- SP Flash Tool reinitialise la RAM : pstore / `last_kmsg` sont alors perdus.
-- 6 Go de RAM mais Trusty 32 bits et GPU : le noyau stock alloue leurs tampons sous 4 Go (`GFP_DMA`).
-- Le GPU (base MT6761) n'adresse que 32 bits : les tampons ION qu'il recoit (gralloc, composition) doivent
-  aussi etre sous 4 Go, sinon la memoire au-dela se corrompt (artefacts, plantages partout dans Android).
-  Test decisif : `mem=3G` sur la ligne de commande (toute la RAM sous 4 Go physiques, la RAM commence a 1 Go).
-- Un essai rate qui finit en coupure a froid (`[pmic_check_rst] Cold Reset`, `kedump: last is full pmic reset`)
-  ne laisse aucun journal : le preloader teste la RAM au demarrage suivant.
-- Forcer le drapeau RTC « recovery » a chaque boot pour relancer directement le noyau de test fait boucler
-  l'unite si ce noyau ne demarre qu'apres un boot stock ; sortie : SP Flash Tool, partition recovery seule.
-- Le LK compte les demarrages en recovery dans la metazone (`INTO_RECOVERY_COUNT`, dword 0x101A2).
-Reconstruction du noyau AC8257 (sources, etat, procedure de test) :
-[LibreHU/android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9).
-
-### 10. /system en ecriture (root)
-- System-as-root (`BOARD_BUILD_SYSTEM_ROOT_IMAGE`) : /system est un dossier de `/`, qui apparait comme `/dev/root`
-  dans `/proc/mounts`, un noeud qui n'existe pas : on ne peut ni identifier le vrai bloc par lui, ni lever par lui
-  un drapeau lecture seule du bloc (BLKROSET, que le fs_mgr d'Android pose sur les partitions montees en ro), qui
-  fait echouer `mount -o rw,remount` (« write-protected »). Le vrai bloc :
-  `/dev/block/platform/bootdevice/by-name/system`, ou celui derriere `/sys/dev/block/<majeur:mineur>` de
-  `/proc/self/mountinfo`.
-- Methode sure (LibreHU Apps) : `blockdev --setrw` sur ce bloc, le monter une seconde fois dans un dossier prive,
-  `mount -o remount,rw` de ce montage, ecrire dedans (sous-dossier `system/`), puis `remount,ro`, `umount`,
-  `blockdev --setro`. Le montage d'Android reste en lecture seule, et on evite le tmpfs de Magisk sur
-  `/system/priv-app`.
-- Sous dm-verity (le bloc est esclave d'un `/dev/block/dm-*`), ne rien ecrire : Android ne demarrerait plus.
-  Desactiver soi-meme : `fastboot --disable-verity flash vbmeta vbmeta.img`.
-
 ## Correctif build.prop (zip TWRP, optionnel)
 Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fingerprint d'une autre plateforme
 (`evb3561sv`, Android 6.0) dans `/system/build.prop`. `tools/buildprop_fix/build.sh` construit deux zips TWRP :
@@ -218,75 +183,27 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
   et `/system/etc/init/ujc201_version.rc` (reimpose a chaque demarrage) ;
 - `ujc201_buildprop_restore.zip` : remet l'original (`.bak`, sinon la derniere copie de `/sdcard`).
 
-## Audio : zips TWRP (deep_buffer, pilote ViPER4Android sans Magisk)
-Magisk ne tient pas dans le `boot` de l'unite (ramdisk trop gros) et la ROM est une build `user` (pas d'`adb root`) :
-ces modifications audio passent par TWRP. `tools/audio/twrp/build.sh [ViPER4Android-RE-vX.zip]` construit :
-- `ujc201_nodeepbuffer_install.zip` / `_restore.zip` : retire la sortie `deep_buffer` (musique muette, voir
-  [docs/audio_deep_buffer.md](docs/audio_deep_buffer.md)) du premier `audio_policy_configuration.xml` qu'Android 9
-  utilise ; sauvegarde `<fichier>.nodeep-orig` + `/sdcard/UJC201_audio_backup/<date>/` ;
-- `ujc201_viper_install.zip` / `_restore.zip` (si le module non-AIDL de
-  [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) est donne) : copie `libv4a_re.so` dans
-  `/vendor/lib/soundfx` (et `lib64`) et declare l'effet (librairie `v4a_re`, UUID
-  `90380da3-8536-4744-a6a3-5731970e640f`) dans les `audio_effects*.xml` / `.conf` de `/vendor/etc`, ceux qu'Android 9
-  lit en priorite (ceux de `/system/etc` seulement si vendor n'en a pas) ; sauvegarde `<fichier>.v4a-orig` +
-  `/sdcard/UJC201_viper_backup/<date>/`. L'appli ViPER4Android s'installe a part (en `/system/priv-app` pour le
-  mode par appli sans root, voir LibreHU Apps). Avec KernelSU (Next), le module d'origine s'installe aussi tel quel
-  depuis le gestionnaire, sans toucher aux partitions.
-
-Zips prets a flasher : [LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips) (release `zips`,
-reconstruite par la CI a chaque push et chaque jour : pilote ViPER, deep_buffer, derniere TWRP de ce depot), classes
-par categorie et installables depuis l'onglet Zips de LibreHU Apps (flash TWRP automatique, ou image TWRP ecrite
-directement dans `recovery` en root, avec sauvegarde).
-
-Tous reinstallables (repartent de l'original sauvegarde). **dm-verity** : si la partition a modifier est verifiee
-(drapeaux fs_mgr `avb` / `verify` du fstab du device tree) et que vbmeta ne l'a pas desactive (drapeau
-`HASHTREE_DISABLED`), le zip s'arrete sans rien modifier : modifier une partition sous dm-verity empeche Android de
-demarrer. Pour le desactiver soi-meme : sauvegarder VBMeta dans TWRP, puis
-`fastboot --disable-verity flash vbmeta vbmeta.img` avec cette sauvegarde (pas `--disable-verification`).
-
-## Applis LibreHU : root (SuperSU) et mises a jour
-- **SuperSU est obligatoire** dans la ROM : LibreHU-service, LibreHU Launcher, LibreHU Apps, la radio FM,
-  ViPER4Android, MCU Toolkit et Android Auto (Open Headunit LibreHU) passent par lui, et chaque demande doit etre
-  accordee avec « Se souvenir ». L'assistant de premier demarrage du launcher le dit et propose **« Autoriser le
-  root pour toutes les applis LibreHU »** : chaque appli installee demande le root l'une apres l'autre (diffusions
-  `org.librehu.action.REQUEST_ROOT` / `ROOT_RESULT`, l'appli lance seulement `su -c id`), donc toutes les fenetres
-  SuperSU arrivent une seule fois, au meme endroit.
-- **Mises a jour** : LibreHU Apps lit la `release.txt` de la pre-version `latest-<branche>` de chaque appli (branche
-  de l'edition choisie : `librehu-service`, `ivi` ou `main`) et propose la mise a jour quand son `versionCode`
-  (nombre de commits de la branche) depasse celui installe. Un correctif pousse seulement sur `main` n'arrive dans
-  une edition qu'une fois `main` fusionnee dans sa branche ; `tools/check_releases.py` du depot LibreHU-OTA-app
-  verifie toutes les applis et toutes les branches.
-- **Forks** : les modifications LibreHU des applis reprises d'autres projets sont listees fichier par fichier dans
-  leur `README_LIBREHU.md` : [Open Headunit](https://github.com/LibreHU/LibreHU-open-headunit-app/blob/main/README_LIBREHU.md),
-  [xcertplay](https://github.com/LibreHU/LibreHU-xcertplay-app/blob/master/README_LIBREHU.md),
-  [ViPER4Android](https://github.com/LibreHU/LibreHU-ViPER4Android-app/blob/main/README_LIBREHU.md).
-
 ## Fichiers
-- `prebuilt/kernel` : noyau stock de la mise a jour Jancar de janvier 2026 (#72, 22/01/2026, celui de TWRP v7) + patch
-  `want_initramfs` (avant : 250718, #25)
-- `prebuilt/dtbo.img` : recovery_dtbo du recovery stock 250718
-- `prebuilt/avb/recovery_stock_vbmeta_250718.bin` : vbmeta (footer) du recovery stock
+- `prebuilt/kernel` : noyau stock de la mise a jour Jancar de janvier 2026 (#72, 22/01/2026) + patch `want_initramfs`
+  (avant : 250718, #25)
+- `prebuilt/dtbo.img` : recovery_dtbo du recovery stock de la mise a jour 2026
+- `prebuilt/avb/recovery_stock_vbmeta_250718.bin` : vbmeta (footer) du recovery stock 2026 (nom historique conserve)
 - `recovery/root/` : rc, `touchfix`, `usbmode`, `powerinfo`, `mcuinfo`, `wheelkeys`, `ujc201_keys.conf`
 - `tools/touchfix/` : source de `touchfix` (C autonome, sans libc) + `build.sh`
 - `tools/apply_twrp_patches.py` : patchs du source TWRP (applique par le workflow)
 - `tools/buildprop_fix/` : zips TWRP correctif / restauration du build.prop
-- `tools/dump/collecte_audio_camera.sh` : extrait d'un dump stock (system / vendor) les fichiers audio, camera, FM et Jancar a analyser
-- `tools/audio/` : `no_deep_buffer.sh` (adb root) et `twrp/` : zips TWRP deep_buffer et pilote ViPER4Android RE
 - `tools/ujc201_theme.py` : entrees Advanced + page graphique (partage source / post-traitement)
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)
-- `tools/mcu/` : analyse du firmware MCU (`mdis.py`, `ana*.py`) et `jacmcu.py` (trames, decodage de `/tmp/mcu.log`, moniteur serie)
-- App Android JacMCU (etat, commandes, console MCU ; mode service Jancar ou root) : deplacee dans [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app)
-- `docs/reglages_caches.md` : ATC Settings (Autochips) cache dans les Reglages, Engineer Mode, adresses metazone, config Jancar
-- `docs/audio_stock.md` : chaine audio de la ROM stock (politique, HAL MediaTek et Autochips, effets, FM, deep_buffer)
-- `docs/video_stock.md` : entrees CVBS IN 1 / 2 (commutateur GPIO 167 / 165, camera 3), VIDEO OUT (puce USB MacroSilicon pilotee par `com.jancar.usbdisplay`), AUDIO OUT
-- `docs/projection_stock.md` : CarPlay (CPLink, CarplayService), Android Auto, SpeedPlay, CarbitLink, Jlink de la ROM
-  stock, ce qu'ivi-services fait pour eux, gain micro et ECNR des reglages usine
-- `docs/ethernet.md` : Ethernet par adaptateur USB et partage de connexion USB (pilotes du noyau stock, modules
-  ajoutes : Realtek, RNDIS, iPhone…, zip `usb-net`, page Reseau de LibreHU-service)
-- `tools/usbnet/` : construction et verification (CRC stock) des modules reseau USB
-- `docs/kernel_gpl.md` : sources GPL du noyau envoyees par SIXWIN / Jancar (19/10/2026) : base Autochips presque identique au noyau stock, pilotes Jancar (tactile, GPIO, camera tp9963, device tree UJC201) et modules de connectivite (Wi-Fi, BT, GPS, FM) absents ; 107 des 121 sources qui manquaient au noyau reconstruit y sont
-- `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
+
+## Ailleurs
+Ce depot ne contient que l'arbre TWRP. Le reste a ete deplace le 19/10/2026 :
+- noyau, sources GPL Autochips, tester un noyau (footer AVB du boot, `para`, RAM), notes de la ROM stock (audio,
+  video, CarPlay / Android Auto, Ethernet, reglages caches, /system en ecriture, zips audio, applis LibreHU) et
+  outils (`usbnet`, `audio`, `dump`) : [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
+  (`docs/ujc201/`, `tools/ac8257/`) ;
+- firmware et protocole du MCU, outils `tools/mcu/`, appli JacMCU : [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app) ;
+- zips prets a flasher : [LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips).
 
 ## Securite
 Ne jamais restaurer la partition « Preloader » depuis TWRP. Garder le recovery stock pour les mises a jour.
