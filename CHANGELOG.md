@@ -8,6 +8,7 @@
   (`CONFIG_JANCAR_SOLUTION`, `CONFIG_JANCAR_GPIOS`, tactile FTS / Synaptics TCM2, capteur `tp9963`, overlay `UJC201_64`)
   ni les modules de connectivite hors arbre (`wmt_drv`, `bt_drv`, `gps_drv`, `fmradio_drv`, `wlan_drv_gen4m`) ; il
   apporte 107 des 121 sources qui manquaient au noyau reconstruit (Autochips : TVD, AV-in, recul, ARM2...).
+  Manquent aussi les modifications Jancar de fichiers existants (LCM `jac_*`, `lowmemorykiller`, IR `rc-jancar`).
 - **Noyau #72** : `prebuilt/kernel` = noyau stock de la mise a jour officielle Jancar de janvier 2026 (#72 du
   22/01/2026, patch `want_initramfs`, celui de TWRP v7) ; configuration, exports et CRC identiques a #25.
 - **Ethernet et partage de connexion USB** (`docs/ethernet.md`, `tools/usbnet/`) : modules pour le noyau stock

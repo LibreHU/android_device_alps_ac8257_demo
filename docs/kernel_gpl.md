@@ -41,6 +41,25 @@ defconfigs et aux symboles des `Kconfig` du paquet (rien n'a ete compile ni exec
   `connectivity_build_in_adapter.c`, `wmt_build_in_adapter.c`) est dans le paquet. Ces modules se chargent dans le
   noyau et MediaTek les publie sous GPLv2 ailleurs (ex. arbres de Google Nest) : leurs sources sont dues aussi. A
   verifier sur l'unite : `strings /vendor/lib/modules/wmt_drv.ko | grep license=` (idem pour les autres).
+- **Absent enfin : les modifications Jancar de fichiers existants.** Chaines du noyau stock introuvables dans les
+  sources du paquet (le fichier y est, mais en version Autochips d'origine) :
+  - ecran (pilote LCM) : `jac_lcm_get_mipi_params_form_MetaZone`, `jac_detect_format_from_metazone`,
+    `jac_push_table`, `jac_set_lcd_power_kthread`, `jac_set_params`, `jac_lcm_tpye`, etat pinctrl `jac_rst_output0` ;
+  - tueur de processus memoire : `mtk_lowmemorykiller jump kill 'jancar.services'`, lecture de
+    `/jancar/config/ivi-priapps.ini` (`drivers/staging/android/lowmemorykiller.c` du paquet ne les a pas) ;
+  - telecommande IR : table `rc-jancar` ; carte : `show_jancar_board_id` ; GPIO : peripherique `gpios_ioctl`
+    (exports `gpio_get_mode` / `gpio_set_mode`) ;
+  - tactile Sitronix (`sitronix_*`, `st_dev_*`), en plus des Himax / ILITEK / Synaptics.
+- Verifie complet par ailleurs : les 1 137 chemins de fichiers source graves dans le noyau stock
+  (`/media/disk1/jenkins_workspace/code/ae_android_project/ac8257/code/kernel-4.9/...`) sont tous dans le paquet sauf
+  les 14 fichiers tactiles ; 9 674 symboles exportes du stock compares aux `EXPORT_SYMBOL` du paquet : seuls
+  manquent ceux des pilotes ci-dessus. Le pilote GPU (PowerVR `m1.10ED5130912`, DDK `1.10@5130912` comme le stock),
+  le codec audio `mt6357`, le capteur `tp2850` / `tp2854`, le device tree de base `mediatek/ac8257` et le tactile
+  GT928 sont presents. Le module `met` (profilage MediaTek, importe par les modules vendor) est hors arbre comme la
+  connectivite.
+- **Hors noyau, pas du ressort de cette demande** : preloader et LK (chargeurs MediaTek, pas sous GPL), firmware
+  ARM2, firmware MCU, blobs vendor. Les logiciels GPL de `/system` (ex. `e2fsprogs`, `iproute2`, `iptables`) sont
+  ceux d'AOSP, deja publics, sauf modification par Jancar (non verifie : il faudrait la liste de `/system/bin`).
 - **RIL** : rien a reclamer cote noyau. Le noyau stock n'a pas de pilote de modem USB (`USB_SERIAL_OPTION`,
   `USB_NET_QMI_WWAN`, `USB_ACM`, `USB_WDM` non actives) ; `MTK_ECCCI` (modem integre MediaTek) est actif par la base
   `ac8257_demo` et present dans le paquet. Le RIL lui-meme (`rild`, bibliotheques vendor) est du code utilisateur,
@@ -76,7 +95,9 @@ reconstruction ; le Wi-Fi, le BT, le GPS et la FM y marchent avec les modules st
   le noyau distribue, pilotes Jancar inclus) : sources de `CONFIG_JANCAR_SOLUTION` et `CONFIG_JANCAR_GPIOS`, des
   pilotes tactiles FTS / Synaptics TCM2 (et ILITEK, Himax, Synaptics DSX), du capteur `tp9963`, du device tree
   `UJC201_64`, des modules `/vendor/lib/modules` (connectivite `wmt_drv`, `bt_drv`, `gps_drv`, `fmradio_drv`,
-  `wmt_chrdev_wifi`, `wlan_drv_gen4m` ; `fpsgo`), et la defconfig utilisee pour le #72.
+  `wmt_chrdev_wifi`, `wlan_drv_gen4m` ; `fpsgo`, `met`), les versions modifiees par Jancar des fichiers existants
+  (pilote LCM `jac_*`, `lowmemorykiller.c`, table IR `rc-jancar`, `gpios_ioctl`, tactile Sitronix), et la defconfig
+  utilisee pour le #72.
 - Garder une copie du paquet (les liens OneDrive partages expirent) ; la GPL permet de le redistribuer.
 - Aucun flash de noyau n'est automatise : il demande vbmeta sans verification, fait a la main
   (`fastboot --disable-verity flash vbmeta vbmeta.img`).
