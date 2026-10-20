@@ -5,6 +5,12 @@ Arbre TWRP (branche **twrp-12.1**) pour les autoradios Android « UJC201 » (SIX
 auparavant `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25` : meme configuration, memes symboles exportes et memes
 CRC que #72, donc memes modules).
 
+## Branches
+| Branche | Contenu |
+|---|---|
+| **`twrp`** (par defaut) | cet arbre TWRP, sa CI et ses releases |
+| [`lineage-16.0`](https://github.com/LibreHU/android_device_alps_ac8257_demo/tree/lineage-16.0) | ROM LineageOS 16.0 (Android 9) de l'UJC201 : systeme LineageOS + vendor stock + applis LibreHU (en cours) |
+
 ## Changelog récent
 
 ### 2026-10-12
@@ -67,6 +73,40 @@ Localement, a partir d'un `recovery.img` deja construit :
 python3 tools/ujc201_postprocess.py recovery.img twrp_ujc201.img \
     --avb prebuilt/avb/recovery_stock_vbmeta_250718.bin --overlay recovery/root
 ```
+
+### Compiler from scratch
+Memes etapes que la CI, sur un PC Linux x86-64 (Ubuntu 22.04 ou 24.04) avec environ 60 Go libres et 16 Go de RAM
+(ou de la swap : la CI en ajoute 12 Go).
+```bash
+# 1. Outils
+sudo apt install gperf gcc-multilib g++-multilib libc6-dev lib32ncurses-dev x11proto-core-dev libx11-dev \
+  lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc bc ccache lib32readline-dev lib32z1-dev liblz4-tool \
+  libncurses-dev libsdl1.2-dev build-essential git libxml2 lzop pngcrush schedtool squashfs-tools imagemagick \
+  libbz2-dev lzma ncftp python3 tar openjdk-11-jdk curl
+mkdir -p ~/bin && curl -o ~/bin/repo https://storage.googleapis.com/git-repo-downloads/repo && chmod a+x ~/bin/repo
+export PATH=~/bin:$PATH
+
+# 2. Sources TWRP (manifeste minimal twrp-12.1) et cet arbre
+mkdir -p ~/twrp && cd ~/twrp
+repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp -b twrp-12.1
+repo sync -j"$(nproc)" --force-sync --no-clone-bundle --no-tags
+git clone -b twrp https://github.com/LibreHU/android_device_alps_ac8257_demo device/alps/ac8257_demo
+
+# 3. Patchs du source TWRP (barre d'etat texte, theme)
+python3 device/alps/ac8257_demo/tools/apply_twrp_patches.py bootable/recovery
+
+# 4. Build
+source build/envsetup.sh
+export ALLOW_MISSING_DEPENDENCIES=true
+lunch twrp_ac8257_demo-eng
+make recoveryimage -j"$(nproc)"
+
+# 5. Post-traitement : signature AVB du recovery stock (sans elle : bootloop), ecran, theme
+D=device/alps/ac8257_demo; OUT=out/target/product/ac8257_demo
+python3 $D/tools/ujc201_postprocess.py $OUT/recovery.img $OUT/twrp_ujc201.img \
+    --avb $D/prebuilt/avb/recovery_stock_vbmeta_250718.bin --overlay $D/recovery/root
+```
+Flasher **`twrp_ujc201.img`** (jamais `recovery.img` brut : ecran noir) comme indique dans *Installer*.
 
 ## Ce qu'on a appris (pieges de cette plateforme)
 
@@ -200,8 +240,9 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
 Ce depot ne contient que l'arbre TWRP. Le reste a ete deplace le 19/10/2026 :
 - noyau, sources GPL Autochips, tester un noyau (footer AVB du boot, `para`, RAM), notes de la ROM stock (audio,
   video, CarPlay / Android Auto, Ethernet, reglages caches, /system en ecriture, zips audio, applis LibreHU) et
-  outils (`usbnet`, `audio`, `dump`) : [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
-  (`docs/ujc201/`, `tools/ac8257/`) ;
+  outils (`usbnet`, `audio`, `dump`) : [android_kernel_autochips_ac8257_4.9, branche `reverse-engineering`](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9/tree/reverse-engineering)
+  (`docs/ujc201/`, `tools/ac8257/`) ; noyau de travail sur les sources GPL Autochips : branche
+  [`LibreHU-main`](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9/tree/LibreHU-main) ;
 - firmware et protocole du MCU, outils `tools/mcu/`, appli JacMCU : [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app) ;
 - zips prets a flasher : [LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips).
 
