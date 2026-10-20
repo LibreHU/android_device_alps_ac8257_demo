@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: Apache-2.0
+-->
+<permissions>
+    <!-- ViPER4Android LibreHU : permissions privilegiees d'Android 9 demandees par l'APK (manifest de la release
+         latest-librehu-service) ; LineageOS impose ro.control_privapp_permissions=enforce -->
+    <privapp-permissions package="com.llsl.viper4android">
+        <permission name="android.permission.DUMP"/>
+        <permission name="android.permission.MODIFY_AUDIO_ROUTING"/>
+    </privapp-permissions>
+</permissions>

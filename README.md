@@ -24,8 +24,8 @@ HAL cote system propre a Jancar ou MediaTek. D'ou, pour la phase 1 :
 
 | Partition | Contenu |
 |---|---|
-| `system` | **LineageOS 16.0 construit ici** + applis LibreHU (service, launcher, OTA) + `mcu_ready` |
-| `vendor` | **vendor stock**, lu sur l'unite (`tools/get_vendor_img.sh`) et repris tel quel (`BOARD_PREBUILT_VENDORIMAGE`) ; jamais publie |
+| `system` | **LineageOS 16.0 construit ici** + applis LibreHU (service, launcher, OTA, ViPER4Android) + `mcu_ready` |
+| `vendor` | **vendor stock**, lu sur l'unite (`tools/get_vendor_img.sh`) et repris (`BOARD_PREBUILT_VENDORIMAGE`), avec le pilote ViPERFX_RE ajoute (`tools/vendor_add_viper.sh`) ; jamais publie |
 | `boot` | noyau stock #72 (`prebuilt/kernel`, voir [prebuilt/README.md](prebuilt/README.md)) ; plus tard le noyau LibreHU |
 | `dtbo`, `vbmeta`, `lk`, `tee`... | stock, non modifies |
 | `recovery` | TWRP (branche `twrp`) ; le recovery LineageOS n'est pas a flasher |
@@ -42,9 +42,10 @@ correspondent au vendor stock, sans couche de compatibilite.
 | `device.mk` | 1280 x 720 a 160 dpi (`wm size` du stock), proprietes du stock, overlays, paquets |
 | `overlay/` | barre de navigation a l'ecran, pas de luminosite auto, paysage fixe, ecran toujours allume |
 | `mcu_ready/` | service natif : envoie `PC_READY` au MCU Jancar (`/dev/ttyS1`) des le demarrage, jusqu'a sa reponse. **Indispensable** : sans lui le MCU coupe le SoC une dizaine de secondes apres le demarrage (sur le stock c'est `com.jancar.services` qui l'envoie) |
-| `librehu/` | applis LibreHU dans `/system/app` : **LibreHU-service** (`latest-main`), **LibreHU Launcher** edition `librehu-service` (seul ecran d'accueil, remplace Trebuchet), **LibreHU Apps / OTA** (`latest-main`) ; APK telecharges par `fetch_apks.sh`, signature d'origine gardee : l'appli OTA les met ensuite a jour comme sur la ROM stock. Les autres applis LibreHU (FM, telephone, widgets, ViPER...) s'installent avec l'appli OTA |
+| `librehu/` | applis LibreHU dans `/system/app` : **LibreHU-service** (`latest-main`), **LibreHU Launcher** edition `librehu-service` (seul ecran d'accueil, remplace Trebuchet), **LibreHU Apps / OTA** (`latest-main`) ; APK telecharges par `fetch_apks.sh`, signature d'origine gardee : l'appli OTA les met ensuite a jour comme sur la ROM stock. **ViPER4Android LibreHU** 2.1.1 (`latest-librehu-service`) dans `/system/priv-app` avec sa liste blanche (`MODIFY_AUDIO_ROUTING`, `DUMP` ; LineageOS impose `ro.control_privapp_permissions=enforce`). Les autres applis LibreHU (FM, telephone, widgets...) s'installent avec l'appli OTA |
 | `proprietary-files.txt`, `extract-files.sh`, `setup-makefiles.sh` | interfaces HIDL Autochips cote system (camera de recul, AVM, affichage rapide, iAP2, audio ATC...) reprises du stock |
 | `tools/get_vendor_img.sh` | lit la partition vendor de l'unite (lecture seule) |
+| `tools/vendor_add_viper.sh` | ajoute a l'image vendor locale (debugfs, copie `vendor.img.orig` gardee) le pilote [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 (module officiel, SHA-256 verifie) : `libv4a_re.so` dans `/lib[64]/soundfx` et l'effet `v4a_standard_re` dans `/etc/audio_effects.xml`, comme le zip `viper4android-re` de LibreHU-flashablesZips. Dans vendor car sous Android 9 Treble les effets sont charges par le HAL audio du vendor, qui ne peut pas charger de bibliotheque de `/system` |
 | `rootdir/etc/fstab.ac8257` | fstab du vendor stock (pour le build du recovery) |
 
 ## Compiler from scratch
@@ -87,9 +88,10 @@ repo sync -c -j"$(nproc)" --no-tags --no-clone-bundle
 L'unite sous TWRP (adb root) ou sous la ROM stock avec root, branchee en USB :
 ```bash
 device/alps/ac8257_demo/tools/get_vendor_img.sh      # -> vendor/jancar/ac8257_demo/vendor.img (2 Go, reste local)
+device/alps/ac8257_demo/tools/vendor_add_viper.sh    # pilote ViPERFX_RE dans cette image (sudo apt install e2fsprogs)
 cd device/alps/ac8257_demo
 ./extract-files.sh                                   # interfaces HIDL Autochips de /system (adb)
-librehu/fetch_apks.sh                                # derniers APK LibreHU (service, launcher, OTA)
+librehu/fetch_apks.sh                                # derniers APK LibreHU (service, launcher, OTA, ViPER4Android)
 cd ~/android/lineage
 ```
 

@@ -32,6 +32,29 @@ LOCAL_OVERRIDES_PACKAGES := Launcher3 Launcher3QuickStep TrebuchetQuickStep
 include $(BUILD_PREBUILT)
 endif
 
+# ViPER4Android LibreHU (2.1.1, edition librehu-service) : priv-app, MODIFY_AUDIO_ROUTING est privilegiee
+# (liste blanche privapp-permissions-com.llsl.viper4android.xml, LineageOS impose ro.control_privapp_permissions=enforce).
+# Le pilote ViPERFX_RE de la meme version va dans l'image vendor : tools/vendor_add_viper.sh.
+ifneq ($(wildcard $(LOCAL_PATH)/LibreHUViPER.apk),)
+include $(CLEAR_VARS)
+LOCAL_MODULE := LibreHUViPER
+LOCAL_MODULE_CLASS := APPS
+LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
+LOCAL_SRC_FILES := LibreHUViPER.apk
+LOCAL_CERTIFICATE := PRESIGNED
+LOCAL_DEX_PREOPT := false
+LOCAL_PRIVILEGED_MODULE := true
+LOCAL_REQUIRED_MODULES := privapp-permissions-com.llsl.viper4android.xml
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := privapp-permissions-com.llsl.viper4android.xml
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_RELATIVE_PATH := permissions
+LOCAL_SRC_FILES := privapp-permissions-com.llsl.viper4android.xml
+include $(BUILD_PREBUILT)
+endif
+
 ifneq ($(wildcard $(LOCAL_PATH)/LibreHUOTA.apk),)
 include $(CLEAR_VARS)
 LOCAL_MODULE := LibreHUOTA

@@ -17,6 +17,7 @@ APPS=(
     "LibreHU-service      latest-main             LibreHU-service-main.apk                LibreHUService.apk"
     "LibreHU-launcher-app latest-librehu-service  LibreHU-Launcher-librehu-service.apk    LibreHULauncher.apk"
     "LibreHU-OTA-app      latest-main             LibreHU-OTA-main.apk                    LibreHUOTA.apk"
+    "LibreHU-viper4android-app latest-librehu-service ViPER4Android-LibreHU-librehu-service.apk LibreHUViPER.apk"
 )
 
 for line in "${APPS[@]}"; do
