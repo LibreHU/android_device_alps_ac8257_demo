@@ -4,3 +4,5 @@ tools/bootmenu/ui_data.h
 *.img
 tools/buildprop_fix/out/
 tools/audio/twrp/out/
+librehu/*.apk
+librehu/*.apk.part

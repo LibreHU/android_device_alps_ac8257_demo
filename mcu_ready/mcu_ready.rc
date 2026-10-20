@@ -1,0 +1,10 @@
+# PC_READY au MCU Jancar des que /dev/ttyS1 existe (voir mcu_ready.c)
+on early-boot
+    start mcu_ready
+
+service mcu_ready /system/bin/mcu_ready
+    class core
+    user root
+    group system
+    oneshot
+    disabled

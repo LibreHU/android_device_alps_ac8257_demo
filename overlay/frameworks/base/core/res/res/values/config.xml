@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Autoradio : pas de touches materielles Android, barre de navigation a l'ecran -->
+    <bool name="config_showNavigationBar">true</bool>
+
+    <!-- Pas de capteur de lumiere ambiante -->
+    <bool name="config_automatic_brightness_available">false</bool>
+
+    <!-- Ecran fixe en paysage -->
+    <bool name="config_supportAutoRotation">false</bool>
+
+    <!-- Alimente par le vehicule : ne pas rallumer l'ecran sur un changement d'alimentation -->
+    <bool name="config_unplugTurnsOnScreen">false</bool>
+</resources>

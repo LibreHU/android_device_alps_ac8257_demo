@@ -1,8 +1,0 @@
-#!/system/bin/sh
-# mcuinfo - UJC201 : version du firmware MCU et etat vehicule (lus par touchfix sur /dev/ttyS1)
-V=$(cat /tmp/mcu_version 2>/dev/null)
-echo "MCU firmware : ${V:-pas de reponse du MCU}"
-[ -n "$V" ] && echo "  (fichier embarque Android : /jancar/mcu/jacmcu.bin)"
-echo "Vehicule     : $(cat /tmp/twcar_s 2>/dev/null || echo '--')"
-echo "Heure MCU    : $(cut -d' ' -f1,2 /tmp/mcu_time 2>/dev/null || echo '--')"
-echo "Port         : /dev/ttyS1 115200 8N1 (protocole JAC_V1)"

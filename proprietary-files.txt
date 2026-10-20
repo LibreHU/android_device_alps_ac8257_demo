@@ -1,0 +1,26 @@
+# Fichiers proprietaires cote /system a reprendre du stock (UJC201 V1.1.35R6, Android 9).
+# Le vendor est la partition vendor stock entiere (BOARD_PREBUILT_VENDORIMAGE, tools/get_vendor_img.sh) :
+# rien de /vendor ici.
+#
+# Interfaces HIDL des HAL Autochips du vendor stock (clients cote system : applis et services qui parlent
+# a la camera de recul, l'AVM, l'affichage rapide, l'iAP2, l'audio ATC...). Le manifest framework stock est
+# celui d'AOSP : aucun HAL system propre a Jancar ou MediaTek n'est a reprendre.
+lib/vendor.autochips.hardware.atceinfo@1.0.so
+lib/vendor.autochips.hardware.audio@1.0.so
+lib/vendor.autochips.hardware.backcar@1.0.so
+lib/vendor.autochips.hardware.car_event_monitor@1.0.so
+lib/vendor.autochips.hardware.dvr@1.0.so
+lib/vendor.autochips.hardware.fastdisplay@2.0.so
+lib/vendor.autochips.hardware.iap@1.0.so
+lib/vendor.autochips.hardware.metalogo@1.0.so
+lib/vendor.autochips.hardware.watermark@1.0.so
+lib64/vendor.autochips.hardware.atceinfo@1.0.so
+lib64/vendor.autochips.hardware.audio@1.0.so
+lib64/vendor.autochips.hardware.avmhal@1.0.so
+lib64/vendor.autochips.hardware.backcar@1.0.so
+lib64/vendor.autochips.hardware.car_event_monitor@1.0.so
+lib64/vendor.autochips.hardware.dvr@1.0.so
+lib64/vendor.autochips.hardware.fastdisplay@2.0.so
+lib64/vendor.autochips.hardware.iap@1.0.so
+lib64/vendor.autochips.hardware.metalogo@1.0.so
+lib64/vendor.autochips.hardware.watermark@1.0.so
