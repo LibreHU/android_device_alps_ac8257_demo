@@ -1,5 +1,23 @@
 # Changelog
 
+## Non publie
+
+### Nouveau
+- **Noyau #72** : `prebuilt/kernel` = noyau stock de la mise a jour officielle Jancar de janvier 2026 (#72 du
+  22/01/2026, patch `want_initramfs`) ; `prebuilt/dtbo.img` et vbmeta du recovery 2026 ; configuration, exports et
+  CRC identiques a #25.
+- **fstab** : entree `System Image` (sauvegarde / restauration brute de `system`) en plus de « System (fichiers) ».
+- **BCB** : `tools/apply_twrp_patches.py` replie le message bootloader sur la partition `para` quand la fstab n'a pas
+  `/misc` (eviter de rester dans TWRP apres une reinitialisation d'usine) ; a confirmer sur l'unite.
+
+### Deplace
+- Le depot ne garde que l'arbre TWRP (19/10/2026). Notes de l'appareil et de la ROM stock (sources GPL du noyau,
+  Ethernet, audio, video, projection, reglages caches, tester un noyau, /system, applis LibreHU) et outils `usbnet`,
+  `audio`, `dump` : depot noyau
+  [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
+  (`docs/ujc201/`, `tools/ac8257/`). MCU (`docs/mcu_firmware.md`, `tools/mcu/`, appli JacMCU) :
+  [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app).
+
 ## v1.1 — depuis 3.7.1_12 (`858a3c4`)
 
 Teste sur l'appareil : menu de demarrage, tableau de bord, barre d'etat, frein a main, sortie console des menus.

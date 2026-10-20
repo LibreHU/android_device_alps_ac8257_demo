@@ -1,8 +1,9 @@
 # TWRP – Jancar UJC201 (Autochips AC8257, carte JAC_8258C)
 
 Arbre TWRP (branche **twrp-12.1**) pour les autoradios Android « UJC201 » (SIXWIN, Podofo, Hikity…).
-**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.151R6-260122_0427-RH-C0-CYA` (noyau `4.9.117+ #72, 22/01/2026`).
-
+**Teste et fonctionnel** sur une unite SIXWIN, firmware `UJC201-V1.151R6-260122_0427-RH-C0-CYA` (noyau `4.9.117+ #72, 22/01/2026`),
+auparavant `UJC201-V1.1.35R6-250718_0429` (noyau `4.9.117+ #25` : meme configuration, memes symboles exportes et memes
+CRC que #72, donc memes modules).
 
 ## Changelog récent
 
@@ -46,6 +47,9 @@ Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, onglet Readback,
 Adresses du scatter `MT6761_Android_scatter.txt` de l'appareil.
 
 **Flasher `twrp_ujc201.img` (post-traite), jamais le `recovery.img` brut du build.**
+Depuis Android (root), l'onglet Zips de LibreHU Apps peut aussi l'ecrire dans `recovery` (zip `twrp-ujc201` de
+[LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips) : derniere release, taille et SHA-256
+verifies, recovery actuel sauvegarde dans `/sdcard/LibreHU/backup`).
 
 ## Build
 GitHub Actions (`.github/workflows/build-twrp.yml`, lancement manuel) :
@@ -180,19 +184,26 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
 - `ujc201_buildprop_restore.zip` : remet l'original (`.bak`, sinon la derniere copie de `/sdcard`).
 
 ## Fichiers
-- `prebuilt/kernel` : noyau stock 250718 (#25) + patch `want_initramfs`
-- `prebuilt/dtbo.img` : recovery_dtbo du recovery stock 250718
-- `prebuilt/avb/recovery_stock_vbmeta_250718.bin` : vbmeta (footer) du recovery stock
+- `prebuilt/kernel` : noyau stock de la mise a jour Jancar de janvier 2026 (#72, 22/01/2026) + patch `want_initramfs`
+  (avant : 250718, #25)
+- `prebuilt/dtbo.img` : recovery_dtbo du recovery stock de la mise a jour 2026
+- `prebuilt/avb/recovery_stock_vbmeta_250718.bin` : vbmeta (footer) du recovery stock 2026 (nom historique conserve)
 - `recovery/root/` : rc, `touchfix`, `usbmode`, `powerinfo`, `mcuinfo`, `wheelkeys`, `ujc201_keys.conf`
 - `tools/touchfix/` : source de `touchfix` (C autonome, sans libc) + `build.sh`
 - `tools/apply_twrp_patches.py` : patchs du source TWRP (applique par le workflow)
 - `tools/buildprop_fix/` : zips TWRP correctif / restauration du build.prop
 - `tools/ujc201_theme.py` : entrees Advanced + page graphique (partage source / post-traitement)
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)
-- `tools/mcu/` : analyse du firmware MCU (`mdis.py`, `ana*.py`) et `jacmcu.py` (trames, decodage de `/tmp/mcu.log`, moniteur serie)
-- `apps/jacmcu/` : app Android JacMCU (etat, commandes, console MCU ; mode service Jancar ou root)
-- `docs/mcu_firmware.md` : reference complete du MCU (brochage, alimentation, protocole, interfacage Android)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
+
+## Ailleurs
+Ce depot ne contient que l'arbre TWRP. Le reste a ete deplace le 19/10/2026 :
+- noyau, sources GPL Autochips, tester un noyau (footer AVB du boot, `para`, RAM), notes de la ROM stock (audio,
+  video, CarPlay / Android Auto, Ethernet, reglages caches, /system en ecriture, zips audio, applis LibreHU) et
+  outils (`usbnet`, `audio`, `dump`) : [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
+  (`docs/ujc201/`, `tools/ac8257/`) ;
+- firmware et protocole du MCU, outils `tools/mcu/`, appli JacMCU : [MCU-tools-app](https://github.com/LibreHU/MCU-tools-app) ;
+- zips prets a flasher : [LibreHU-flashablesZips](https://github.com/LibreHU/LibreHU-flashablesZips).
 
 ## Securite
 Ne jamais restaurer la partition « Preloader » depuis TWRP. Garder le recovery stock pour les mises a jour.
