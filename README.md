@@ -76,13 +76,20 @@ python3 tools/ujc201_postprocess.py recovery.img twrp_ujc201.img \
 ```
 
 ### Compiler from scratch
-Memes etapes que la CI, sur un PC Linux x86-64 (Ubuntu 22.04 ou 24.04) avec environ 60 Go libres et 16 Go de RAM
-(ou de la swap : la CI en ajoute 12 Go).
+Memes etapes que la CI, sur un PC Linux x86-64 avec environ 60 Go libres et 16 Go de RAM (ou de la swap : la CI en
+ajoute 12 Go).
+
+| Ubuntu | Etat |
+|---|---|
+| **24.04 LTS** | **conseille** : c'est le runner de la CI (`ubuntu-24.04`), build complet verifie a chaque run |
+| 22.04 LTS | memes paquets |
+| **26.04 LTS** | paquets verifies (installation simulee dans un conteneur 26.04 propre, 21/10/2026) : `liblz4-tool` et `libxml2` n'existent plus sous ces noms (remplaces par `lz4`, et `libxml2` vient avec `libxml2-utils`), d'ou la liste ci-dessous valable pour les trois versions. Build complet **pas encore teste** sur 26.04 (Python 3.14, GCC 15) : en cas d'erreur des scripts AOSP 12, compiler dans un conteneur 24.04 (`distrobox create -i ubuntu:24.04`, ou `docker run -it -v ~/twrp:/twrp ubuntu:24.04`) |
+
 ```bash
-# 1. Outils
+# 1. Outils (meme liste pour Ubuntu 22.04, 24.04 et 26.04)
 sudo apt install gperf gcc-multilib g++-multilib libc6-dev lib32ncurses-dev x11proto-core-dev libx11-dev \
-  lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc bc ccache lib32readline-dev lib32z1-dev liblz4-tool \
-  libncurses-dev libsdl1.2-dev build-essential git libxml2 lzop pngcrush schedtool squashfs-tools imagemagick \
+  lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc bc ccache lib32readline-dev lib32z1-dev lz4 \
+  libncurses-dev libsdl1.2-dev build-essential git lzop pngcrush schedtool squashfs-tools imagemagick \
   libbz2-dev lzma ncftp python3 tar openjdk-11-jdk curl
 mkdir -p ~/bin && curl -o ~/bin/repo https://storage.googleapis.com/git-repo-downloads/repo && chmod a+x ~/bin/repo
 export PATH=~/bin:$PATH
