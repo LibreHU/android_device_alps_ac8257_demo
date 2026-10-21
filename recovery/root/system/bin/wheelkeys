@@ -11,10 +11,11 @@
 # redemarrage) ; par defaut /system/etc/ujc201_keys.conf. Relue par touchfix a chaque modification.
 # Ligne : <canal> <octet 1..4> <min> <max> <action> [nom]
 #   actions : volup voldown enter back home power up down left right bl+ bl- none
-#   (TWRP n'a pas de navigation au clavier : back = page precedente, home = menu principal,
-#    power = verrouillage, enter = valider un champ texte, bl+/bl- = luminosite, volup/voldown = touches volume)
+#   Navigation dans TWRP (tools/keynav) : voldown / volup = element suivant / precedent, up / down / left / right =
+#   element voisin, enter = appui (glissiere : deux fois), back = page precedente, home = menu principal,
+#   power = verrouillage, bl+/bl- = luminosite
 
-KEYS="VOL+:volup VOL-:voldown MUTE:enter MODE:home BACK:back"
+KEYS="VOL+:volup VOL-:voldown MUTE:enter MODE:home BACK:back PREV:up NEXT:down"
 P=/tmp/wheelkeys.prompt
 DATA=/data/media/0/TWRP/ujc201_keys.conf
 
