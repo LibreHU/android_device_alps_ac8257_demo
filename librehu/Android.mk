@@ -65,3 +65,23 @@ LOCAL_CERTIFICATE := PRESIGNED
 LOCAL_DEX_PREOPT := false
 include $(BUILD_PREBUILT)
 endif
+
+# Les autres applis LibreHU, toutes dans /system/app comme le service (mises a jour ensuite par l'appli OTA) :
+# telephone, radio FM, widgets, touches au volant, sources, CD / DVD, outils MCU, Android Auto, CarPlay.
+LIBREHU_SYSTEM_APPS := LibreHUDialer LibreHUFM LibreHUWidgets LibreHUBtnRemap LibreHUEasySource LibreHUDisc \
+    LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay
+
+define librehu-system-app
+ifneq ($$(wildcard $$(LOCAL_PATH)/$(1).apk),)
+include $$(CLEAR_VARS)
+LOCAL_MODULE := $(1)
+LOCAL_MODULE_CLASS := APPS
+LOCAL_MODULE_SUFFIX := $$(COMMON_ANDROID_PACKAGE_SUFFIX)
+LOCAL_SRC_FILES := $(1).apk
+LOCAL_CERTIFICATE := PRESIGNED
+LOCAL_DEX_PREOPT := false
+include $$(BUILD_PREBUILT)
+endif
+endef
+
+$(foreach app,$(LIBREHU_SYSTEM_APPS),$(eval $(call librehu-system-app,$(app))))

@@ -18,6 +18,15 @@ APPS=(
     "LibreHU-launcher-app latest-librehu-service  LibreHU-Launcher-librehu-service.apk    LibreHULauncher.apk"
     "LibreHU-OTA-app      latest-main             LibreHU-OTA-main.apk                    LibreHUOTA.apk"
     "LibreHU-viper4android-app latest-librehu-service ViPER4Android-LibreHU-librehu-service.apk LibreHUViPER.apk"
+    "LibreHU-dialer-app   latest-librehu-service  LibreHU-Dialer-librehu-service.apk      LibreHUDialer.apk"
+    "LibreHU-FM-app       latest-librehu-service  LibreHU-FM-librehu-service.apk          LibreHUFM.apk"
+    "LibreHU-widget-app   latest-librehu-service  LibreHU-Widgets-librehu-service.apk     LibreHUWidgets.apk"
+    "LibreHU-BtnRemap-app latest-librehu-service  LibreHU-BtnRemap-librehu-service.apk    LibreHUBtnRemap.apk"
+    "LibreHU-EasySource-app latest-main           LibreHU-EasySource-main.apk             LibreHUEasySource.apk"
+    "LibreHU-disc-app     latest-main             LibreHU-Disc-main.apk                   LibreHUDisc.apk"
+    "MCU-tools-app        latest-main             MCU-Toolkit-main.apk                    LibreHUMcuTools.apk"
+    "LibreHU-open-headunit-app latest-main        OpenHeadunit-LibreHU-main.apk           LibreHUAndroidAuto.apk"
+    "LibreHU-xcertplay-app latest-master          CarPlay-LibreHU-master.apk              LibreHUCarPlay.apk"
 )
 
 for line in "${APPS[@]}"; do

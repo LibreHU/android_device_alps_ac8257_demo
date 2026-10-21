@@ -33,10 +33,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
     mcu_ready
 
-# Applis LibreHU dans /system/app, ViPER4Android dans /system/priv-app (APK de librehu/fetch_apks.sh ; un APK
+# Applis LibreHU dans /system/app (service, launcher, OTA, telephone, FM, widgets, touches au volant, sources,
+# CD / DVD, outils MCU, Android Auto, CarPlay), ViPER4Android dans /system/priv-app (APK de librehu/fetch_apks.sh ; un APK
 # absent est ignore). Le pilote ViPERFX_RE est ajoute a l'image vendor par tools/vendor_add_viper.sh.
 PRODUCT_PACKAGES += \
-    $(foreach app,LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER,\
+    $(foreach app,LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
+        LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay,\
         $(if $(wildcard $(LOCAL_PATH)/librehu/$(app).apk),$(app)))
 
 # Proprietaires cote system (interfaces HIDL Autochips / MediaTek, voir proprietary-files.txt)
