@@ -32,6 +32,7 @@ CRC que #72, donc memes modules).
 | /data | OK (non chiffre sur ce firmware) |
 | Barre d'etat | temperature CPU (mtktscpu) + tension d'entree (2 sondes ADC, a valider en voiture) |
 | MCU Jancar (ttyS1) | ACC, frein a main, feux (barre d'etat a droite), version MCU (Advanced > MCU info), fenetre « feux allumes », touches au volant, horloge synchronisee sur le MCU |
+| Navigation aux touches | TWRP entier au volant / clavier USB : cadre sur l'element actif, listes, clavier a l'ecran, glissieres (**a tester**) |
 
 ## Installer
 ```
@@ -60,7 +61,7 @@ verifies, recovery actuel sauvegarde dans `/sdcard/LibreHU/backup`).
 ## Build
 GitHub Actions (`.github/workflows/build-twrp.yml`, lancement manuel) :
 1. `repo sync` du manifeste minimal twrp-12.1 ;
-2. `tools/apply_twrp_patches.py` patche le **source** TWRP (barre d'etat texte, theme) ;
+2. `tools/apply_twrp_patches.py` patche le **source** TWRP (barre d'etat texte, theme, fenetres, navigation aux touches) ;
 3. build `recoveryimage` avec les flags de `BoardConfig.mk` (pas de FBIOBLANK, luminosite, rotation…) ;
 4. `tools/ujc201_postprocess.py` pose la signature AVB du recovery stock (et applique en binaire ce qui
    manquerait) → **`twrp_ujc201.img`**, publie en pre-release.
@@ -207,9 +208,24 @@ le decalage horaire existant (arrondi au 1/4 d'heure).
 `FF` = relachement). `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
 `ujc201_keys.conf` (`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/` vide) :
 `<canal> <octet 1..4> <min> <max> <action> [nom]`, actions `volup voldown enter back home power up down left right bl+ bl- none`.
-Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+ VOL- MUTE MODE BACK, 10 s par touche).
-TWRP n'a pas de navigation au clavier : `back` = page precedente, `home` = menu principal, `power` = verrouillage,
-`enter` = valider un champ texte, `bl+`/`bl-` = luminosite ; `volup`/`voldown` ne font rien dans TWRP seul.
+Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+ VOL- MUTE MODE BACK PREV NEXT,
+10 s par touche, sautee sinon).
+
+**Navigation aux touches** (`tools/keynav/keynav.inc`, insere dans `gui/pages.cpp` par `apply_twrp_patches.py`) :
+TWRP se pilote entierement au volant (ou avec un clavier USB). Un cadre jaune montre l'element actif ; il apparait a
+la premiere touche et disparait au premier toucher de l'ecran.
+
+| Touche (table apprise) | Action |
+|---|---|
+| VOL- / VOL+ (`voldown` / `volup`) | element suivant / precedent, dans l'ordre de lecture |
+| PREV / NEXT, molette (`up` / `down`), fleches | element au-dessus / au-dessous (`left` / `right` : a gauche / a droite) |
+| MUTE (`enter`) | appui sur l'element ; glissiere « Swipe to... » : **deux fois** en 4 s (cadre orange entre les deux) |
+| BACK (`back`) / MODE (`home`) | page precedente / menu principal (comme avant) |
+
+Dans une liste (fichiers, partitions, options) les touches changent de ligne et en sortent aux extremites ;
+`left` / `right` avancent d'une page. Texte et console defilent. Curseurs (luminosite...) : `left` / `right`. Clavier
+a l'ecran : chaque touche est un element, `enter` la tape (nom de sauvegarde, dossier). L'element actif de chaque page
+est retenu. `power` = verrouillage, `bl+`/`bl-` = luminosite.
 
 ## Correctif build.prop (zip TWRP, optionnel)
 Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fingerprint d'une autre plateforme
@@ -231,6 +247,7 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
 - `recovery/root/` : rc, `touchfix`, `usbmode`, `powerinfo`, `mcuinfo`, `wheelkeys`, `ujc201_keys.conf`
 - `tools/touchfix/` : source de `touchfix` (C autonome, sans libc) + `build.sh`
 - `tools/apply_twrp_patches.py` : patchs du source TWRP (applique par le workflow)
+- `tools/keynav/keynav.inc` : navigation aux touches (touches au volant, clavier), inseree dans `gui/pages.cpp`
 - `tools/buildprop_fix/` : zips TWRP correctif / restauration du build.prop
 - `tools/ujc201_theme.py` : entrees Advanced + page graphique (partage source / post-traitement)
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)

@@ -3,6 +3,10 @@
 ## Non publie
 
 ### Nouveau
+- **TWRP entier aux touches au volant** (`tools/keynav/keynav.inc`, insere dans `gui/pages.cpp`) : cadre sur
+  l'element actif, VOL-/VOL+ = suivant / precedent, fleches (PREV / NEXT, molette) = voisin, MUTE = appui ; listes
+  (lignes, pages), texte et console (defilement), curseurs, clavier a l'ecran, glissieres de confirmation (OK deux
+  fois). Apprentissage : PREV et NEXT en plus. A tester sur l'unite.
 - **Noyau #72** : `prebuilt/kernel` = noyau stock de la mise a jour officielle Jancar de janvier 2026 (#72 du
   22/01/2026, patch `want_initramfs`) ; `prebuilt/dtbo.img` et vbmeta du recovery 2026 ; configuration, exports et
   CRC identiques a #25.

@@ -11,6 +11,9 @@ apply_twrp_patches.py - patchs source TWRP (bootable/recovery, branche android-1
   4. gui/pages.cpp : fenetres "snackbar" dessinees par-dessus toutes les pages (texte /tmp/twpopup ecrit par
      touchfix : feux allumes, touche au volant, invite de wheelkeys) + reglage de l'horloge sur l'heure du MCU
      (/tmp/mcu_time, heure locale -> mktime() dans le fuseau TWRP).
+  5. gui/ (objects.hpp, pages.hpp, pages.cpp) : navigation aux touches (touches au volant de touchfix, clavier USB),
+     code dans tools/keynav/keynav.inc : cadre sur l'element actif, fleches / VOL+ VOL- / OK, listes, clavier a
+     l'ecran, glissiere de confirmation (OK deux fois). Les elements sont repertories au chargement de la page.
 
 L'ecran (FBIOBLANK) n'a pas besoin de patch source : TW_NO_SCREEN_BLANK + TW_BRIGHTNESS_PATH +
 TW_MAX_BRIGHTNESS font ecrire fbdev_blank() dans le fichier de luminosite au lieu de l'ioctl.
@@ -287,6 +290,129 @@ def patch(path, old, new, done_marker, count=1):
     open(path, 'w', encoding='utf-8').write(s)
     print('patche :', path, '(%d)' % n)
 
+KEYNAV_MARK = 'UJC201-keynav'
+KEYNAV_FRIEND = '\tfriend class KeyNav; /* UJC201-keynav */\n'
+# classes dont KeyNav lit l'etat interne (liste, clavier, glissieres, action d'un bouton)
+KEYNAV_CLASSES = [
+    'class GUIButton : public GUIObject, public RenderObject, public ActionObject\n{\n',
+    'class GUIScrollList : public GUIObject, public RenderObject, public ActionObject\n{\n',
+    'class GUIConsole : public GUIScrollList\n{\n',
+    'class GUISlider : public GUIObject, public RenderObject, public ActionObject\n{\n',
+    'class GUIKeyboard : public GUIObject, public RenderObject, public ActionObject\n{\n',
+    'class GUISliderValue: public GUIObject, public RenderObject, public ActionObject\n{\n',
+]
+KEYNAV_HPP = [
+    ('class Page\n{\n', '/* UJC201-keynav : element navigable aux touches (type, pointeur de l\'objet) */\n'
+     'struct UJC201NavItem { int kind; void* p; };\n\nclass Page\n{\n' + KEYNAV_FRIEND),
+    ('\tstd::vector<InputObject*> mInputs;\n',
+     '\tstd::vector<InputObject*> mInputs;\n\tstd::vector<UJC201NavItem> mNav; /* UJC201-keynav */\n'),
+    ('class PageSet\n{\n', 'class PageSet\n{\n' + KEYNAV_FRIEND),
+]
+KEYNAV_CPP = [
+    ('#include "../variables.h"\n', None),   # + code de tools/keynav/keynav.inc
+    ("""int PageSet::NotifyTouch(TOUCH_STATE state, int x, int y)
+{
+""", """int PageSet::NotifyTouch(TOUCH_STATE state, int x, int y)
+{
+	if (state == TOUCH_START && !KeyNav::synth)
+		KeyNav::Touch();  /* UJC201-keynav : vrai toucher -> cadre cache */
+"""),
+    ("""int PageSet::NotifyKey(int key, bool down)
+{
+	if (!mOverlays.empty())
+		return mOverlays.back()->NotifyKey(key, down);
+
+	return (mCurrentPage ? mCurrentPage->NotifyKey(key, down) : -1);
+}""", """int PageSet::NotifyKey(int key, bool down)
+{
+	/* UJC201-keynav : cadre affiche -> les touches de navigation d'abord ; sinon apres la page (curseur d'un champ,
+	 * historique du terminal, touches du theme) */
+	if (KeyNav::visible && KeyNav::Key(this, key, down) == 0)
+		return 0;
+	int ret;
+	if (!mOverlays.empty())
+		ret = mOverlays.back()->NotifyKey(key, down);
+	else
+		ret = (mCurrentPage ? mCurrentPage->NotifyKey(key, down) : -1);
+	if (ret != 0 && !KeyNav::visible && KeyNav::Key(this, key, down) == 0)
+		return 0;
+	return ret;
+}"""),
+    ("""int PageSet::NotifyCharInput(int ch)
+{
+""", """int PageSet::NotifyCharInput(int ch)
+{
+	if (KeyNav::Char(this, ch) == 0)
+		return 0;  /* UJC201-keynav : Enter = appui sur l'element actif, Tab = suivant */
+"""),
+    ("""		ret = ((*iter) ? (*iter)->Render() : -1);
+		if (ret < 0)
+			return ret;
+	}
+	return ret;
+}""", """		ret = ((*iter) ? (*iter)->Render() : -1);
+		if (ret < 0)
+			return ret;
+	}
+	KeyNav::Render(this);  /* UJC201-keynav : cadre de l'element actif */
+	return ret;
+}"""),
+    ("""		ret = ((*iter) ? (*iter)->Update() : -1);
+		if (ret < 0)
+			return ret;
+	}
+	return ret;
+}""", """		ret = ((*iter) ? (*iter)->Update() : -1);
+		if (ret < 0)
+			return ret;
+	}
+	return KeyNav::Update(this, ret);  /* UJC201-keynav */
+}"""),
+]
+
+def keynav(root):
+    """Navigation aux touches : amis de KeyNav, liste des elements par page, crochets de PageSet, code KeyNav."""
+    import re
+    j = lambda p: os.path.join(root, p)
+    f = j('gui/objects.hpp')
+    s = open(f, encoding='utf-8').read()
+    if KEYNAV_MARK not in s:
+        for c in KEYNAV_CLASSES:
+            if s.count(c) != 1:
+                sys.exit('ERREUR : %r introuvable dans objects.hpp' % c.split('\n')[0])
+            s = s.replace(c, c + KEYNAV_FRIEND)
+        open(f, 'w', encoding='utf-8').write(s)
+        print('patche :', f, '(keynav, %d classes)' % len(KEYNAV_CLASSES))
+    else:
+        print('deja applique :', f)
+    f = j('gui/pages.hpp')
+    s = open(f, encoding='utf-8').read()
+    if KEYNAV_MARK not in s:
+        for old, new in KEYNAV_HPP:
+            if s.count(old) != 1:
+                sys.exit('ERREUR : %r introuvable dans pages.hpp' % old)
+            s = s.replace(old, new)
+        open(f, 'w', encoding='utf-8').write(s)
+        print('patche :', f, '(keynav)')
+    else:
+        print('deja applique :', f)
+    f = j('gui/pages.cpp')
+    s = open(f, encoding='utf-8').read()
+    if KEYNAV_MARK in s:
+        print('deja applique :', f); return
+    code = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'keynav', 'keynav.inc'), encoding='utf-8').read()
+    for old, new in KEYNAV_CPP:
+        if s.count(old) != 1:
+            sys.exit('ERREUR : %r introuvable dans pages.cpp' % old.split('\n')[0])
+        s = s.replace(old, old + '\n' + code if new is None else new)
+    # chaque element cree par Page::ProcessNode : ujc201_nav_add(mNav, element) (sans effet pour les non navigables)
+    s, n = re.subn(r'(\t+)(GUI\w+) ?\* ?element = new \2\(child\);\n\1mObjects\.push_back\(element\);\n',
+                   lambda m: m.group(0) + m.group(1) + 'ujc201_nav_add(mNav, element);\n', s)
+    if n < 15:
+        sys.exit('ERREUR : %d elements de ProcessNode seulement (attendu >= 15)' % n)
+    open(f, 'w', encoding='utf-8').write(s)
+    print('patche :', f, '(keynav, %d types d\'elements)' % n)
+
 def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'bootable/recovery'
     j = lambda p: os.path.join(root, p)
@@ -301,6 +427,7 @@ def main():
     # Render d'abord (le marqueur UJC201-popup est dans le bloc insere avant Render), puis Update
     patch(j('gui/pages.cpp'), PAGES_RENDER_OLD, PAGES_RENDER_NEW, 'UJC201-popup')
     patch(j('gui/pages.cpp'), PAGES_UPDATE_OLD, PAGES_UPDATE_NEW, 'UJC201 : fenetre apparue')
+    keynav(root)
 
 if __name__ == '__main__':
     main()
