@@ -29,6 +29,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.default_network=9,9 \
     qemu.hw.mainkeys=0
 
+# Fluidite des applis LibreHU (Jetpack Compose) : sans code natif, Android 9 les fait tourner en interprete / JIT, et
+# la compilation de fond n'a lieu qu'appareil inactif et en charge (presque jamais sur un autoradio). Installations
+# et mises a jour (LibreHU Apps) compilees en speed ; applis de la ROM precompilees en speed a la construction.
+PRODUCT_PROPERTY_OVERRIDES += \
+    pm.dexopt.install=speed
+
 # MCU Jancar : PC_READY des le demarrage (sans lui le MCU coupe le SoC), voir mcu_ready/
 PRODUCT_PACKAGES += \
     mcu_ready
@@ -40,6 +46,11 @@ PRODUCT_PACKAGES += \
     $(foreach app,LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
         LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay,\
         $(if $(wildcard $(LOCAL_PATH)/librehu/$(app).apk),$(app)))
+
+# Precompilation speed (code natif complet) de ces applis a la construction de la ROM (dexpreopt d'Android 9).
+PRODUCT_DEXPREOPT_SPEED_APPS += \
+    LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
+    LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay
 
 # Proprietaires cote system (interfaces HIDL Autochips / MediaTek, voir proprietary-files.txt)
 $(call inherit-product-if-exists, vendor/jancar/ac8257_demo/ac8257_demo-vendor.mk)

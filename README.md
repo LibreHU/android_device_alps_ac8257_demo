@@ -144,3 +144,14 @@ stock) : a ajouter (Magisk, ou KernelSU Next avec le noyau LibreHU).
   `fastboot --disable-verity flash vbmeta vbmeta.img` a la main.
 - Ne pas publier ses partitions `nvram`, `nvdata`, `proinfo`, `persist`, `metazone`, ni `vendor.img` (fichiers
   proprietaires).
+
+## Fluidité des applis LibreHU
+
+Les applis LibreHU (Jetpack Compose) sont **précompilées en code natif** (`speed`) à la construction de la ROM
+(`PRODUCT_DEXPREOPT_SPEED_APPS` dans `device.mk`, `LOCAL_DEX_PREOPT := nostripping` dans `librehu/Android.mk` : le dex
+reste dans l'APK, la signature d'origine et les mises à jour dans `/data` restent valables), et `pm.dexopt.install=speed`
+compile aussi les installations et mises à jour. Sans cela, Android 9 installe une appli hors Play Store en
+`speed-profile`, qui sans profil vaut `verify` (pas de code natif), et ne compile en arrière-plan qu'appareil inactif et
+en charge, ce qui n'arrive presque jamais sur un autoradio (source.android.com, *Package Manager configuration*). Sur la
+ROM stock, LibreHU-service fait la même chose en root (Avancé → Tweaks → *Fluidité des applis LibreHU*).
+

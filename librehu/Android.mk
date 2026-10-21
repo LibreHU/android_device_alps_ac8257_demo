@@ -4,6 +4,8 @@
 #
 # Applis LibreHU integrees a /system/app (APK telecharges par fetch_apks.sh, signature d'origine gardee).
 # Un APK absent est simplement ignore : la ROM se construit sans lui.
+# Precompiles a la construction (dexpreopt, filtre speed via PRODUCT_DEXPREOPT_SPEED_APPS de device.mk) sans retirer
+# le dex de l'APK (nostripping) : la signature d'origine reste valable et une mise a jour dans /data s'installe.
 #
 
 LOCAL_PATH := $(call my-dir)
@@ -15,7 +17,7 @@ LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_SRC_FILES := LibreHUService.apk
 LOCAL_CERTIFICATE := PRESIGNED
-LOCAL_DEX_PREOPT := false
+LOCAL_DEX_PREOPT := nostripping
 include $(BUILD_PREBUILT)
 endif
 
@@ -26,7 +28,7 @@ LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_SRC_FILES := LibreHULauncher.apk
 LOCAL_CERTIFICATE := PRESIGNED
-LOCAL_DEX_PREOPT := false
+LOCAL_DEX_PREOPT := nostripping
 # Seul ecran d'accueil de la ROM
 LOCAL_OVERRIDES_PACKAGES := Launcher3 Launcher3QuickStep TrebuchetQuickStep
 include $(BUILD_PREBUILT)
@@ -42,7 +44,7 @@ LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_SRC_FILES := LibreHUViPER.apk
 LOCAL_CERTIFICATE := PRESIGNED
-LOCAL_DEX_PREOPT := false
+LOCAL_DEX_PREOPT := nostripping
 LOCAL_PRIVILEGED_MODULE := true
 LOCAL_REQUIRED_MODULES := privapp-permissions-com.llsl.viper4android.xml
 include $(BUILD_PREBUILT)
@@ -62,7 +64,7 @@ LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_SRC_FILES := LibreHUOTA.apk
 LOCAL_CERTIFICATE := PRESIGNED
-LOCAL_DEX_PREOPT := false
+LOCAL_DEX_PREOPT := nostripping
 include $(BUILD_PREBUILT)
 endif
 
@@ -79,7 +81,7 @@ LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $$(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_SRC_FILES := $(1).apk
 LOCAL_CERTIFICATE := PRESIGNED
-LOCAL_DEX_PREOPT := false
+LOCAL_DEX_PREOPT := nostripping
 include $$(BUILD_PREBUILT)
 endif
 endef
