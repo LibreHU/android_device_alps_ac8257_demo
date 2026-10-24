@@ -218,7 +218,11 @@ si l'ecart depasse 2 s (refait si le fuseau change). Sans le patch, `touchfix` c
 le decalage horaire existant (arrondi au 1/4 d'heure).
 
 **Touches au volant** : trame `20` = `canal v1 v2 v3 v4` (1 telecommande IR, 2 molette, 3/4 touches AD, 5/6 volant ;
-`FF` = relachement). `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
+`FF` = relachement). **Boitier CAN** (Hiworld, Renault LNP002 : Clio 3…) : ses octets arrivent dans les trames `10`,
+`touchfix` y retrouve les messages `5A A5 LEN CMD .. CS` et la touche du message `11` (D1 bit 3, D2 = code, D3 = 1 a
+l'appui) ; elle passe par le **canal 7** (`v1` = code). Sans ligne apprise, table LNP002 par defaut (VOL+ / VOL-,
+MUTE / OK = appui, PREV / NEXT = haut / bas, gauche / droite, MODE = retour, NAVI = accueil). La vitesse du boitier
+est celle du MCU (`0F 00`, 38400 par defaut) : a verifier sur une voiture dont le boitier en utilise une autre. `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
 `ujc201_keys.conf` (`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/` vide) :
 `<canal> <octet 1..4> <min> <max> <action> [nom]`, actions `volup voldown enter back home power up down left right bl+ bl- none`.
 Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+ VOL- MUTE MODE BACK PREV NEXT,

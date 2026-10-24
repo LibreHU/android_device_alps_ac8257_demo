@@ -1,5 +1,6 @@
 #!/system/bin/sh
-# wheelkeys - UJC201 : touches au volant (MCU Jancar, trame 0x20) -> touches TWRP
+# wheelkeys - UJC201 : touches au volant (MCU Jancar, trame 0x20 ; boitier CAN Hiworld relaye en 0x10, canal 7)
+#   -> touches TWRP
 #   touchfix lit l'appui sur /dev/ttyS1, l'ecrit dans /tmp/mcu_key ("seq canal v1 v2 v3 v4"),
 #   cherche la touche dans la table et l'envoie sur le peripherique uinput "ujc201-wheel".
 #
@@ -50,6 +51,7 @@ learn() {
 		read seq ch b1 b2 b3 b4 < /tmp/mcu_key
 		case $ch in
 			1|2) idx=2; tol=0 ;;                                   # telecommande IR / molette : code exact
+			7)   idx=1; tol=0 ;;                                   # boitier CAN (Hiworld) : code exact
 			5|6) idx=2; [ "$b2" = 255 ] && idx=3; tol=3 ;;         # volant (resistances) : octet utile
 			*)   idx=1; tol=3 ;;                                   # touches AD (canaux 3/4)
 		esac
@@ -65,8 +67,8 @@ learn() {
 	done
 	rm -f $P
 	if [ $n -eq 0 ]; then
-		rm -f $new; echo "Aucune touche recue (le MCU n'envoie pas de trame 0x20 : volant non cable, ou boitier CAN ?)"
-		echo "Voir /tmp/mcu.log (lignes 'rx ee fa .. 20 ...')"; return 1
+		rm -f $new; echo "Aucune touche recue : ni trame MCU 0x20 (volant cable), ni touche du boitier CAN (Hiworld 0x11)"
+		echo "Voir /tmp/mcu.log (lignes 'rx ee fa .. 20 ...' et 'rx ee fa .. 10 ...')"; return 1
 	fi
 	mv $new $dest && echo "Table ecrite : $dest ($n touches)"
 	[ "$dest" = /tmp/ujc201_keys.conf ] && echo "(/data non monte : table perdue au redemarrage)"
@@ -79,6 +81,8 @@ show() {
 	echo "Derniere touche : $(cat /tmp/mcu_key 2>/dev/null || echo aucune)   (seq canal v1 v2 v3 v4)"
 	echo "Trames 0x20 recues :"
 	grep '^rx ee fa .. 20 ' /tmp/mcu.log 2>/dev/null | tail -n 12 || echo "  aucune"
+	echo "Trames du boitier CAN (0x10) : $(grep -c '^rx ee fa .. 10 ' /tmp/mcu.log 2>/dev/null || echo 0) dans le journal (200 au plus)"
+	echo "Boitier Hiworld (Renault LNP002) : touches sur le canal 7, table par defaut dans touchfix si non apprises"
 }
 
 case "$1" in
