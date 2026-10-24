@@ -121,7 +121,8 @@ static void status(void){
  * envoi : 0x1F 01 (PC_READY, comme Android au demarrage ; pas de battement de coeur sur AC8257), 0xF0 00 00 (etat ACC)
  * recu  : 0x00 ACC, 0x04 frein a main, 0x0B feux (ILL), 0x1F etat groupe (b6 frein, b4 feux), 0x0A version (texte),
  *         0x09 date [0,aa/100,aa%100,mois,jour] / heure [1,h,m,s] (heure LOCALE), 0x20 touche [canal,v1,v2,v3,v4]
- *         (canal 1 telecommande IR, 2 molette, 3/4 touches AD, 5/6 volant ; relache = 0xFF).
+ *         (canal 1 telecommande IR, 2 molette, 3/4 touches AD, 5/6 volant ; relache = 0xFF), 0x10 octets du boitier CAN
+ *         (Hiworld : touches au volant sur le canal 7, voir hw_feed).
  * sorties : /tmp/twcar (barre d'etat, a droite : ACC, frein, feux ; version -> Advanced > MCU info), /tmp/twcar_s (compact), /tmp/mcu_version, /tmp/mcu_time,
  *           /tmp/mcu_key ("seq canal v1 v2 v3 v4", pour wheelkeys), /tmp/twpopup (fenetres dessinees par TWRP),
  *           peripherique uinput "ujc201-wheel" (touches au volant -> touches TWRP, table ujc201_keys.conf) */
@@ -175,7 +176,7 @@ static void mcu_clock(int h,int mi,int se){
 /* -- touches au volant : table <canal> <octet 1..4> <min> <max> <action> [nom] -- */
 #define NMAP 32
 struct kmap{unsigned char ch,idx,lo,hi;signed char act;char name[14];};
-static struct kmap km[NMAP];static int nkm;
+static struct kmap km[NMAP+1];static int nkm;   /* km[NMAP] : touche du boitier CAN sans ligne dans la table */
 static const struct{const char*n;s16 code;const char*label;}acts[]={
  {"volup",115,"Volume +"},{"voldown",114,"Volume -"},{"enter",28,"Enter"},{"back",158,"Back"},{"home",172,"Home"},
  {"power",116,"Screen / lock"},{"up",103,"Up"},{"down",108,"Down"},{"left",105,"Left"},{"right",106,"Right"},
@@ -197,6 +198,7 @@ static void keys_load(void){
   *e=c;l=*e?e+1:e;}
  dwi("keymap",nkm);
  char s[64],*o=s;o=pstr(o,"touchfix: touches volant : ");o=pnum(o,nkm);o=pstr(o," (");o=pstr(o,kcfg[w]);o=pstr(o,")\n");logs(s);}
+static int hw_default(int code);
 static int kfd=-1,k_held,k_map=-1,k_seq;static s64 k_last,k_hide;static char k_popup[160];
 static void key_emit(int code,int v){if(kfd<0||code<=0)return;emit(kfd,EV_KEY,(u16)code,v);emit(kfd,EV_SYN,SYN_REPORT,0);}
 static void bl_step(int dir){int v=rdint("/tmp/twbl");if(v<0)v=180;v+=dir*32;if(v<16)v=16;if(v>255)v=255;char t[8];char*o=pnum(t,v);*o++='\n';wrtxt("/tmp/twbl",t,o-t);}
@@ -211,12 +213,13 @@ static void wheel_dev(void){
 static void key_release(void){if(k_held&&k_map>=0)key_emit(acts[km[k_map].act].code,0);if(k_held)k_hide=now_ms()+1500;k_held=0;k_map=-1;}
 static void mcu_key(const unsigned char*d,int dl){
  if(dl<2)return;int ch=d[0];unsigned char v[5]={0,d[1],dl>2?d[2]:255,dl>3?d[3]:255,dl>4?d[4]:255};
- int rel=ch==1?v[2]==255:(ch>=5?(v[2]==255&&v[3]==255&&v[4]==255):v[1]==255);
+ int rel=ch==1?v[2]==255:ch==7?v[1]==255:(ch>=5?(v[2]==255&&v[3]==255&&v[4]==255):v[1]==255);
  if(rel){key_release();return;}
  k_last=now_ms();if(k_held)return;                      /* repetition pendant l'appui */
  k_held=1;k_hide=0;k_seq++;
  {char s[48],*o=s;o=pnum(o,k_seq);for(int i=0;i<5;i++){*o++=' ';o=pnum(o,i?v[i]:ch);}*o++='\n';wrtxt("/tmp/mcu_key",s,o-s);}
  keys_load();k_map=-1;for(int i=0;i<nkm;i++)if(km[i].ch==ch&&v[km[i].idx]>=km[i].lo&&v[km[i].idx]<=km[i].hi){k_map=i;break;}
+ if(k_map<0&&ch==7)k_map=hw_default(v[1]);              /* boitier CAN : table Hiworld par defaut */
  char*o=k_popup;o=pstr(o,"K\t");
  if(k_map>=0){const struct kmap*m=&km[k_map];int a=m->act;o=pstr(o,"Steering wheel: ");o=pstr(o,m->name);o=pstr(o,"\tAction: ");o=pstr(o,acts[a].label);
   if(acts[a].code>0)key_emit(acts[a].code,1);else if(acts[a].code<0)bl_step(acts[a].code==-1?1:-1);}
@@ -244,8 +247,45 @@ static void popup_update(void){
  const char*ti=l+2,*te=ti;while(*te&&*te!='\t'&&*te!='\n')te++;
  const char*xs=te,*xe=te;if(*te=='\t'){xs=te+1;xe=xs;while(*xe&&*xe!='\n')xe++;}
  dw("pop_t",ti,(int)(te-ti));dw("pop_x",xs,(int)(xe-xs));dw("pop_k",l,1);}
+/* -- boitier CAN Hiworld (Renault LNP002 : Clio 3...) relaye par le MCU en trames 0x10 --
+ * Le MCU recopie les octets du boitier (USART1, 38400 par defaut) par paquets d'au plus 128 octets : un message peut
+ * etre coupe en deux. Trame Hiworld : 5A A5 LEN CMD D0..Dn-1 CS, CS = ((LEN+CMD+somme D) & 0xFF) - 1.
+ * Touche au volant : message 0x11, D1 bit 3 = evenement, D2 = code, D3 = 1 sur la trame d'appui ; un appui donne
+ * 08 kk 01 / 08 kk 00 / 08 00 00 / 00 00 00 (~100 ms), maintenu : la sequence se repete (~380 ms).
+ * Les touches passent par mcu_key() sur le canal 7 (v1 = code, relache = 255) : table, apprentissage, fenetres. */
+static int hw_st,hw_len,hw_cmd,hw_pos,hw_down;static unsigned char hw_buf[64];
+static const struct{unsigned char code;const char*act,*name;}hw_keys[]={
+ {1,"volup","VOL+"},{2,"voldown","VOL-"},{3,"enter","MUTE"},{18,"enter","MUTE"},{15,"enter","OK"},{19,"enter","ANSWER"},
+ {13,"up","PREV"},{5,"up","PREV"},{14,"down","NEXT"},{6,"down","NEXT"},{8,"right","RIGHT"},{9,"left","LEFT"},
+ {10,"back","MODE"},{20,"back","HANG UP"},{4,"home","NAVI"}};
+static int hw_default(int code){
+ for(int pass=0;pass<2;pass++){int c=pass?code&0x1F:code;if(pass&&code<=0x1F)break;   /* code complet, puis 5 bits bas */
+  for(unsigned i=0;i<sizeof hw_keys/sizeof hw_keys[0];i++)if(hw_keys[i].code==c){
+   struct kmap*m=&km[NMAP];m->ch=7;m->idx=1;m->lo=m->hi=(unsigned char)code;m->act=-1;
+   for(int a=0;a<NACT;a++)if(streq(hw_keys[i].act,acts[a].n))m->act=(signed char)a;
+   int k=0;for(;hw_keys[i].name[k]&&k<13;k++)m->name[k]=hw_keys[i].name[k];m->name[k]=0;
+   return m->act>=0?NMAP:-1;}}
+ return -1;}
+static int hw_frames;
+static void hw_frame(int ok){
+ dwi("canframes",++hw_frames);
+ if(!ok||hw_cmd!=0x11||hw_len<4)return;
+ int key=hw_buf[2],down=(hw_buf[1]&0x08)&&key&&hw_buf[3]==1;
+ if(hw_down&&(!down||hw_down!=key)){unsigned char r[2]={7,255};mcu_key(r,2);hw_down=0;}
+ if(down&&hw_down!=key){unsigned char p[2]={7,(unsigned char)key};mcu_key(p,2);hw_down=key;}
+ popup_update();}
+static void hw_feed(int v){
+ switch(hw_st){
+ case 0:if(v==0x5A)hw_st=1;break;
+ case 1:hw_st=v==0xA5?2:v==0x5A?1:0;break;
+ case 2:hw_len=v;hw_st=v>(int)sizeof hw_buf?0:3;break;
+ case 3:hw_cmd=v;hw_pos=0;hw_st=hw_len?4:5;break;
+ case 4:hw_buf[hw_pos++]=(unsigned char)v;if(hw_pos==hw_len)hw_st=5;break;
+ default:{int sum=hw_len+hw_cmd;for(int i=0;i<hw_len;i++)sum+=hw_buf[i];hw_frame(v==(((sum&0xFF)-1)&0xFF));hw_st=0;}}}
 static int m_frames;
-static void mcu_frame(const unsigned char*f,int n){unsigned char cmd=f[3];const unsigned char*d=f+4;int dl=f[2]-1;mcu_log("rx",f,n);dwi("frames",++m_frames);
+static void mcu_frame(const unsigned char*f,int n){unsigned char cmd=f[3];const unsigned char*d=f+4;int dl=f[2]-1;static int can_logged;
+ if(cmd!=0x10||can_logged++<200)mcu_log("rx",f,n);      /* boitier CAN : frequent, 200 trames au plus dans le journal */
+ dwi("frames",++m_frames);
  if(cmd==0x00&&dl>=1)m_acc=d[0]==1;
  else if(cmd==0x04&&dl>=1)m_hb=d[0]==1;
  else if(cmd==0x0B&&dl>=1)m_ill=d[0]==1;
@@ -255,6 +295,7 @@ static void mcu_frame(const unsigned char*f,int n){unsigned char cmd=f[3];const 
   char t[48];for(int i=0;i<=k;i++)t[i]=m_ver[i];t[k]='\n';wrtxt("/tmp/mcu_version",t,k+1);}
  else if(cmd==0x09&&dl>=4){if(d[0]==0&&dl>=5){c_Y=d[1]*100+d[2];c_M=d[3];c_D=d[4];c_ok=1;}else if(d[0]==1)mcu_clock(d[1],d[2],d[3]);return;}
  else if(cmd==0x20){mcu_key(d,dl);popup_update();return;}
+ else if(cmd==0x10){for(int i=0;i<dl;i++)hw_feed(d[i]);return;}   /* octets du boitier CAN */
  else return;
  (void)n;mcu_publish();popup_update();}
 static void mcu_loop(void){

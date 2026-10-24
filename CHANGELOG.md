@@ -3,9 +3,13 @@
 ## Non publie
 
 ### Corrige
-- **La build 10 (« beta ») n'avait pas la navigation au volant** : elle a ete construite depuis la branche `twrp`
-  au commit `a8e89d3` (20/10), alors que keynav (`f8bb3d0`, 21/10) n'etait que sur `ccr-eca2d7b0-vz26un`. Le flash
-  marchait, mais l'image etait quasi identique a la build 8, d'ou l'impression qu'elle ne s'installait pas.
+- **Touches au volant d'un boitier CAN ignorees** (Clio 3 et autres voitures avec boitier Hiworld) : touchfix ne
+  lisait que la trame MCU `0x20` (volant cable en direct). Les touches du boitier arrivent dans les trames `0x10`
+  (octets du boitier relayes par le MCU) : elles sont maintenant decodees (trame Hiworld `5A A5 LEN CMD .. CS`,
+  message `0x11`, comme `HiworldWheelKeys` de LibreHU-service) et passent par le canal 7 (table, apprentissage,
+  fenetres). Table par defaut LNP002 si la touche n'est pas apprise. La build 10 avait bien keynav (journal de la
+  CI : `pages.cpp (keynav, 19 types d'elements)`) mais aucune touche ne lui parvenait sur ces voitures. Son tag
+  etait pose sur la branche par defaut `twrp` (`a8e89d3`) alors que l'image venait de `f8bb3d0` : corrige ci-dessous.
 - **Version visible** : `TW_DEVICE_VERSION` = `UJC201-b<build>-<commit>` (affiche par TWRP au demarrage) et
   `ro.librehu.twrp` dans `prop.default` (`--version` de `ujc201_postprocess.py`) ; release taguee sur le commit
   construit (`target_commitish`), branche et commit dans son titre et ses notes.
