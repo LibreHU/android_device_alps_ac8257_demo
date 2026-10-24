@@ -67,6 +67,11 @@ jobs:
         mkdir -p workspace/$(dirname $DEVICE_PATH)
         cp -r device-tree workspace/$DEVICE_PATH
         rm -rf workspace/$DEVICE_PATH/.git workspace/$DEVICE_PATH/.github
+        # Build number and commit in the image: shown by TWRP at start ("3.7.1_12-UJC201-b<n>-<commit>") and in
+        # getprop ro.librehu.twrp, so that a flash can be checked on the unit
+        echo "TWRP_TAG=UJC201-b${{ github.run_number }}-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+        sed -i "s/^TW_DEVICE_VERSION := .*/TW_DEVICE_VERSION := UJC201-b${{ github.run_number }}-${GITHUB_SHA::7}/" workspace/$DEVICE_PATH/BoardConfig.mk
+        grep -n '^TW_DEVICE_VERSION' workspace/$DEVICE_PATH/BoardConfig.mk
 
     - name: Apply UJC201 TWRP source patches
       run: python3 device-tree/tools/apply_twrp_patches.py workspace/bootable/recovery
@@ -99,7 +104,8 @@ jobs:
         python3 device-tree/tools/ujc201_postprocess.py \
             $OUT/${BUILD_TARGET}.img $OUT/twrp_ujc201.img \
             --avb device-tree/prebuilt/avb/recovery_stock_vbmeta_250718.bin \
-            --overlay device-tree/recovery/root
+            --overlay device-tree/recovery/root \
+            --version "$TWRP_TAG"
         sha256sum $OUT/twrp_ujc201.img
 
     - name: Upload recovery artifact
@@ -114,13 +120,18 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: workspace/out/target/product/${{ env.DEVICE_NAME }}/twrp_ujc201.img
-        name: TWRP UJC201 (AC8257) - build ${{ github.run_number }}
+        name: TWRP UJC201 (AC8257) - build ${{ github.run_number }} (${{ github.ref_name }})
         tag_name: twrp-build-${{ github.run_number }}
+        # The tag on the commit built (without it the tag went on the default branch, whatever was built)
+        target_commitish: ${{ github.sha }}
         prerelease: true
         body: |
+          Branche ${{ github.ref_name }}, commit ${{ github.sha }}.
+          Version affichee par TWRP au demarrage et dans `getprop ro.librehu.twrp` : ${{ env.TWRP_TAG }}.
+          Verifier le flash (Android, root) : `su -c "sha256sum /dev/block/platform/bootdevice/by-name/recovery"` = empreinte de twrp_ujc201.img (image de la taille exacte de la partition).
           TWRP pour Jancar UJC201 (AC8257, carte JAC_8258C), composants stock issus du firmware UJC201-V1.151R6-260122_0427-RH-C0-CYA.
           Noyau : Linux 4.9.117+ #72, compile le 22 janvier 2026.
-          Manifeste : ${{ github.event.inputs.MANIFEST_BRANCH }}
+          Manifeste : ${{ github.event.inputs.MANIFEST_BRANCH || 'twrp-12.1' }}
           Fichier a flasher : twrp_ujc201.img (post-traite, signature AVB du recovery stock).
           NE PAS flasher recovery.img brut (ecran noir).
           fastboot flash recovery twrp_ujc201.img   puis   fastboot oem reboot-recovery

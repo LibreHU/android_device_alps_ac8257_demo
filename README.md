@@ -41,6 +41,12 @@ fastboot flash recovery twrp_ujc201.img
 fastboot oem reboot-recovery
 ```
 Retour au recovery stock : `fastboot flash recovery <recovery stock>.img`.
+
+**Verifier ce qui est flashe** : TWRP affiche sa version au demarrage (`3.7.1_12-UJC201-b<build>-<commit>`,
+builds a partir de la 11) ; depuis Android en root, `getprop` ne voit pas le recovery, mais l'empreinte de la
+partition doit etre celle de l'image (meme taille, 32 Mio) :
+`su -c "sha256sum /dev/block/platform/bootdevice/by-name/recovery"` = sha256 affiche par la release. Dans TWRP :
+`getprop ro.librehu.twrp`. Les builds de la CI sont des pre-releases ; le titre donne la branche construite.
 Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, onglet Readback, une ligne par zone) :
 
 | Nom | Region | Adresse | Longueur | Contenu |

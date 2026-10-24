@@ -218,6 +218,7 @@ def main():
     ap.add_argument('inp'); ap.add_argument('out')
     ap.add_argument('--avb', required=True, help='vbmeta du recovery stock (footer AVB)')
     ap.add_argument('--kernel'); ap.add_argument('--dtbo'); ap.add_argument('--overlay')
+    ap.add_argument('--version', help='build tag written as ro.librehu.twrp in prop.default')
     a = ap.parse_args()
 
     img = open(a.inp, 'rb').read()
@@ -293,6 +294,11 @@ def main():
     pd = find(ents, b'prop.default')
     if pd and b'persist.twrp.rotation' not in pd[2]:
         pd[2] += b'\n# UJC201 : dalle 720x1280 montee en paysage\npersist.twrp.rotation=90\n'
+    if pd and a.version:
+        # Build checkable on the unit (getprop ro.librehu.twrp)
+        pd[2] = b'\n'.join(l for l in pd[2].split(b'\n') if not l.startswith(b'ro.librehu.twrp='))
+        pd[2] += b'\nro.librehu.twrp=' + a.version.encode() + b'\n'
+        log('version :', a.version)
 
     p['ramdisk'] = rd_compress(cpio_build(ents), kind)
     cmd = bytes(p['hdr'][64:576]).rstrip(b'\0')
