@@ -2,6 +2,14 @@
 
 ## Non publie
 
+### Corrige
+- **La build 10 (« beta ») n'avait pas la navigation au volant** : elle a ete construite depuis la branche `twrp`
+  au commit `a8e89d3` (20/10), alors que keynav (`f8bb3d0`, 21/10) n'etait que sur `ccr-eca2d7b0-vz26un`. Le flash
+  marchait, mais l'image etait quasi identique a la build 8, d'ou l'impression qu'elle ne s'installait pas.
+- **Version visible** : `TW_DEVICE_VERSION` = `UJC201-b<build>-<commit>` (affiche par TWRP au demarrage) et
+  `ro.librehu.twrp` dans `prop.default` (`--version` de `ujc201_postprocess.py`) ; release taguee sur le commit
+  construit (`target_commitish`), branche et commit dans son titre et ses notes.
+
 ### Nouveau
 - **TWRP entier aux touches au volant** (`tools/keynav/keynav.inc`, insere dans `gui/pages.cpp`) : cadre sur
   l'element actif, VOL-/VOL+ = suivant / precedent, fleches (PREV / NEXT, molette) = voisin, MUTE = appui ; listes
