@@ -250,3 +250,12 @@ Ce depot ne contient que l'arbre TWRP. Le reste a ete deplace le 19/10/2026 :
 Ne jamais restaurer la partition « Preloader » depuis TWRP. Garder le recovery stock pour les mises a jour.
 Ne pas publier ses propres partitions `nvram`, `nvdata`, `proinfo`, `persist`, `metazone` (identifiants,
 certificat CarPlay).
+
+## Soutenir le projet
+
+LibreHU est développé bénévolement, sur le temps libre, et toutes ses applis restent gratuites. Si le projet vous est
+utile, vous pouvez le soutenir par un don sur [Liberapay](https://liberapay.com/DokT/donate) (association française à
+but non lucratif, dons récurrents) :
+
+[![Faire un don avec Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/DokT/donate)
+[![Donateurs sur Liberapay](https://img.shields.io/liberapay/patrons/DokT.svg?logo=liberapay)](https://liberapay.com/DokT/)
