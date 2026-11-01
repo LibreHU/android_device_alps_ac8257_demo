@@ -13,7 +13,8 @@ famille MediaTek MT6761). Une vraie ROM construite depuis les sources LineageOS,
 | **`lineage-16.0`** | cette branche : ROM LineageOS 16.0 |
 
 Noyau : [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
-(`LibreHU-main` : sources GPL Autochips + modifications LibreHU). Applis : depots `LibreHU-*` de
+(`stable-4.9.337` : sources GPL Autochips + modifications LibreHU + correctifs linux-stable jusqu'a 4.9.337, la seule
+branche suivie depuis le 01/11/2026). Applis : depots `LibreHU-*` de
 [LibreHU](https://github.com/LibreHU).
 
 ## Approche
@@ -26,7 +27,7 @@ HAL cote system propre a Jancar ou MediaTek. D'ou, pour la phase 1 :
 |---|---|
 | `system` | **LineageOS 16.0 construit ici** + applis LibreHU (service, launcher, OTA, ViPER4Android, telephone, FM, widgets, BtnRemap, EasySource, Disc, MCU Toolkit, Android Auto, CarPlay) + `mcu_ready` |
 | `vendor` | **vendor stock**, lu sur l'unite (`tools/get_vendor_img.sh`) et repris (`BOARD_PREBUILT_VENDORIMAGE`), avec le pilote ViPERFX_RE ajoute (`tools/vendor_add_viper.sh`) ; jamais publie |
-| `boot` | noyau stock #72 (`prebuilt/kernel`, voir [prebuilt/README.md](prebuilt/README.md)) ; plus tard le noyau LibreHU |
+| `boot` | **noyau LibreHU** `stable-4.9.337` construit par la CI du depot du noyau (`tools/fetch_kernel.sh` -> `prebuilt/kernel-librehu`, KernelSU Next pour le root) ; a defaut, noyau stock #72 (`prebuilt/kernel`, voir [prebuilt/README.md](prebuilt/README.md)) |
 | `dtbo`, `vbmeta`, `lk`, `tee`... | stock, non modifies |
 | `recovery` | TWRP (branche `twrp`) ; le recovery LineageOS n'est pas a flasher |
 
@@ -46,6 +47,8 @@ correspondent au vendor stock, sans couche de compatibilite.
 | `proprietary-files.txt`, `extract-files.sh`, `setup-makefiles.sh` | interfaces HIDL Autochips cote system (camera de recul, AVM, affichage rapide, iAP2, audio ATC...) reprises du stock |
 | `tools/get_vendor_img.sh` | lit la partition vendor de l'unite (lecture seule) |
 | `tools/vendor_add_viper.sh` | ajoute a l'image vendor locale (debugfs, copie `vendor.img.orig` gardee) le pilote [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 (module officiel, SHA-256 verifie) : `libv4a_re.so` dans `/lib[64]/soundfx` et l'effet `v4a_standard_re` dans `/etc/audio_effects.xml`, comme le zip `viper4android-re` de LibreHU-flashablesZips. Dans vendor car sous Android 9 Treble les effets sont charges par le HAL audio du vendor, qui ne peut pas charger de bibliotheque de `/system` |
+| `tools/fetch_kernel.sh` | noyau LibreHU `stable-4.9.337` (`Image.gz-dtb`) et ses modules Wi-Fi / BT / GPS / FM depuis la release `latest-stable-4.9.337` (empreintes de GitHub verifiees, noyau de l'image = celui des modules) ; non versionnes |
+| `tools/vendor_add_conn_modules.sh` | met ces modules dans `/lib/modules` de l'image vendor locale (debugfs, droits et contexte SELinux de l'original, marqueur `.librehu_conn`, copie `vendor.img.orig` gardee) : le noyau LibreHU refuse ceux du vendor stock (CRC des symboles differents), comme le font les zips `kernel-stable` sur l'unite |
 | `rootdir/etc/fstab.ac8257` | fstab du vendor stock (pour le build du recovery) |
 
 ## Compiler from scratch
@@ -89,6 +92,8 @@ L'unite sous TWRP (adb root) ou sous la ROM stock avec root, branchee en USB :
 ```bash
 device/alps/ac8257_demo/tools/get_vendor_img.sh      # -> vendor/jancar/ac8257_demo/vendor.img (2 Go, reste local)
 device/alps/ac8257_demo/tools/vendor_add_viper.sh    # pilote ViPERFX_RE dans cette image (sudo apt install e2fsprogs)
+device/alps/ac8257_demo/tools/fetch_kernel.sh        # noyau LibreHU stable-4.9.337 + ses modules (prebuilt/)
+device/alps/ac8257_demo/tools/vendor_add_conn_modules.sh  # ces modules dans l'image vendor (Wi-Fi, BT, GPS, FM)
 cd device/alps/ac8257_demo
 ./extract-files.sh                                   # interfaces HIDL Autochips de /system (adb)
 librehu/fetch_apks.sh                                # derniers APK LibreHU (toutes les applis de la ROM)
@@ -100,7 +105,8 @@ cd ~/android/lineage
 export LC_ALL=C USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache && ccache -M 50G
 source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
-mka systemimage           # phase 1 : seulement system.img (boot et vendor restent stock)
+mka systemimage           # phase 1 : seulement system.img (boot et vendor restent ceux de l'unite)
+mka bootimage             # boot.img avec le noyau de prebuilt/ (LibreHU si tools/fetch_kernel.sh a tourne)
 # plus tard : mka bacon   # zip LineageOS complet
 ```
 Resultat : `out/target/product/ac8257_demo/system.img`.
@@ -115,8 +121,13 @@ Rien n'est automatise. Avant tout :
    demarre pas sur les donnees de la ROM stock).
 4. Retour arriere : restaurer la sauvegarde TWRP (ou SP Flash Tool).
 
-Root : LineageOS 16.0 ne donne le root qu'a adb. Plusieurs fonctions de LibreHU-service en ont besoin (comme sur le
-stock) : a ajouter (Magisk, ou KernelSU Next avec le noyau LibreHU).
+Root : LineageOS 16.0 ne donne le root qu'a adb ; plusieurs fonctions de LibreHU-service en ont besoin (comme sur le
+stock). Le noyau LibreHU contient KernelSU Next : installer son gestionnaire (v3.4.2) apres le premier demarrage.
+Avec le noyau stock, ajouter Magisk.
+
+USB : le transfert de fichiers avec un ordinateur (MTP) est **desactive par defaut** par LibreHU-service (reglage
+Avance -> Autochips) ; LineageOS a le `MtpReceiver` de MediaProvider, le serveur MTP demarre donc seul une fois le
+reglage active (sur la ROM stock, c'est le service qui le demarre).
 
 ## Roadmap
 
@@ -126,7 +137,8 @@ stock) : a ajouter (Magisk, ou KernelSU Next avec le noyau LibreHU).
 3. **Fonctions autoradio** avec les applis LibreHU : MCU / CAN, touches au volant, radio FM, camera de recul et AVM,
    AV-in, telephone (RIL MediaTek `c6m_1rild` avec la telephonie AOSP), Android Auto / CarPlay.
 4. **Politique SELinux** du device (`mcu_ready`, applis) puis mode enforcing (aujourd'hui permissif, comme le stock).
-5. **Noyau LibreHU** (`LibreHU-main`) a la place du noyau stock, `boot.img` construit, root (KernelSU Next).
+5. **Noyau LibreHU** a la place du noyau stock, `boot.img` construit, root (KernelSU Next) — dans l'arbre depuis le
+   01/11/2026 (`stable-4.9.337` prebuilt de la CI, modules de connectivite dans vendor), a tester.
 6. **Zip LineageOS complet** (`mka bacon`) installable depuis TWRP, builds publies et mis a jour par l'appli OTA.
 
 ## Risques connus

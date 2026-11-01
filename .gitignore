@@ -6,3 +6,6 @@ tools/buildprop_fix/out/
 tools/audio/twrp/out/
 librehu/*.apk
 librehu/*.apk.part
+prebuilt/kernel-librehu
+prebuilt/modules/
+prebuilt/modules.new/

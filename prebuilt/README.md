@@ -12,6 +12,10 @@ Image recompressee (gzip -9), DTB inchange (memoire reservee identique aux noyau
 
 Pas de `dtbo.img` : la partition `dtbo` stock est gardee.
 
-Plus tard : noyau LibreHU construit depuis
-[android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (branche
-`LibreHU-main`, sources GPL Autochips).
+`kernel-librehu` et `modules/` (non versionnes) : **noyau LibreHU** de la branche `stable-4.9.337` de
+[android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (sources GPL
+Autochips, correctifs linux-stable jusqu'a 4.9.337, KernelSU Next), `Image.gz-dtb` de sa release
+`latest-stable-4.9.337`, et ses six modules de connectivite (`wmt_drv`, `wmt_chrdev_wifi`, `wlan_drv_gen4m`,
+`bt_drv`, `gps_drv`, `fmradio_drv`, avec `SHA256SUMS`, `kernel_version` et `release.txt`), ecrits par
+`tools/fetch_kernel.sh`. Quand `kernel-librehu` existe, `BoardConfig.mk` le prend a la place de `kernel` ; les modules
+vont alors dans l'image vendor (`tools/vendor_add_conn_modules.sh`), ce noyau refusant ceux du stock.

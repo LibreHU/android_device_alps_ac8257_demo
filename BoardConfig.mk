@@ -34,8 +34,10 @@ TARGET_BOARD_PLATFORM := ac8257
 # Display (1280 x 720 en paysage, ro.sf.lcd_density=160 du stock)
 TARGET_SCREEN_DENSITY := 160
 
-# Kernel : noyau stock #72 (22/01/2026) en prebuilt, voir prebuilt/README.md.
-# Plus tard : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche LibreHU-main).
+# Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche stable-4.9.337 : linux-stable 4.9.337,
+# KernelSU Next) telecharge par tools/fetch_kernel.sh dans prebuilt/kernel-librehu, avec ses modules Wi-Fi / BT /
+# GPS / FM a mettre dans l'image vendor (tools/vendor_add_conn_modules.sh : il refuse ceux du stock) ; a defaut,
+# noyau stock #72 (22/01/2026) de prebuilt/kernel, voir prebuilt/README.md.
 BOARD_BOOTIMG_HEADER_VERSION := 1
 BOARD_KERNEL_BASE := 0x40078000
 BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 buildvariant=user
@@ -48,7 +50,7 @@ BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOTIMG_HEADER_VERSION)
 BOARD_MKBOOTIMG_ARGS += --ramdisk_offset $(BOARD_RAMDISK_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
 BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
-TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
+TARGET_PREBUILT_KERNEL := $(if $(wildcard $(DEVICE_PATH)/prebuilt/kernel-librehu),$(DEVICE_PATH)/prebuilt/kernel-librehu,$(DEVICE_PATH)/prebuilt/kernel)
 # La partition dtbo stock est gardee : pas de dtbo.img construit.
 
 # Partitions (table eMMC du noyau stock #72)
