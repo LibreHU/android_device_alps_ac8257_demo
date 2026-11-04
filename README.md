@@ -222,7 +222,15 @@ le decalage horaire existant (arrondi au 1/4 d'heure).
 `touchfix` y retrouve les messages `5A A5 LEN CMD .. CS` et la touche du message `11` (D1 bit 3, D2 = code, D3 = 1 a
 l'appui) ; elle passe par le **canal 7** (`v1` = code). Sans ligne apprise, table LNP002 par defaut (VOL+ / VOL-,
 MUTE / OK = appui, PREV / NEXT = haut / bas, gauche / droite, MODE = retour, NAVI = accueil). La vitesse du boitier
-est celle du MCU (`0F 00`, 38400 par defaut) : a verifier sur une voiture dont le boitier en utilise une autre. `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
+est celle du MCU (`0F 00`, 38400 par defaut) : a verifier sur une voiture dont le boitier en utilise une autre.
+**Dialogue avec le boitier** (sans lui, un boitier Hiworld n'envoie aucune touche) : `touchfix` accuse chaque message
+(`5A A5 01 FF <cmd> CS`, trame MCU `10`) et envoie les messages du profil de voiture, lus dans `ujc201_can.conf`
+(`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/`), que **LibreHU service ecrit d'apres le profil choisi**
+dans son onglet CAN :
+`ack 1` (accuser, 1 sans fichier), `send <premier ms> <periode ms> <octets hex>` (octets deja en trame du boitier ;
+Clio 3 : `send 1000 30000 5A A5 02 24 00 31 56`), `keys <cmd> <octet code> <octet etat> <valeur appui> <octet evenement>
+<masque>` (hex, `FF` = aucun ; Hiworld LNP002 par defaut : `keys 11 02 03 01 01 08`). Compteurs dans MCU info :
+`canframes` (messages recus), `canacks` (accuses envoyes). `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
 `ujc201_keys.conf` (`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/` vide) :
 `<canal> <octet 1..4> <min> <max> <action> [nom]`, actions `volup voldown enter back home power up down left right bl+ bl- none`.
 Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+ VOL- MUTE MODE BACK PREV NEXT,

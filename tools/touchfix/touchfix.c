@@ -140,6 +140,10 @@ static void mcu_log(const char*tag,const unsigned char*f,int n);
 static void mcu_send(int fd,unsigned char cmd,const unsigned char*d,int n){unsigned char f[32];int k=0,sum=0;
  f[k++]=0xEE;f[k++]=0xFA;f[k++]=(unsigned char)(n+1);f[k++]=cmd;for(int i=0;i<n;i++)f[k++]=d[i];
  for(int i=0;i<k;i++)sum+=f[i];f[k++]=(unsigned char)sum;sys(SYS_write,fd,(s64)f,k,0);mcu_log("tx",f,k);}
+/* meme trame, sans le journal : accuses au boitier CAN, plusieurs par seconde */
+static void mcu_send_q(int fd,unsigned char cmd,const unsigned char*d,int n){unsigned char f[40];int k=0,sum=0;if(fd<0||n>32)return;
+ f[k++]=0xEE;f[k++]=0xFA;f[k++]=(unsigned char)(n+1);f[k++]=cmd;for(int i=0;i<n;i++)f[k++]=d[i];
+ for(int i=0;i<k;i++)sum+=f[i];f[k++]=(unsigned char)sum;sys(SYS_write,fd,(s64)f,k,0);}
 static void wrtxt(const char*p,const char*s,int n){int fd=op(p,O_WRONLY|0100|01000);if(fd>=0){sys(SYS_write,fd,(s64)s,n,0);sys(SYS_close,fd,0,0,0);}}
 static char*onoff(char*o,int v){return pstr(o,v<0?"--":v?"ON":"OFF");}
 static char*p2(char*o,int v){*o++='0'+(v/10)%10;*o++='0'+v%10;return o;}
@@ -266,11 +270,52 @@ static int hw_default(int code){
    int k=0;for(;hw_keys[i].name[k]&&k<13;k++)m->name[k]=hw_keys[i].name[k];m->name[k]=0;
    return m->act>=0?NMAP:-1;}}
  return -1;}
+/* -- dialogue avec le boitier (comme son appli d'origine, Hiworld "Car Info" 1.0.3991 et LibreHU service) --
+ * Sans reponse, un boitier Hiworld envoie ses messages un par seconde en boucle et aucune touche au volant. TWRP
+ * accuse chaque message (5A A5 01 FF <cmd> CS, sauf les accuses du boitier FF / FE) et envoie les messages du profil de
+ * voiture (Clio 3 : type de voiture 5A A5 02 24 00 31 56, 1 s apres le depart puis toutes les 30 s, et de nouveau quand
+ * le boitier reparle apres 5 s de silence), lus dans ujc201_can.conf, que LibreHU service ecrit d'apres le profil choisi :
+ *   ack 1                                  accuser les messages (1 sans fichier)
+ *   send <premier ms> <periode ms> <octets hex>   octets deja en trame du boitier, envoyes dans des trames MCU 0x10
+ *   keys <cmd> <octet code> <octet etat> <valeur appui> <octet evenement> <masque>   (hex, FF = aucun ; Hiworld LNP002 :
+ *        11 02 03 01 01 08) */
+static const char*ccfg[3]={"/data/media/0/TWRP/ujc201_can.conf","/tmp/ujc201_can.conf","/system/etc/ujc201_can.conf"};
+static s64 ccfg_sig=-1,can_last_rx;static int m_fd=-1,can_ack=1,can_n,can_acks;
+static struct{s64 first,every,due;int len;unsigned char b[32];}can_tx[4];
+static unsigned char ks_cmd=0x11,ks_code=2,ks_state=3,ks_pressed=1,ks_event=1,ks_mask=0x08;
+static int hex2(const char*t){int v=0,n=0;for(;*t;t++,n++){int c=*t,d=c>='0'&&c<='9'?c-'0':c>='a'&&c<='f'?c-'a'+10:c>='A'&&c<='F'?c-'A'+10:-1;if(d<0||n>=2)return -1;v=v*16+d;}return n?v:-1;}
+static void can_sched(s64 t){for(int i=0;i<can_n;i++)can_tx[i].due=t+can_tx[i].first;}
+static void can_load(void){
+ s64 st[16];int w=-1;for(int i=0;i<3&&w<0;i++)if(sys(SYS_newfstatat,AT_FDCWD,(s64)ccfg[i],(s64)st,0)==0)w=i;
+ s64 sig=w<0?0:(w+1)+st[6]*7+st[11]*131+st[12];if(sig==ccfg_sig)return;ccfg_sig=sig;
+ can_ack=1;can_n=0;ks_cmd=0x11;ks_code=2;ks_state=3;ks_pressed=1;ks_event=1;ks_mask=0x08;
+ if(w>=0){static char b[2048];int fd=op(ccfg[w],O_RDONLY);s64 n=fd<0?0:sys(SYS_read,fd,(s64)b,2047,0);if(fd>=0)sys(SYS_close,fd,0,0,0);
+  if(n>0){b[n]=0;
+   for(char*l=b;*l;){char*e=l;while(*e&&*e!='\n')e++;char c=*e;*e=0;char t[40][12];char*q=l;int k=0;while(k<40&&tok(&q,t[k],12))k++;
+    if(k>=2&&streq(t[0],"ack"))can_ack=atoi_(t[1])!=0;
+    else if(k>=4&&k-3<=32&&streq(t[0],"send")&&can_n<4){int m=0;for(int i=3;i<k;i++){int v=hex2(t[i]);if(v<0){m=0;break;}can_tx[can_n].b[m++]=(unsigned char)v;}
+     if(m>0){can_tx[can_n].len=m;can_tx[can_n].first=atoi_(t[1]);can_tx[can_n].every=atoi_(t[2]);if(can_tx[can_n].every<500)can_tx[can_n].every=0;can_n++;}}
+    else if(k>=7&&streq(t[0],"keys")){int v[6];int okk=1;for(int i=0;i<6;i++){v[i]=hex2(t[i+1]);if(v[i]<0)okk=0;}
+     if(okk){ks_cmd=v[0];ks_code=v[1];ks_state=v[2];ks_pressed=v[3];ks_event=v[4];ks_mask=v[5];}}
+    *e=c;l=*e?e+1:e;}}}
+ can_sched(now_ms());
+ char s[96],*o=s;o=pstr(o,"touchfix: boitier CAN : accuses ");o=pstr(o,can_ack?"oui":"non");o=pstr(o,", messages ");o=pnum(o,can_n);
+ o=pstr(o," (");o=pstr(o,w<0?"sans fichier":ccfg[w]);o=pstr(o,")\n");logs(s);}
+static void can_tick(void){s64 t=now_ms();
+ for(int i=0;i<can_n;i++){if(!can_tx[i].due||t<can_tx[i].due)continue;
+  mcu_send_q(m_fd,0x10,can_tx[i].b,can_tx[i].len);static int logged;if(logged++<20)mcu_log("tx can",can_tx[i].b,can_tx[i].len);
+  can_tx[i].due=can_tx[i].every?t+can_tx[i].every:0;}}
 static int hw_frames;
 static void hw_frame(int ok){
  dwi("canframes",++hw_frames);
- if(!ok||hw_cmd!=0x11||hw_len<4)return;
- int key=hw_buf[2],down=(hw_buf[1]&0x08)&&key&&hw_buf[3]==1;
+ {s64 t=now_ms();if(can_last_rx&&t-can_last_rx>5000)can_sched(t);can_last_rx=t;}   /* le boitier reparle : redemarre */
+ if(ok&&can_ack&&hw_cmd!=0xFF&&hw_cmd!=0xFE&&m_fd>=0){
+  unsigned char a[6]={0x5A,0xA5,0x01,0xFF,(unsigned char)hw_cmd,(unsigned char)(((0x01+0xFF+hw_cmd)&0xFF)-1)};
+  mcu_send_q(m_fd,0x10,a,6);dwi("canacks",++can_acks);}
+ if(!ok||hw_cmd!=ks_cmd)return;
+ int need=ks_code;if(ks_state!=0xFF&&ks_state>need)need=ks_state;if(ks_event!=0xFF&&ks_event>need)need=ks_event;if(hw_len<=need)return;
+ int key=hw_buf[ks_code];
+ int down=(ks_event==0xFF||(hw_buf[ks_event]&ks_mask))&&key&&(ks_state==0xFF||hw_buf[ks_state]==ks_pressed);
  if(hw_down&&(!down||hw_down!=key)){unsigned char r[2]={7,255};mcu_key(r,2);hw_down=0;}
  if(down&&hw_down!=key){unsigned char p[2]={7,(unsigned char)key};mcu_key(p,2);hw_down=key;}
  popup_update();}
@@ -310,6 +355,7 @@ static void mcu_loop(void){
   tio.c_cflag=(tio.c_cflag&~(0010017u/*CBAUD*/|0000060u/*CSIZE*/|0000400u/*PARENB*/|0000100u/*CSTOPB*/|020000000000u/*CRTSCTS*/))|0010002u/*B115200*/|0000060u/*CS8*/|0000200u/*CREAD*/|0004000u/*CLOCAL*/;
   tio.c_cc[6]=0;tio.c_cc[5]=0;sys(SYS_ioctl,fd,TCSETS,(s64)&tio,0);}
  logs("touchfix: MCU ttyS1 ouvert\n");
+ m_fd=fd;can_load();dwi("canacks",0);
  const unsigned char ready[1]={1},qacc[2]={0,0},qhb[2]={4,0},qill[2]={0x0B,0};   /* F0 04 00 frein a main, F0 0B 00 feux (gestionnaire F0 du firmware MCU) */
  unsigned char buf[512];int bl=0,tries=0;s64 tick=0;
  for(;;){
@@ -317,7 +363,8 @@ static void mcu_loop(void){
   if(m_acc<0&&tick>0&&(tick%100)==0)mcu_send(fd,0xF0,qacc,2);
   if(m_hb<0&&tick>0&&(tick%100)==50)mcu_send(fd,0xF0,qhb,2);
   if(m_ill<0&&tick>0&&(tick%100)==75)mcu_send(fd,0xF0,qill,2);
-  if((tick%20)==0)keys_load();
+  if((tick%20)==0){keys_load();can_load();}
+  can_tick();
   s64 n=sys(SYS_read,fd,(s64)(buf+bl),sizeof buf-bl,0);
   if(n>0){bl+=(int)n;
    for(;;){int i=0;while(i+1<bl&&!(buf[i]==0xEE&&buf[i+1]==0xFA))i++;
