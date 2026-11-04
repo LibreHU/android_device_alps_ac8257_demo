@@ -3,6 +3,15 @@
 ## Non publie
 
 ### Corrige
+- **Touches au volant du boitier CAN toujours absentes** (beta precedente, Clio 3) : le boitier Hiworld attend que
+  l'autoradio lui reponde. Sans reponse il envoie ses messages un par seconde en boucle et aucune touche (journaux CAN
+  des 02 et 04/11/2026). `touchfix` fait maintenant comme l'appli d'origine du boitier (« Car Info » 1.0.3991,
+  `HdProtocol.acknowledge`, `JancarRx`, `HdRenaultProtocolLNP002.buildCarTypePacket`) et LibreHU service : **accuse
+  chaque message** (`5A A5 01 FF <cmd> CS` dans une trame MCU `10`, sauf les accuses du boitier `FF` / `FE`) et
+  **envoie les messages du profil de voiture** (Clio 3 : type de voiture `5A A5 02 24 00 31 56`, 1 s apres le depart
+  puis toutes les 30 s, et de nouveau quand le boitier reparle apres 5 s de silence). Ces messages et l'emplacement
+  des touches viennent de `ujc201_can.conf`, ecrit par LibreHU service d'apres le profil choisi (onglet CAN) :
+  TWRP suit la voiture choisie dans Android, rien n'est propre a la Clio 3 dans TWRP.
 - **Touches au volant d'un boitier CAN ignorees** (Clio 3 et autres voitures avec boitier Hiworld) : touchfix ne
   lisait que la trame MCU `0x20` (volant cable en direct). Les touches du boitier arrivent dans les trames `0x10`
   (octets du boitier relayes par le MCU) : elles sont maintenant decodees (trame Hiworld `5A A5 LEN CMD .. CS`,
