@@ -276,6 +276,25 @@ but non lucratif, dons récurrents) :
 [![Faire un don avec Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/DokT/donate)
 [![Donateurs sur Liberapay](https://img.shields.io/liberapay/patrons/DokT.svg?logo=liberapay)](https://liberapay.com/DokT/)
 
+## Licence
+
+Copyright (C) 2026 les contributeurs de LibreHU.
+
+Les fichiers de LibreHU sont sous **GNU AGPL v3 ou ulterieure** (`AGPL-3.0-or-later`, fichier [`LICENSE`](LICENSE)),
+avec les [termes additionnels](LICENSE-ADDITIONAL-TERMS.md) de son article 7 : garder la mention « Basé sur LibreHU –
+https://github.com/LibreHU » et marquer une version modifiee comme telle. Qui distribue une version modifiee doit en
+donner le code source complet sous la meme licence. Les autres gardent leur licence :
+
+| Quoi | Ou | Auteur | Licence |
+|---|---|---|---|
+| Fichiers de base de l'arbre (en-tete Apache-2.0 garde) | `Android.bp`, `Android.mk`, `AndroidProducts.mk`, `BoardConfig.mk`, `device.mk`, `twrp_ac8257_demo.mk`, `vendorsetup.sh` | [twrpdtgen](https://github.com/twrpdtgen/twrpdtgen) (SebaUbuntu), The Android Open Source Project | Apache-2.0 |
+| Police Roboto du menu de demarrage | `tools/bootmenu/fonts/` | Google | Apache-2.0, `tools/bootmenu/fonts/LICENSE` |
+| TWRP (compile par la CI, pas dans ce depot) | release `twrp-build-<n>` | [TeamWin](https://github.com/TeamWin) | GPL-3.0 |
+| Noyau et `dtbo` stock (binaires de la mise a jour Jancar ; source : branche `autochips-gpl` du [depot du noyau](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9/tree/autochips-gpl)) | `prebuilt/` | Jancar, AutoChips, les auteurs de Linux | GPL-2.0 |
+
+Methode du menu de demarrage reprise de `magiskinit` ([Magisk](https://github.com/topjohnwu/Magisk), GPL-3.0) :
+bascule de la racine sur `system`, sans code copie.
+
 ## Contact
 
 [librehu@proton.me](mailto:librehu@proton.me)
