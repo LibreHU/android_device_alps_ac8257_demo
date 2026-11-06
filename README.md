@@ -244,7 +244,7 @@ texte en chinois, releve le 06/11/2026) : Android 11 annonce, AC8257 a 2,0 GHz, 
 -20 a 70 °C. Comparee a l'UJC201 de test (Android 9, 4 coeurs actifs, BD37534) dans le
 [README du noyau](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9/tree/stable-4.9.337#la-fiche-jancar-q8l).
 
-Carte mere (photos envoyees par le mainteneur le 06/11/2026) : serigraphie « JAC_8258_VER_0.2 » et « 2020_09_19 »,
+Carte mere (photos de la fiche Jancar) : serigraphie « JAC_8258_VER_0.2 » et « 2020_09_19 »,
 etiquette « …20220425 2+32G … AHD720/360 » et « +ASP/DSP+MIPI/LVDS+4G/WIFI+6856 033 », puces marquees « AutoChips » et
 « icmax ».
 
