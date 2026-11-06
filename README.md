@@ -236,6 +236,15 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
 - `tools/ujc201_postprocess.py` : post-traitement de l'image (signature AVB, patchs binaires de secours)
 - `tools/bootmenu/` : menu de demarrage (source C, generateur d'interface, polices Roboto Apache 2.0, `mkboot.py`)
 
+## Materiel : fiche Jancar Q8L
+
+Fiche produit de Jancar pour cette plateforme : [Q8L](https://jancar.com.cn/en/product-35323-116606.html) (AC8257,
+texte en chinois, releve le 06/11/2026) : Android 11 annonce, AC8257 a 2,0 GHz, ecran 1024 x 600 / 800 x 480 /
+1280 x 720, Wi-Fi / Bluetooth 5.0 / GNSS MT6631, recul AHD / CVBS, DSP ROHM, ampli « 7388 » 4 x 25 W, 4 prises USB,
+-20 a 70 °C. Comparee a l'UJC201 de test (Android 9, 4 coeurs actifs, BD37534) dans le
+[README du noyau](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9/tree/stable-4.9.337#la-fiche-jancar-q8l).
+Photos de la fiche : a ajouter.
+
 ## Ailleurs
 Ce depot ne contient que l'arbre TWRP. Le reste a ete deplace le 19/10/2026 :
 - noyau, sources GPL Autochips, tester un noyau (footer AVB du boot, `para`, RAM), notes de la ROM stock (audio,
