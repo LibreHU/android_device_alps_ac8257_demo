@@ -251,55 +251,101 @@ static void popup_update(void){
  const char*ti=l+2,*te=ti;while(*te&&*te!='\t'&&*te!='\n')te++;
  const char*xs=te,*xe=te;if(*te=='\t'){xs=te+1;xe=xs;while(*xe&&*xe!='\n')xe++;}
  dw("pop_t",ti,(int)(te-ti));dw("pop_x",xs,(int)(xe-xs));dw("pop_k",l,1);}
-/* -- boitier CAN Hiworld (Renault LNP002 : Clio 3...) relaye par le MCU en trames 0x10 --
+/* -- boitier CAN relaye par le MCU en trames 0x10 --
  * Le MCU recopie les octets du boitier (USART1, 38400 par defaut) par paquets d'au plus 128 octets : un message peut
- * etre coupe en deux. Trame Hiworld : 5A A5 LEN CMD D0..Dn-1 CS, CS = ((LEN+CMD+somme D) & 0xFF) - 1.
- * Touche au volant : message 0x11, D1 bit 3 = evenement, D2 = code, D3 = 1 sur la trame d'appui ; un appui donne
- * 08 kk 01 / 08 kk 00 / 08 00 00 / 00 00 00 (~100 ms), maintenu : la sequence se repete (~380 ms).
- * Les touches passent par mcu_key() sur le canal 7 (v1 = code, relache = 255) : table, apprentissage, fenetres. */
-static int hw_st,hw_len,hw_cmd,hw_pos,hw_down;static unsigned char hw_buf[64];
+ * etre coupe en deux. La trame est decrite par ujc201_can.conf, que LibreHU service ecrit d'apres la fiche choisie
+ * dans Android (sans fichier : Hiworld) : HEAD.. [LEN CMD | CMD LEN] D0..Dn-1 SUM, LEN = n + lenoff, SUM sur 1 ou 2
+ * octets = somme (ou xor) des champs choisis (h en-tete, l LEN, c CMD, d donnees) + add, puis xor.
+ * Hiworld : 5A A5 LEN CMD D CS, CS = somme(LEN, CMD, D) - 1 ; Raise : 2E CMD LEN D CS, CS = somme xor FF ;
+ * Raise FD : FD LEN CMD D CS (LEN = n + 3, ou n + 4 avec une somme sur 2 octets).
+ * Touche au volant (ligne keys) : Hiworld LNP002 = message 0x11, D1 bit 3 = evenement, D2 = code, D3 = 1 sur l'appui ;
+ * un appui donne 08 kk 01 / 08 kk 00 / 08 00 00 / 00 00 00 (~100 ms), maintenu : la sequence se repete (~380 ms).
+ * Les touches passent par mcu_key() sur le canal 7 (v1 = code, relache = 255) : table apprise, sinon lignes key de la
+ * fiche, sinon table Hiworld par defaut ; fenetres. */
+static unsigned char fr_head[4]={0x5A,0xA5},fr_ackraw[8],fr_noack[8]={0xFF,0xFE};
+static int fr_hn=2,fr_lc=1,fr_lenoff,fr_algo,fr_size=1,fr_add=-1,fr_xor,fr_over=14,fr_ackcmd=0xFF,fr_ackrawn,fr_noackn=2,fr_baud=-1;
+static unsigned fr_check(int len,int cmd,const unsigned char*d,int n){unsigned s=0;
+#define FR_ADD(x) s=fr_algo?(s^(unsigned)(x)):(s+(unsigned)(x))
+ if(fr_over&1)for(int i=0;i<fr_hn;i++)FR_ADD(fr_head[i]);
+ if(fr_over&2)FR_ADD(len&0xFF);
+ if(fr_over&4)FR_ADD(cmd&0xFF);
+ if(fr_over&8)for(int i=0;i<n;i++)FR_ADD(d[i]);
+#undef FR_ADD
+ unsigned m=fr_size==2?0xFFFFu:0xFFu;return ((s+(unsigned)fr_add)&m)^((unsigned)fr_xor&m);}
+static int fr_encode(int cmd,const unsigned char*d,int n,unsigned char*out){int k=0;
+ for(int i=0;i<fr_hn;i++)out[k++]=fr_head[i];
+ int len=n+fr_lenoff;if(fr_lc){out[k++]=(unsigned char)len;out[k++]=(unsigned char)cmd;}else{out[k++]=(unsigned char)cmd;out[k++]=(unsigned char)len;}
+ for(int i=0;i<n;i++)out[k++]=d[i];
+ unsigned s=fr_check(len,cmd,d,n);if(fr_size==2)out[k++]=(unsigned char)(s>>8);out[k++]=(unsigned char)s;return k;}
+static int hw_st,hw_hp,hw_len,hw_cmd,hw_n,hw_pos,hw_sg,hw_down;static unsigned hw_sum;static unsigned char hw_buf[64];
 static const struct{unsigned char code;const char*act,*name;}hw_keys[]={
  {1,"volup","VOL+"},{2,"voldown","VOL-"},{3,"enter","MUTE"},{18,"enter","MUTE"},{15,"enter","OK"},{19,"enter","ANSWER"},
  {13,"up","PREV"},{5,"up","PREV"},{14,"down","NEXT"},{6,"down","NEXT"},{8,"right","RIGHT"},{9,"left","LEFT"},
  {10,"back","MODE"},{20,"back","HANG UP"},{4,"home","NAVI"}};
+static struct{unsigned char code;signed char act;char name[14];}ck[40];static int ckn;   /* lignes key de la fiche */
+static void km_set(int code,int act,const char*name){struct kmap*m=&km[NMAP];m->ch=7;m->idx=1;m->lo=m->hi=(unsigned char)code;
+ m->act=(signed char)act;int k=0;for(;name[k]&&k<13;k++)m->name[k]=name[k];m->name[k]=0;}
 static int hw_default(int code){
  for(int pass=0;pass<2;pass++){int c=pass?code&0x1F:code;if(pass&&code<=0x1F)break;   /* code complet, puis 5 bits bas */
+  if(ckn){for(int i=0;i<ckn;i++)if(ck[i].code==c){km_set(code,ck[i].act,ck[i].name);return NMAP;}continue;}
   for(unsigned i=0;i<sizeof hw_keys/sizeof hw_keys[0];i++)if(hw_keys[i].code==c){
-   struct kmap*m=&km[NMAP];m->ch=7;m->idx=1;m->lo=m->hi=(unsigned char)code;m->act=-1;
-   for(int a=0;a<NACT;a++)if(streq(hw_keys[i].act,acts[a].n))m->act=(signed char)a;
-   int k=0;for(;hw_keys[i].name[k]&&k<13;k++)m->name[k]=hw_keys[i].name[k];m->name[k]=0;
-   return m->act>=0?NMAP:-1;}}
+   int a=-1;for(int j=0;j<NACT;j++)if(streq(hw_keys[i].act,acts[j].n))a=j;
+   if(a<0)return -1;km_set(code,a,hw_keys[i].name);return NMAP;}}
  return -1;}
-/* -- dialogue avec le boitier (comme son appli d'origine, Hiworld "Car Info" 1.0.3991 et LibreHU service) --
+/* -- dialogue avec le boitier (comme son appli d'origine et LibreHU service) --
  * Sans reponse, un boitier Hiworld envoie ses messages un par seconde en boucle et aucune touche au volant. TWRP
- * accuse chaque message (5A A5 01 FF <cmd> CS, sauf les accuses du boitier FF / FE) et envoie les messages du profil de
- * voiture (Clio 3 : type de voiture 5A A5 02 24 00 31 56, 1 s apres le depart puis toutes les 30 s, et de nouveau quand
- * le boitier reparle apres 5 s de silence), lus dans ujc201_can.conf, que LibreHU service ecrit d'apres le profil choisi :
+ * accuse chaque message (ackcmd : message <cmd> portant le code du message, Hiworld 5A A5 01 FF <cmd> CS ; ackraw :
+ * octets fixes, FF chez Raise ; sauf les commandes noack, accuses du boitier) et envoie les messages de la fiche
+ * (Clio 3 : type de voiture 5A A5 02 24 00 31 56, 1 s apres le depart puis toutes les 30 s, et de nouveau quand le
+ * boitier reparle apres 5 s de silence), lus dans ujc201_can.conf, que LibreHU service ecrit d'apres la fiche choisie :
+ *   frame <en-tete hex>  order lc|cl  lenoff <n>  sum <sum|xor> <1|2> <add> <xor hex> <champs hlcd>
+ *   ackcmd <hex> | ackraw <hex...>  noack <hex...>  baud <bit/s>   (sans ligne frame : Hiworld)
  *   ack 1                                  accuser les messages (1 sans fichier)
  *   send <premier ms> <periode ms> <octets hex>   octets deja en trame du boitier, envoyes dans des trames MCU 0x10
- *   keys <cmd> <octet code> <octet etat> <valeur appui> <octet evenement> <masque>   (hex, FF = aucun ; Hiworld LNP002 :
- *        11 02 03 01 01 08) */
+ *   keys <cmd> <octet code> <octet etat> <valeur appui> <octet evenement> <masque> [<masque du code>]   (hex, FF = aucun ;
+ *        Hiworld LNP002 : 11 02 03 01 01 08)
+ *   key <code hex> <action> <nom>          action TWRP d'une touche de la fiche (volup voldown enter back home up...) */
 static const char*ccfg[3]={"/data/media/0/TWRP/ujc201_can.conf","/tmp/ujc201_can.conf","/system/etc/ujc201_can.conf"};
 static s64 ccfg_sig=-1,can_last_rx;static int m_fd=-1,can_ack=1,can_n,can_acks;
 static struct{s64 first,every,due;int len;unsigned char b[32];}can_tx[4];
-static unsigned char ks_cmd=0x11,ks_code=2,ks_state=3,ks_pressed=1,ks_event=1,ks_mask=0x08;
-static int hex2(const char*t){int v=0,n=0;for(;*t;t++,n++){int c=*t,d=c>='0'&&c<='9'?c-'0':c>='a'&&c<='f'?c-'a'+10:c>='A'&&c<='F'?c-'A'+10:-1;if(d<0||n>=2)return -1;v=v*16+d;}return n?v:-1;}
+static unsigned char ks_cmd=0x11,ks_code=2,ks_state=3,ks_pressed=1,ks_event=1,ks_mask=0x08,ks_codemask=0xFF;
+static const int can_bauds[7]={9600,19200,38400,57600,115200,230400,460800};
+static int hexn(const char*t,int max){int v=0,n=0;for(;*t;t++,n++){int c=*t,d=c>='0'&&c<='9'?c-'0':c>='a'&&c<='f'?c-'a'+10:c>='A'&&c<='F'?c-'A'+10:-1;if(d<0||n>=max)return -1;v=v*16+d;}return n?v:-1;}
+static int hex2(const char*t){return hexn(t,2);}
 static void can_sched(s64 t){for(int i=0;i<can_n;i++)can_tx[i].due=t+can_tx[i].first;}
 static void can_load(void){
  s64 st[16];int w=-1;for(int i=0;i<3&&w<0;i++)if(sys(SYS_newfstatat,AT_FDCWD,(s64)ccfg[i],(s64)st,0)==0)w=i;
  s64 sig=w<0?0:(w+1)+st[6]*7+st[11]*131+st[12];if(sig==ccfg_sig)return;ccfg_sig=sig;
- can_ack=1;can_n=0;ks_cmd=0x11;ks_code=2;ks_state=3;ks_pressed=1;ks_event=1;ks_mask=0x08;
- if(w>=0){static char b[2048];int fd=op(ccfg[w],O_RDONLY);s64 n=fd<0?0:sys(SYS_read,fd,(s64)b,2047,0);if(fd>=0)sys(SYS_close,fd,0,0,0);
+ can_ack=1;can_n=0;ks_cmd=0x11;ks_code=2;ks_state=3;ks_pressed=1;ks_event=1;ks_mask=0x08;ks_codemask=0xFF;ckn=0;
+ fr_head[0]=0x5A;fr_head[1]=0xA5;fr_hn=2;fr_lc=1;fr_lenoff=0;fr_algo=0;fr_size=1;fr_add=-1;fr_xor=0;fr_over=14;   /* Hiworld */
+ fr_ackcmd=0xFF;fr_ackrawn=0;fr_noack[0]=0xFF;fr_noack[1]=0xFE;fr_noackn=2;fr_baud=-1;
+ if(w>=0){static char b[4096];int fd=op(ccfg[w],O_RDONLY);s64 n=fd<0?0:sys(SYS_read,fd,(s64)b,4095,0);if(fd>=0)sys(SYS_close,fd,0,0,0);
   if(n>0){b[n]=0;
    for(char*l=b;*l;){char*e=l;while(*e&&*e!='\n')e++;char c=*e;*e=0;char t[40][12];char*q=l;int k=0;while(k<40&&tok(&q,t[k],12))k++;
     if(k>=2&&streq(t[0],"ack"))can_ack=atoi_(t[1])!=0;
     else if(k>=4&&k-3<=32&&streq(t[0],"send")&&can_n<4){int m=0;for(int i=3;i<k;i++){int v=hex2(t[i]);if(v<0){m=0;break;}can_tx[can_n].b[m++]=(unsigned char)v;}
      if(m>0){can_tx[can_n].len=m;can_tx[can_n].first=atoi_(t[1]);can_tx[can_n].every=atoi_(t[2]);if(can_tx[can_n].every<500)can_tx[can_n].every=0;can_n++;}}
-    else if(k>=7&&streq(t[0],"keys")){int v[6];int okk=1;for(int i=0;i<6;i++){v[i]=hex2(t[i+1]);if(v[i]<0)okk=0;}
-     if(okk){ks_cmd=v[0];ks_code=v[1];ks_state=v[2];ks_pressed=v[3];ks_event=v[4];ks_mask=v[5];}}
+    else if(k>=7&&streq(t[0],"keys")){int v[7];int okk=1;for(int i=0;i<6;i++){v[i]=hex2(t[i+1]);if(v[i]<0)okk=0;}v[6]=k>=8?hex2(t[7]):0xFF;if(v[6]<0)okk=0;
+     if(okk){ks_cmd=v[0];ks_code=v[1];ks_state=v[2];ks_pressed=v[3];ks_event=v[4];ks_mask=v[5];ks_codemask=v[6];}}
+    else if(k>=2&&k<=5&&streq(t[0],"frame")){unsigned char h[4];int okf=1;for(int i=1;i<k;i++){int v=hex2(t[i]);if(v<0)okf=0;else h[i-1]=(unsigned char)v;}
+     if(okf){for(int i=0;i<k-1;i++)fr_head[i]=h[i];fr_hn=k-1;fr_lc=1;fr_lenoff=0;fr_algo=0;fr_size=1;fr_add=0;fr_xor=0;fr_over=14;
+      fr_ackcmd=-1;fr_ackrawn=0;fr_noackn=0;}}           /* trame decrite : accuses seulement par ses lignes */
+    else if(k>=2&&streq(t[0],"order"))fr_lc=!streq(t[1],"cl");
+    else if(k>=2&&streq(t[0],"lenoff"))fr_lenoff=atoi_(t[1]);
+    else if(k>=6&&streq(t[0],"sum")){fr_algo=streq(t[1],"xor");fr_size=atoi_(t[2])==2?2:1;fr_add=atoi_(t[3]);
+     int x=hexn(t[4],4);fr_xor=x<0?0:x;fr_over=0;for(const char*p=t[5];*p;p++)fr_over|=*p=='h'?1:*p=='l'?2:*p=='c'?4:*p=='d'?8:0;}
+    else if(k>=2&&streq(t[0],"ackcmd")){fr_ackcmd=hex2(t[1]);fr_ackrawn=0;}
+    else if(k>=2&&streq(t[0],"ackraw")){int m=0;for(int i=1;i<k&&m<8;i++){int v=hex2(t[i]);if(v>=0)fr_ackraw[m++]=(unsigned char)v;}fr_ackrawn=m;if(m)fr_ackcmd=-1;}
+    else if(k>=1&&streq(t[0],"noack")){fr_noackn=0;for(int i=1;i<k&&fr_noackn<8;i++){int v=hex2(t[i]);if(v>=0)fr_noack[fr_noackn++]=(unsigned char)v;}}
+    else if(k>=2&&streq(t[0],"baud")){int bd=atoi_(t[1]);for(int i=0;i<7;i++)if(can_bauds[i]==bd)fr_baud=i;}
+    else if(k>=3&&streq(t[0],"key")&&ckn<40){int code=hex2(t[1]),a=-1;for(int j=0;j<NACT;j++)if(streq(t[2],acts[j].n))a=j;
+     if(code>=0&&a>=0){const char*nm=k>=4?t[3]:t[2];int i=0;for(;nm[i]&&i<13;i++)ck[ckn].name[i]=nm[i]=='_'?' ':nm[i];ck[ckn].name[i]=0;
+      ck[ckn].code=(unsigned char)code;ck[ckn].act=(signed char)a;ckn++;}}
     *e=c;l=*e?e+1:e;}}}
- can_sched(now_ms());
- char s[96],*o=s;o=pstr(o,"touchfix: boitier CAN : accuses ");o=pstr(o,can_ack?"oui":"non");o=pstr(o,", messages ");o=pnum(o,can_n);
+ hw_st=0;hw_hp=0;can_sched(now_ms());
+ if(fr_baud>=0&&m_fd>=0){unsigned char d[2]={0,(unsigned char)fr_baud};mcu_send(m_fd,0x0F,d,2);}   /* vitesse du boitier (USART1) */
+ char s[160],*o=s;o=pstr(o,"touchfix: boitier CAN : trame");for(int i=0;i<fr_hn;i++){*o++=' ';o=phex(o,fr_head[i]);}
+ o=pstr(o,", accuses ");o=pstr(o,can_ack?"oui":"non");o=pstr(o,", messages ");o=pnum(o,can_n);o=pstr(o,", touches ");o=pnum(o,ckn);
  o=pstr(o," (");o=pstr(o,w<0?"sans fichier":ccfg[w]);o=pstr(o,")\n");logs(s);}
 static void can_tick(void){s64 t=now_ms();
  for(int i=0;i<can_n;i++){if(!can_tx[i].due||t<can_tx[i].due)continue;
@@ -309,24 +355,26 @@ static int hw_frames;
 static void hw_frame(int ok){
  dwi("canframes",++hw_frames);
  {s64 t=now_ms();if(can_last_rx&&t-can_last_rx>5000)can_sched(t);can_last_rx=t;}   /* le boitier reparle : redemarre */
- if(ok&&can_ack&&hw_cmd!=0xFF&&hw_cmd!=0xFE&&m_fd>=0){
-  unsigned char a[6]={0x5A,0xA5,0x01,0xFF,(unsigned char)hw_cmd,(unsigned char)(((0x01+0xFF+hw_cmd)&0xFF)-1)};
-  mcu_send_q(m_fd,0x10,a,6);dwi("canacks",++can_acks);}
+ if(ok&&can_ack&&m_fd>=0){int skip=0;for(int i=0;i<fr_noackn;i++)if(fr_noack[i]==hw_cmd)skip=1;
+  if(!skip){unsigned char a[16];int k=0;
+   if(fr_ackrawn){for(int i=0;i<fr_ackrawn;i++)a[i]=fr_ackraw[i];k=fr_ackrawn;}
+   else if(fr_ackcmd>=0){unsigned char c=(unsigned char)hw_cmd;k=fr_encode(fr_ackcmd,&c,1,a);}
+   if(k){mcu_send_q(m_fd,0x10,a,k);dwi("canacks",++can_acks);}}}
  if(!ok||hw_cmd!=ks_cmd)return;
- int need=ks_code;if(ks_state!=0xFF&&ks_state>need)need=ks_state;if(ks_event!=0xFF&&ks_event>need)need=ks_event;if(hw_len<=need)return;
- int key=hw_buf[ks_code];
+ int need=ks_code;if(ks_state!=0xFF&&ks_state>need)need=ks_state;if(ks_event!=0xFF&&ks_event>need)need=ks_event;if(hw_n<=need)return;
+ int key=hw_buf[ks_code]&ks_codemask;
  int down=(ks_event==0xFF||(hw_buf[ks_event]&ks_mask))&&key&&(ks_state==0xFF||hw_buf[ks_state]==ks_pressed);
  if(hw_down&&(!down||hw_down!=key)){unsigned char r[2]={7,255};mcu_key(r,2);hw_down=0;}
  if(down&&hw_down!=key){unsigned char p[2]={7,(unsigned char)key};mcu_key(p,2);hw_down=key;}
  popup_update();}
 static void hw_feed(int v){
  switch(hw_st){
- case 0:if(v==0x5A)hw_st=1;break;
- case 1:hw_st=v==0xA5?2:v==0x5A?1:0;break;
- case 2:hw_len=v;hw_st=v>(int)sizeof hw_buf?0:3;break;
- case 3:hw_cmd=v;hw_pos=0;hw_st=hw_len?4:5;break;
- case 4:hw_buf[hw_pos++]=(unsigned char)v;if(hw_pos==hw_len)hw_st=5;break;
- default:{int sum=hw_len+hw_cmd;for(int i=0;i<hw_len;i++)sum+=hw_buf[i];hw_frame(v==(((sum&0xFF)-1)&0xFF));hw_st=0;}}}
+ case 0:if(v==fr_head[hw_hp]){if(++hw_hp==fr_hn){hw_hp=0;hw_st=2;}}else hw_hp=v==fr_head[0]?1:0;break;
+ case 2:if(fr_lc)hw_len=v;else hw_cmd=v;hw_st=3;break;
+ case 3:{if(fr_lc)hw_cmd=v;else hw_len=v;int n=hw_len-fr_lenoff;
+  if(n<0||n>(int)sizeof hw_buf){hw_st=0;break;}hw_n=n;hw_pos=0;hw_sum=0;hw_sg=0;hw_st=n?4:5;break;}
+ case 4:hw_buf[hw_pos++]=(unsigned char)v;if(hw_pos==hw_n)hw_st=5;break;
+ default:hw_sum=(hw_sum<<8)|(unsigned)v;if(++hw_sg>=fr_size){hw_frame(hw_sum==fr_check(hw_len,hw_cmd,hw_buf,hw_n));hw_st=0;}}}
 static int m_frames;
 static void mcu_frame(const unsigned char*f,int n){unsigned char cmd=f[3];const unsigned char*d=f+4;int dl=f[2]-1;static int can_logged;
  if(cmd!=0x10||can_logged++<200)mcu_log("rx",f,n);      /* boitier CAN : frequent, 200 trames au plus dans le journal */

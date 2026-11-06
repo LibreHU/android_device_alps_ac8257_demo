@@ -219,19 +219,22 @@ si l'ecart depasse 2 s (refait si le fuseau change). Sans le patch, `touchfix` c
 le decalage horaire existant (arrondi au 1/4 d'heure).
 
 **Touches au volant** : trame `20` = `canal v1 v2 v3 v4` (1 telecommande IR, 2 molette, 3/4 touches AD, 5/6 volant ;
-`FF` = relachement). **Boitier CAN** (Hiworld, Renault LNP002 : Clio 3…) : ses octets arrivent dans les trames `10`,
-`touchfix` y retrouve les messages `5A A5 LEN CMD .. CS` et la touche du message `11` (D1 bit 3, D2 = code, D3 = 1 a
-l'appui) ; elle passe par le **canal 7** (`v1` = code). Sans ligne apprise, table LNP002 par defaut (VOL+ / VOL-,
-MUTE / OK = appui, PREV / NEXT = haut / bas, gauche / droite, MODE = retour, NAVI = accueil). La vitesse du boitier
-est celle du MCU (`0F 00`, 38400 par defaut) : a verifier sur une voiture dont le boitier en utilise une autre.
+`FF` = relachement). **Boitier CAN** (toutes les familles de LibreHU service : Hiworld `5A A5` et `AA 55`, Raise `2E`, Raise `FD` avec une
+somme sur 1 ou 2 octets, et les trames decrites dans une fiche) : ses octets arrivent dans les trames `10` ; `touchfix`
+y retrouve les messages selon la trame de la fiche choisie dans Android, et la touche du message `keys` ; elle passe par
+le **canal 7** (`v1` = code). Action de chaque touche : table apprise (`wheelkeys learn`), sinon les lignes `key` de la
+fiche (d'apres le nom de la touche : volume +/- = volume, mute / OK / decrocher = valider, precedent / suivant = haut /
+bas, gauche / droite, mode / raccrocher = retour, navigation = accueil), sinon table Hiworld LNP002 par defaut. La
+vitesse du boitier (`baud`) est donnee au MCU (`0F 00`).
 **Dialogue avec le boitier** (sans lui, un boitier Hiworld n'envoie aucune touche) : `touchfix` accuse chaque message
-(`5A A5 01 FF <cmd> CS`, trame MCU `10`) et envoie les messages du profil de voiture, lus dans `ujc201_can.conf`
-(`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/`), que **LibreHU service ecrit d'apres le profil choisi**
-dans son onglet CAN :
-`ack 1` (accuser, 1 sans fichier), `send <premier ms> <periode ms> <octets hex>` (octets deja en trame du boitier ;
-Clio 3 : `send 1000 30000 5A A5 02 24 00 31 56`), `keys <cmd> <octet code> <octet etat> <valeur appui> <octet evenement>
-<masque>` (hex, `FF` = aucun ; Hiworld LNP002 par defaut : `keys 11 02 03 01 01 08`). Compteurs dans MCU info :
-`canframes` (messages recus), `canacks` (accuses envoyes). `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
+comme l'appli d'origine (Hiworld `5A A5 01 FF <cmd> CS`, Raise `FF`) et envoie les messages de la fiche. Tout est lu dans
+`ujc201_can.conf` (`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/`), que **LibreHU service ecrit d'apres la
+fiche choisie** dans son onglet CAN (carte TWRP), a chaque changement : rien a regler dans TWRP. Lignes : `frame
+<en-tete>`, `order lc|cl`, `lenoff <n>`, `sum <sum|xor> <1|2> <add> <xor> <champs hlcd>`, `ackcmd <cmd>` ou `ackraw
+<octets>`, `noack <cmds>`, `baud <bit/s>` (sans `frame` : Hiworld), `ack 1`, `send <premier ms> <periode ms> <octets hex>`
+(Clio 3 : `send 1000 30000 5A A5 02 24 00 31 56`), `keys <cmd> <octet code> <octet etat> <valeur appui> <octet
+evenement> <masque> [<masque du code>]` (hex, `FF` = aucun ; Hiworld LNP002 : `keys 11 02 03 01 01 08`), `key <code>
+<action> <nom>`. Compteurs dans MCU info : `canframes` (messages recus), `canacks` (accuses envoyes). `touchfix` les envoie sur le peripherique uinput `ujc201-wheel` selon la table
 `ujc201_keys.conf` (`/data/media/0/TWRP/`, sinon `/tmp/`, sinon `/system/etc/` vide) :
 `<canal> <octet 1..4> <min> <max> <action> [nom]`, actions `volup voldown enter back home power up down left right bl+ bl- none`.
 Apprentissage : Advanced > *Steering wheel keys: learn* (`wheelkeys learn`, VOL+ VOL- MUTE MODE BACK PREV NEXT,

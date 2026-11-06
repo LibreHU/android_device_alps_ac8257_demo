@@ -2,6 +2,12 @@
 
 ## Non publie
 
+### Ajoute
+- **Touches au volant de tous les boitiers CAN** (Hiworld `5A A5` / `AA 55`, Raise `2E`, Raise `FD`, trames decrites
+  dans une fiche) : `touchfix` lit la trame, accuse les messages et prend l'action de chaque touche dans
+  `ujc201_can.conf`, que LibreHU service ecrit d'apres la fiche choisie (lignes `frame`, `order`, `lenoff`, `sum`,
+  `ackcmd` / `ackraw`, `noack`, `baud`, `key`) ; vitesse du boitier donnee au MCU. Sans ces lignes : Hiworld comme avant.
+
 ### Corrige
 - **Touches au volant du boitier CAN toujours absentes** (beta precedente, Clio 3) : le boitier Hiworld attend que
   l'autoradio lui reponde. Sans reponse il envoie ses messages un par seconde en boucle et aucune touche (journaux CAN
