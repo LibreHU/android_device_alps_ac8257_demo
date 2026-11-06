@@ -10,6 +10,7 @@ CRC que #72, donc memes modules).
 |---|---|
 | **`twrp`** (par defaut) | cet arbre TWRP, sa CI et ses releases |
 | [`lineage-16.0`](https://github.com/LibreHU/android_device_alps_ac8257_demo/tree/lineage-16.0) | ROM LineageOS 16.0 (Android 9) de l'UJC201 : systeme LineageOS + vendor stock + applis LibreHU (en cours) |
+| `ccr-eca2d7b0-vz26un` | ancienne branche de travail de TWRP (builds 12 et 13), reprise dans `twrp` le 06/11/2026 : ne plus l'utiliser |
 
 ## Changelog récent
 
