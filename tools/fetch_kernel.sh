@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Copyright (C) 2026 LibreHU
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Telecharge le noyau LibreHU de la branche stable-4.9.337 de android_kernel_autochips_ac8257_4.9 (la seule suivie
 # depuis le 01/11/2026 : correctifs linux-stable jusqu'a 4.9.337, KernelSU Next, veille, frequences CPU / GPU...)

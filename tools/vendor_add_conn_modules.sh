@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Copyright (C) 2026 LibreHU
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Met dans l'image vendor lue par tools/get_vendor_img.sh les modules Wi-Fi / Bluetooth / GPS / radio FM recompiles
 # avec le noyau LibreHU (prebuilt/modules, ecrits par tools/fetch_kernel.sh), a la place de ceux du stock : le noyau

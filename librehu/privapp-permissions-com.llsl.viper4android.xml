@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
      Copyright (C) 2026 LibreHU
-     SPDX-License-Identifier: Apache-2.0
+     SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <permissions>
     <!-- ViPER4Android LibreHU : permissions privilegiees d'Android 9 demandees par l'APK (manifest de la release

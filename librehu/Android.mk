@@ -1,6 +1,6 @@
 #
 # Copyright (C) 2026 LibreHU
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Applis LibreHU integrees a /system/app (APK telecharges par fetch_apks.sh, signature d'origine gardee).
 # Un APK absent est simplement ignore : la ROM se construit sans lui.

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Copyright (C) 2026 LibreHU
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Ajoute le pilote ViPERFX_RE (https://github.com/likelikeslike/ViPERFX_RE, module non-AIDL, Android 9) a l'image
 # vendor lue par tools/get_vendor_img.sh, comme le fait le zip "viper4android-re" de LibreHU-flashablesZips sur

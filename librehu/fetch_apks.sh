@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Copyright (C) 2026 LibreHU
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Telecharge les APK des applis LibreHU integrees a la ROM (releases latest-<branche> de GitHub) dans ce dossier.
 # Les APK ne sont pas versionnes dans le depot (voir .gitignore) : a relancer avant chaque build pour prendre les

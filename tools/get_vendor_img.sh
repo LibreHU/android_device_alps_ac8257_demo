@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Copyright (C) 2026 LibreHU
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Lit la partition vendor de l'unite (lecture seule, rien n'est ecrit sur l'unite) et la place la ou
 # BoardConfig.mk l'attend : <racine LineageOS>/vendor/jancar/ac8257_demo/vendor.img.
