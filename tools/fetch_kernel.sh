@@ -36,7 +36,9 @@ with open(f"{t}/assets", "w") as f:
         a = assets.get(n)
         if a is None:
             sys.exit(f"{n} absent de la release {r['tag_name']}")
-        f.write(f"{n} {a['browser_download_url']} {(a.get('digest') or '').removeprefix('sha256:')}\n")
+        d = a.get("digest") or ""
+        # pas de str.removeprefix : Python 3.8 (Ubuntu 20.04) ne l'a pas
+        f.write(f"{n} {a['browser_download_url']} {d[len('sha256:'):] if d.startswith('sha256:') else d}\n")
 PY
 while read -r NAME URL DIGEST; do
     curl -fsSL -o "$T/$NAME" "$URL"

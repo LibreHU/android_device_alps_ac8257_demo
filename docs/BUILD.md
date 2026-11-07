@@ -1,0 +1,306 @@
+# Construire LineageOS 16.0 pour l'UJC201, pas à pas
+
+De zéro jusqu'au **zip flashable TWRP** et aux **images `.img`**, sur un serveur **Proxmox VE 8 ou 9** avec un
+conteneur LXC dédié (exemple : 2 × Xeon E5-2699 v3, 72 threads, 256 Go de RAM, NVMe 1 To). Sur un PC déjà sous
+Ubuntu 20.04, sauter l'étape 1.
+
+> **État** : l'arbre n'a encore jamais été compilé. Des erreurs au premier build sont probables : envoyer le log
+> (étape 6), l'arbre sera corrigé.
+
+| Étape | Où | Durée (estimation, pas une mesure) |
+|---|---|---|
+| 1. Conteneur LXC | hôte Proxmox | 10 min |
+| 2. Système Ubuntu 20.04 | conteneur, root | 10 min |
+| 3. Outils de build | conteneur, utilisateur `build` | 10 min |
+| 4. Sources LineageOS + arbre | conteneur | environ 1 h (limité par les serveurs, pas par la fibre) |
+| 5. Fichiers de l'unité | PC + unité sous TWRP, puis conteneur | 20 min |
+| 6. Build : zip + images | conteneur | 1 à 2 h la première fois, 15 à 30 min ensuite (ccache) |
+| 7. Récupérer les fichiers | PC | 5 min |
+| 8. Installer | PC + unité | 15 min |
+
+**Pourquoi Ubuntu 20.04** : LineageOS 16.0 veut `python` = Python 2 et `libncurses5`, et son guide de build n'est
+testé que sur Ubuntu 20.04 ([wiki LineageOS](https://wiki.lineageos.org/devices/f1f/build/)). Ubuntu 20.04 a les
+deux (`python-is-python2`, `libncurses5`, toujours sur archive.ubuntu.com) ; Ubuntu 24.04 n'a plus Python 2. Pas de
+Java à installer : l'OpenJDK 9 de LineageOS 16.0 vient avec les sources (même page du wiki).
+
+**Ne jamais publier** : `vendor.img`, `system-stock.img`, le dossier `vendor/jancar/` (fichiers propriétaires de
+Jancar / Autochips / MediaTek), ni les partitions propres à l'unité (`nvram`, `nvdata`, `proinfo`, `persist`,
+`metazone`).
+
+## 1. Conteneur LXC (shell root de l'hôte Proxmox)
+
+**Modèle Ubuntu 20.04.** Proxmox 8 le liste encore, Proxmox 9 ne liste plus que 24.04 et 26.04
+([index PVE 8](http://download.proxmox.com/images/aplinfo-pve-8.dat), [index PVE 9](http://download.proxmox.com/images/aplinfo-pve-9.dat)),
+mais le fichier est toujours en ligne et Proxmox 9 accepte 20.04
+([`known_versions` de pve-container](https://git.proxmox.com/?p=pve-container.git;a=blob;f=src/PVE/LXC/Setup/Ubuntu.pm)).
+Même commande pour les deux versions, empreinte SHA-512 de l'index Proxmox :
+```bash
+cd /var/lib/vz/template/cache
+wget http://download.proxmox.com/images/system/ubuntu-20.04-standard_20.04-1_amd64.tar.gz
+echo "9ebcf6cce7c3b760d27c2bfe03d00acf3d40a489cd98230b9ab8dd436f82f4ae8dc2de69b012dcd0affae62ffe4ab4863f624a665f3493983d330e6c015a26dd  ubuntu-20.04-standard_20.04-1_amd64.tar.gz" | sha512sum -c -
+```
+
+**Stockage du NVMe** : son nom dans Proxmox (ici `nvme`) :
+```bash
+pvesm status
+```
+Si le NVMe n'est pas encore un stockage : *nœud > Disks > LVM-Thin > Create: Thinpool* (**efface le disque**).
+
+**Création** (ID 160, libre à vous) :
+```bash
+pct create 160 local:vztmpl/ubuntu-20.04-standard_20.04-1_amd64.tar.gz \
+  --hostname lineage-build --unprivileged 1 --features nesting=1 \
+  --cores 72 --memory 131072 --swap 16384 \
+  --rootfs nvme:600 \
+  --net0 name=eth0,bridge=vmbr0,ip=dhcp
+pct start 160
+pct enter 160
+```
+
+| Option | Pourquoi |
+|---|---|
+| `--unprivileged 1` | le build n'a besoin d'aucun droit sur l'hôte ; l'unité n'est jamais branchée au serveur (étape 5 : depuis un PC) |
+| `--features nesting=1` | demandé par systemd pour isoler ses services ([doc `pct`](https://pve.proxmox.com/pve-docs/pct.1.html)) |
+| `--cores 72` | tous les threads ; en mettre moins si d'autres VM doivent tourner pendant le build |
+| `--memory 131072 --swap 16384` | 128 Go + 16 Go de swap ; le wiki LineageOS demande 16 Go jusqu'à la 17.1 |
+| `--rootfs nvme:600` | 600 Gio sur le NVMe : le wiki compte 200 Go (sources + sortie) jusqu'à la 17.1, plus ccache (50 Go) et de la marge ; agrandissable ensuite : `pct resize 160 rootfs +100G` |
+
+## 2. Système (dans le conteneur, root)
+
+```bash
+apt update && apt full-upgrade -y
+apt install -y sudo openssh-server locales
+locale-gen en_US.UTF-8 fr_FR.UTF-8
+adduser build
+usermod -aG sudo build
+ip -4 -br addr show eth0      # adresse IP du conteneur, pour ssh et scp
+```
+La suite se fait en `build` : `ssh build@<ip>` depuis le PC (ou `su - build`).
+
+## 3. Outils de build (utilisateur `build`)
+
+Paquets du [wiki LineageOS](https://wiki.lineageos.org/devices/f1f/build/), avec ceux qu'il ajoute pour une Ubuntu
+antérieure à 23.10 (`lib32ncurses5-dev libncurses5 libncurses5-dev` ; sur 20.04, `lib32ncurses5-dev` s'appelle
+`lib32ncurses-dev`) et Python 2 par défaut (`python-is-python2`, LineageOS 11.0 à 16.0). En plus : `python3`
+(`repo`, scripts de l'arbre), `unzip` et `e2fsprogs` (`debugfs`), pour les scripts de l'arbre. Tous présents dans
+l'index d'Ubuntu 20.04 (vérifié le 07/11/2026).
+```bash
+sudo apt install -y bc bison build-essential ccache curl erofs-utils flex g++-multilib gcc-multilib git git-lfs \
+  gnupg gperf imagemagick kmod protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev \
+  libelf-dev libgnutls28-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool \
+  squashfs-tools xsltproc xxd zip zlib1g-dev \
+  lib32ncurses-dev libncurses5 libncurses5-dev python-is-python2 python3 unzip e2fsprogs
+python --version              # doit afficher Python 2.7.x
+mkdir -p ~/bin ~/android/lineage
+curl -o ~/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+chmod a+x ~/bin/repo
+cat >> ~/.bashrc <<'EOF'
+
+# LineageOS (docs/BUILD.md)
+export PATH="$HOME/bin:$PATH"
+export USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache
+EOF
+source ~/.bashrc
+ccache -M 50G
+git config --global user.name "Votre nom"
+git config --global user.email "vous@exemple.com"
+```
+
+## 4. Sources LineageOS 16.0 et arbre de l'UJC201
+
+```bash
+cd ~/android/lineage
+repo init -u https://github.com/LineageOS/android.git -b lineage-16.0 --depth=1
+mkdir -p .repo/local_manifests
+cat > .repo/local_manifests/ujc201.xml <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo"
+           remote="github" revision="lineage-16.0" />
+</manifest>
+EOF
+repo sync -c -j16 --no-tags --no-clone-bundle
+```
+- `--depth=1` : sans l'historique, beaucoup moins à télécharger.
+- `-j16` : 16 dépôts à la fois (LineageOS met 4 par défaut). Les serveurs AOSP de Google limitent chaque adresse IP
+  ([source.android.com](https://source.android.com/docs/setup/download/troubleshoot-sync), qui conseille aussi de
+  simplement relancer) : en cas d'erreurs, relancer la même commande, avec `-j4` si elles reviennent ; les dépôts
+  déjà téléchargés ne sont pas refaits.
+
+## 5. Fichiers de l'unité (une seule fois)
+
+Le build reprend la **partition vendor** de votre unité et quelques bibliothèques de son **/system stock**
+(`proprietary-files.txt`). On les lit depuis un **PC** (Windows, macOS ou Linux, avec les
+[platform-tools](https://developer.android.com/tools/releases/platform-tools)), l'unité démarrée sous **TWRP**
+(adb root) et branchée en USB :
+```bash
+adb devices
+adb pull /dev/block/platform/bootdevice/by-name/vendor vendor.img
+adb pull /dev/block/platform/bootdevice/by-name/system system-stock.img
+```
+Tailles attendues : `vendor.img` = **2 147 483 648** octets, `system-stock.img` = **3 221 225 472** octets
+(table des partitions, `BoardConfig.mk`). Lecture seule : rien n'est écrit sur l'unité. Garder ces deux fichiers :
+ils servent aussi de sauvegarde.
+
+Les copier dans le conteneur :
+```bash
+scp vendor.img system-stock.img build@<ip>:
+```
+
+Dans le conteneur :
+```bash
+cd ~/android/lineage
+mkdir -p vendor/jancar/ac8257_demo
+mv ~/vendor.img vendor/jancar/ac8257_demo/vendor.img
+stat -c %s vendor/jancar/ac8257_demo/vendor.img        # 2147483648
+debugfs -R "cat /build.prop" vendor/jancar/ac8257_demo/vendor.img 2>/dev/null | grep ro.vndk.version   # 28
+
+# /system stock (system-as-root : le dossier system/ est à la racine de l'image)
+mkdir -p ~/stock
+debugfs -R "rdump /system $HOME/stock" ~/system-stock.img
+ls ~/stock/system/lib64 | grep vendor.autochips
+
+cd device/alps/ac8257_demo
+./extract-files.sh ~/stock            # bibliothèques HIDL Autochips -> vendor/jancar/ac8257_demo/proprietary
+tools/vendor_add_viper.sh             # pilote ViPERFX_RE dans vendor.img (copie vendor.img.orig gardée)
+tools/fetch_kernel.sh                 # noyau LibreHU stable-4.9.337 + ses modules Wi-Fi / BT / GPS / FM
+tools/vendor_add_conn_modules.sh      # ces modules dans vendor.img (le noyau LibreHU refuse ceux du stock)
+librehu/fetch_apks.sh                 # derniers APK LibreHU
+cd ~/android/lineage
+rm -rf ~/stock                        # plus utile
+```
+`debugfs rdump` affiche des erreurs « while changing ownership » : il ne peut pas donner les fichiers à root sans
+être root. Sans importance, le contenu est bien copié.
+
+## 6. Build : zip flashable et images
+
+```bash
+cd ~/android/lineage
+export LC_ALL=C
+source build/envsetup.sh
+lunch lineage_ac8257_demo-userdebug
+mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
+```
+`mka` répartit le build sur tous les cœurs. Images seules, sans le zip : `mka systemimage bootimage`.
+
+**En cas d'erreur** : envoyer le log (`~/build-*.log`), ou au moins ses 200 dernières lignes :
+`tail -n 200 ~/build-*.log`.
+
+**Résultat**, dans `out/target/product/ac8257_demo/` :
+
+| Fichier | Contenu |
+|---|---|
+| `lineage-16.0-AAAAMMJJ-UNOFFICIAL-ac8257_demo.zip` (+ `.md5sum`) | **zip flashable TWRP** : écrit `system` et `boot` (date UTC du build) |
+| `system.img` | image system (sparse) |
+| `boot.img` | noyau LibreHU (`prebuilt/kernel-librehu`), ou le noyau stock #72 si `tools/fetch_kernel.sh` n'a pas tourné |
+| `vendor.img` | votre vendor avec ViPERFX_RE et les modules du noyau LibreHU (copie de `vendor/jancar/ac8257_demo/vendor.img`) ; **jamais publié** |
+| `recovery.img` | recovery LineageOS : **ne pas flasher**, on garde TWRP |
+
+À savoir, vérifié dans les sources de LineageOS 16.0 :
+- **Le zip n'écrit pas `vendor`** : il n'y met une partition vendor que si le build en a construit le contenu
+  (dossier `VENDOR/`) ; un vendor repris tel quel n'y est copié qu'en image
+  ([`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py#L602-L607),
+  [`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile#L3081-L3084)).
+  `vendor.img` s'installe donc à part (étape 8).
+- **Le zip ne touche ni `vbmeta`, ni `dtbo`, ni `lk`, ni `recovery`.** Il met dans `/system` de quoi réécrire le
+  recovery LineageOS, mais LineageOS 16.0 ne le fait que si `persist.sys.recovery_update=true`
+  ([`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc#L762-L769)) :
+  TWRP reste en place. Ne pas activer ce réglage.
+
+## 7. Récupérer les fichiers (sur le PC)
+
+```bash
+scp "build@<ip>:android/lineage/out/target/product/ac8257_demo/lineage-16.0-*-UNOFFICIAL-ac8257_demo.zip" .
+scp build@<ip>:android/lineage/out/target/product/ac8257_demo/vendor.img .
+```
+Pour les images : même chose avec `system.img` et `boot.img`. Depuis l'hôte Proxmox, `pct pull 160 <fichier> <destination>`
+fait la même chose.
+
+## 8. Installer
+
+**Avant la première installation** :
+1. **Sauvegarde TWRP complète** sur une clé USB ou une microSD : System Image, Vendor, Boot, Data et les partitions
+   propres à l'unité. Garder aussi `vendor.img` et `system-stock.img` de l'étape 5.
+2. **vbmeta**, une seule fois, **à la main** si ce n'est pas déjà fait (jamais fait par ces outils) :
+   `fastboot --disable-verity flash vbmeta vbmeta.img` (vbmeta stock).
+
+**A. Le zip (recommandé)**
+1. TWRP : *Wipe > Format Data*, taper `yes` (**première installation seulement** : LineageOS ne démarre pas sur les
+   données de la ROM stock).
+2. TWRP : *Advanced > ADB Sideload*, glisser ; sur le PC :
+   `adb sideload lineage-16.0-AAAAMMJJ-UNOFFICIAL-ac8257_demo.zip`
+3. `adb reboot bootloader` (ou TWRP : *Reboot > Bootloader*), puis sur le PC :
+   ```bash
+   fastboot flash vendor vendor.img
+   fastboot reboot
+   ```
+
+**B. Les images**
+1. TWRP : *Wipe > Format Data*, `yes` (première installation seulement).
+2. `adb reboot bootloader`, puis :
+   ```bash
+   fastboot flash system system.img
+   fastboot flash boot boot.img
+   fastboot flash vendor vendor.img
+   fastboot reboot
+   ```
+   TWRP sait aussi écrire `system.img` (*Install > Install Image > System Image*) et `boot.img` (*Boot*), mais pas
+   `vendor.img` : son fstab n'a pas d'entrée image pour vendor.
+
+Après le premier démarrage : root, MTP, etc., voir le [README](../README.md#5-installer-phase-1).
+**Retour arrière** : restaurer la sauvegarde TWRP.
+
+## 9. Builds suivants
+
+```bash
+cd ~/android/lineage
+repo sync -c -j16 --no-tags --no-clone-bundle
+device/alps/ac8257_demo/librehu/fetch_apks.sh
+device/alps/ac8257_demo/tools/fetch_kernel.sh
+device/alps/ac8257_demo/tools/vendor_add_conn_modules.sh
+export LC_ALL=C
+source build/envsetup.sh
+lunch lineage_ac8257_demo-userdebug
+mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
+```
+Installation : le zip par *ADB Sideload*, **sans** *Format Data*. Si `tools/fetch_kernel.sh` a pris un nouveau noyau,
+reflasher aussi `vendor.img` : ses modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pas à
+refaire (`vendor/jancar/ac8257_demo/` reste).
+
+## Dépannage
+
+| Symptôme | Solution |
+|---|---|
+| `repo sync` : erreurs de téléchargement, 429, `RESOURCE_EXHAUSTED` | relancer la même commande, avec `-j4` si ça revient |
+| `python` introuvable, ou `SyntaxError` dans un script du build | `python --version` doit donner 2.7 : `sudo apt install python-is-python2` |
+| `flex` ou `bison` : `Assertion ... loadlocale.c` | `export LC_ALL=C` avant `source build/envsetup.sh` |
+| `libncurses.so.5: cannot open shared object file` | `sudo apt install libncurses5` |
+| `debugfs manquant` | `sudo apt install e2fsprogs` |
+| `extract-files.sh` : `!! file not found in source` | `~/stock/system/lib64/...` absent : refaire le `rdump` de l'étape 5 |
+| `fetch_kernel.sh` : `'str' object has no attribute 'removeprefix'` | corrigé le 07/11/2026 (Python 3.8 d'Ubuntu 20.04) : `repo sync` |
+| `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 bacon` |
+| `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
+
+## Sources
+
+- Wiki LineageOS, guide de build d'un appareil en 16.0 (Ubuntu 20.04, paquets, Python 2, OpenJDK 9, ccache, `repo`) :
+  https://wiki.lineageos.org/devices/f1f/build/
+- Proxmox VE : [`pct`](https://pve.proxmox.com/pve-docs/pct.1.html) (création, `nesting`, `rootfs`, `pct enter`,
+  `pct resize`, `pveam`), [index des modèles PVE 8](http://download.proxmox.com/images/aplinfo-pve-8.dat) et
+  [PVE 9](http://download.proxmox.com/images/aplinfo-pve-9.dat),
+  [versions Ubuntu acceptées](https://git.proxmox.com/?p=pve-container.git;a=blob;f=src/PVE/LXC/Setup/Ubuntu.pm)
+- AOSP, quotas par adresse IP : https://source.android.com/docs/setup/download/troubleshoot-sync
+- LineageOS 16.0 : [`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py),
+  [`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile),
+  [`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc),
+  [nom du zip](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/build/tasks/bacon.mk)
+
+## TL;DR
+
+1. Hôte Proxmox : modèle Ubuntu 20.04, `pct create 160 ... --cores 72 --memory 131072 --rootfs nvme:600`.
+2. Conteneur : paquets de l'étape 3, `repo init` + manifest local + `repo sync`.
+3. PC + TWRP : `adb pull` de `vendor` et `system`, `scp` dans le conteneur, puis `extract-files.sh` et les scripts
+   `tools/`.
+4. `lunch lineage_ac8257_demo-userdebug && mka bacon` : zip (`system` + `boot`) et images dans
+   `out/target/product/ac8257_demo/`.
+5. Installer : Format Data (première fois), `adb sideload` du zip, `fastboot flash vendor vendor.img`.

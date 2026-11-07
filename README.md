@@ -53,6 +53,9 @@ correspondent au vendor stock, sans couche de compatibilite.
 
 ## Compiler from scratch
 
+**Guide detaille pas a pas** (conteneur LXC Proxmox, Ubuntu 20.04, sources, fichiers de l'unite, build du zip
+flashable et des images, installation, mises a jour, depannage) : [docs/BUILD.md](docs/BUILD.md). Resume ci-dessous.
+
 ### 1. Machine
 - Linux x86-64 ; **Ubuntu 18.04 ou 20.04** conseille (LineageOS 16.0 date de ces versions ; sur plus recent, Python 2
   et quelques reglages sont necessaires).
@@ -107,7 +110,7 @@ source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
 mka systemimage           # phase 1 : seulement system.img (boot et vendor restent ceux de l'unite)
 mka bootimage             # boot.img avec le noyau de prebuilt/ (LibreHU si tools/fetch_kernel.sh a tourne)
-# plus tard : mka bacon   # zip LineageOS complet
+# ou tout en une fois : mka bacon (images + zip flashable TWRP, qui ecrit system et boot ; vendor : docs/BUILD.md)
 ```
 Resultat : `out/target/product/ac8257_demo/system.img`.
 
