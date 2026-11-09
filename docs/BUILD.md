@@ -250,7 +250,7 @@ fait la même chose.
    TWRP sait aussi écrire `system.img` (*Install > Install Image > System Image*) et `boot.img` (*Boot*), mais pas
    `vendor.img` : son fstab n'a pas d'entrée image pour vendor.
 
-Après le premier démarrage : adb actif sans autorisation, journaux dans `/data/misc/logd/`, gestionnaire KernelSU
+Après le premier démarrage : adb actif sans autorisation, `adb root` autorisé, journaux dans `/data/misc/logd/`, gestionnaire KernelSU
 Next installé tout seul (y autoriser LibreHU-service) ; détails, root, MTP : [README](../README.md#5-installer-phase-1).
 **Retour arrière** : restaurer la sauvegarde TWRP.
 
@@ -300,9 +300,8 @@ Android le range aussi dans le dropbox (`SYSTEM_LAST_KMSG`), que LibreHU-service
 démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journal) avant de l'avoir lu.
 
 **Journaux d'Android** (builds depuis le 09/11/2026) : logcat est enregistré en continu dans `/data/misc/logd/`
-(`persist.logd.logpersistd=logcatd`), donc gardé après un redémarrage. adb répond sans autorisation dès le démarrage ;
-la lecture demande le root : *Options pour les développeurs > Débogage root*, puis `adb root` et
-`adb pull /data/misc/logd`.
+(`persist.logd.logpersistd=logcatd`), donc gardé après un redémarrage. adb répond sans autorisation dès le démarrage et
+`adb root` est autorisé par défaut : `adb root` puis `adb pull /data/misc/logd`.
 
 ## Sources
 
@@ -317,6 +316,7 @@ la lecture demande le root : *Options pour les développeurs > Débogage root*, 
   [`post_process_props.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/post_process_props.py#L40-L54),
   [`ALLOW_ADBD_NO_AUTH`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/adb/Android.mk#L346),
   [`adb root`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/adb/services.cpp#L86-L93),
+  [Débogage root](https://github.com/LineageOS/android_packages_apps_Settings/blob/lineage-16.0/src/com/android/settings/development/RootAccessPreferenceController.java#L69-L76),
   [`logcatd.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/logcat/logcatd.rc),
   [`PRODUCT_PACKAGES_DEBUG`](https://github.com/LineageOS/android_build/blob/lineage-16.0/target/product/base.mk#L168-L173),
   ordre de l'init ([`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc#L279-L318),

@@ -39,7 +39,7 @@ correspondent au vendor stock, sans couche de compatibilite.
 | Fichier | Role |
 |---|---|
 | `BoardConfig.mk` | architecture (Cortex-A53, arm64 + arm), boot (en-tete v1, adresses du stock), partitions (table eMMC du noyau #72), vendor prebuilt, VNDK |
-| `lineage_ac8257_demo.mk`, `AndroidProducts.mk`, `vendorsetup.sh` | produit `lineage_ac8257_demo` (profil telephone : modem 4G), empreinte du vendor stock ; **adb sans autorisation des le demarrage, a chaque build** (`WITH_ADB_INSECURE` de LineageOS : `ro.adb.secure=0`, `persist.sys.usb.config=adb` ; userdebug et eng seulement, voir « Installer ») |
+| `lineage_ac8257_demo.mk`, `AndroidProducts.mk`, `vendorsetup.sh` | produit `lineage_ac8257_demo` (profil telephone : modem 4G), empreinte du vendor stock ; **adb sans autorisation des le demarrage et `adb root` autorise, a chaque build** (`WITH_ADB_INSECURE` de LineageOS : `ro.adb.secure=0`, `persist.sys.usb.config=adb` ; `persist.sys.root_access=2` ; userdebug et eng seulement, voir « Installer ») |
 | `device.mk` | 1280 x 720 a 160 dpi (`wm size` du stock), proprietes du stock, overlays, paquets ; **journaux persistants a chaque build** (`persist.logd.logpersistd=logcatd` + `logpersist.start` : tous les tampons de logcat dans `/data/misc/logd/`, 256 fichiers de 1 Mio au plus) ; ECNR des appels active comme sur le stock |
 | `overlay/` | barre de navigation a l'ecran, pas de luminosite auto, paysage fixe, ecran toujours allume |
 | `mcu_ready/` | service natif : envoie `PC_READY` au MCU Jancar (`/dev/ttyS1`) des le demarrage, jusqu'a sa reponse. **Indispensable** : sans lui le MCU coupe le SoC une dizaine de secondes apres le demarrage (sur le stock c'est `com.jancar.services` qui l'envoie) |
@@ -135,9 +135,10 @@ LibreHU-service (KernelSU ne pose pas de question). Avec le noyau stock, ajouter
 
 adb : **actif et sans autorisation des le premier demarrage**, a chaque build userdebug ou eng (celui de
 [docs/BUILD.md](docs/BUILD.md)) ; en `user`, Android 9 exige toujours l'autorisation (`ALLOW_ADBD_NO_AUTH`).
-Attention : toute personne qui branche un ordinateur sur l'USB de l'unite obtient un shell sans confirmation a
-l'ecran. `adb root` reste refuse par LineageOS tant que *Options pour les developpeurs > Debogage root* n'est pas
-active (`persist.sys.root_access`).
+`adb root` est autorise par defaut (*Options pour les developpeurs > Debogage root* sur « ADB uniquement »,
+`persist.sys.root_access=2`) ; adbd demarre en shell, `adb root` est a taper une fois par demarrage. Attention : toute
+personne qui branche un ordinateur sur l'USB de l'unite obtient un shell, puis le root, sans confirmation a l'ecran.
+Le remettre sur « Desactive » dans les reglages ferme le root (valeur gardee dans `/data`).
 
 Journaux : `logcat` de tous les tampons enregistre en continu dans `/data/misc/logd/` (garde apres un redemarrage,
 256 Mio au plus). Lecture en root : `adb root` puis `adb pull /data/misc/logd`, ou `su -c 'cat /data/misc/logd/logcat*'`.
