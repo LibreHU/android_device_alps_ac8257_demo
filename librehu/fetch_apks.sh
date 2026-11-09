@@ -42,6 +42,8 @@ for line in "${APPS[@]}"; do
 done
 sha256sum ./*.apk
 python3 -I check_privapp.py .
+# Bibliotheques natives : installation brute des APK aux bibliotheques compressees, 32 bits (voir native_libs.py)
+python3 -I native_libs.py .
 
 # Gestionnaire KernelSU Next (ksunext/, installe dans /data/app au premier demarrage) : version figee sur celle que
 # le noyau LibreHU accepte (KernelSU Next v3.4.2, API 5, drivers/kernelsu/README.ac8257 du noyau) et verifiee par son

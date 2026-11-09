@@ -18,18 +18,35 @@ LIBREHU_APPS := LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDi
     LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay
 
 # $(1) : nom du module (= nom de l'APK), $(2) : paquets remplaces
+# Bibliotheques natives (native_libs.py, lance par fetch_apks.sh) :
+#  - $(1).raw : bibliotheques compressees dans l'APK. Le build de LineageOS 16.0 recompresserait alors l'APK
+#    (core/prebuilt_internal.mk, uncompress-shared-libs), ce qui retire sa signature v2 : PackageManager le refuserait.
+#    L'APK est donc installe tel quel (module ETC dans /system/priv-app/$(1)/, sans dexpreopt : Android le compile au
+#    premier demarrage) et device.mk copie ses bibliotheques extraites dans /system/priv-app/$(1)/lib/<isa>/, la ou
+#    Android 9 les cherche pour une appli systeme (il ne les extrait jamais lui-meme). Cas d'Android Auto.
+#  - $(1).abi32 : bibliotheques 32 bits seulement (FM) : LOCAL_MULTILIB := 32, precompile pour arm (sinon pour
+#    arm64, alors que l'appli tourne en 32 bits).
 define librehu-priv-app
 ifneq ($$(wildcard $$(LOCAL_PATH)/$(1).apk),)
 include $$(CLEAR_VARS)
 LOCAL_MODULE := $(1)
+LOCAL_SRC_FILES := $(1).apk
+LOCAL_REQUIRED_MODULES := privapp-permissions-librehu.xml
+ifneq ($$(wildcard $$(LOCAL_PATH)/$(1).raw),)
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_SUFFIX := .apk
+LOCAL_MODULE_PATH := $$(TARGET_OUT)/priv-app/$(1)
+else
 LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $$(COMMON_ANDROID_PACKAGE_SUFFIX)
-LOCAL_SRC_FILES := $(1).apk
 LOCAL_CERTIFICATE := PRESIGNED
 LOCAL_DEX_PREOPT := nostripping
 LOCAL_PRIVILEGED_MODULE := true
 LOCAL_OVERRIDES_PACKAGES := $(2)
-LOCAL_REQUIRED_MODULES := privapp-permissions-librehu.xml
+ifneq ($$(wildcard $$(LOCAL_PATH)/$(1).abi32),)
+LOCAL_MULTILIB := 32
+endif
+endif
 include $$(BUILD_PREBUILT)
 endif
 endef

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+
+     Profils Bluetooth d'un autoradio, ceux de la voiture de reference d'Android 9
+     (packages/services/Car, car_product/overlay/packages/apps/Bluetooth/res/values/config.xml, pie-release) :
+     l'autoradio est le cote voiture (HFP client, A2DP sink, AVRCP controleur, PBAP / MAP client), pas un telephone.
+     Classe d'appareil « Car audio » et A2DP sink compile : bluetooth/bdroid_buildcfg.h.
+-->
+<resources>
+    <!-- Roles d'un telephone, coupes -->
+    <bool name="profile_supported_a2dp">false</bool>
+    <bool name="profile_supported_hs_hfp">false</bool>
+    <bool name="profile_supported_hid_host">false</bool>
+    <bool name="profile_supported_pbap">false</bool>
+    <bool name="profile_supported_map">false</bool>
+    <bool name="profile_supported_hdp">false</bool>
+    <bool name="profile_supported_opp">false</bool>
+    <bool name="enable_phone_policy">false</bool>
+
+    <!-- Roles d'une voiture : appels (HFP client, relie a Telecom comme le dialer LibreHU l'attend), musique (A2DP
+         sink, AVRCP controleur), repertoire et messages (PBAP client, MAP client), partage de connexion (PAN) -->
+    <bool name="profile_supported_hfpclient">true</bool>
+    <bool name="hfp_client_connection_service_enabled">true</bool>
+    <bool name="profile_supported_avrcp_controller">true</bool>
+    <bool name="profile_supported_a2dp_sink">true</bool>
+    <bool name="profile_supported_pbapclient">true</bool>
+    <bool name="profile_supported_pan">true</bool>
+    <bool name="profile_supported_mapmce">true</bool>
+</resources>

@@ -63,6 +63,15 @@ PRODUCT_PACKAGES += \
         LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay,\
         $(if $(wildcard $(LOCAL_PATH)/librehu/$(app).apk),$(app)))
 
+# Applis aux bibliotheques natives compressees (librehu/native_libs.py, installees telles quelles par
+# librehu/Android.mk) : leurs bibliotheques extraites dans /system/priv-app/<appli>/lib/<isa>/, la ou Android 9 les
+# cherche pour une appli systeme (il ne les extrait pas lui-meme).
+librehu_lib_isa = $(notdir $(patsubst %/,%,$(dir $(1))))
+librehu_lib_app = $(patsubst %-lib,%,$(notdir $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir $(1)))))))
+PRODUCT_COPY_FILES += \
+    $(foreach f,$(wildcard $(LOCAL_PATH)/librehu/*-lib/*/*.so),\
+        $(f):$(TARGET_COPY_OUT_SYSTEM)/priv-app/$(call librehu_lib_app,$(f))/lib/$(call librehu_lib_isa,$(f))/$(notdir $(f)))
+
 # Gestionnaire KernelSU Next (root du noyau LibreHU, indispensable a LibreHU-service) : installe dans /data/app au
 # premier demarrage, seul endroit ou le noyau le reconnait (librehu/ksunext/ ; APK de librehu/fetch_apks.sh).
 PRODUCT_PACKAGES += \

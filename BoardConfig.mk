@@ -103,6 +103,16 @@ BOARD_PREBUILT_VENDORIMAGE := vendor/jancar/ac8257_demo/vendor.img
 # et un jar prebuilt n'a pas le classes.jar que lit la verification : core/tasks/boot_jars_package_check.mk)
 SKIP_BOOT_JARS_CHECK := true
 
+# Politique audio : audio_policy_configuration.xml du vendor, comme le stock (son logcat : APM::Serializer,
+# APM::VolumeCurve). Sans ce drapeau l'audiopolicy d'Android 9 lit audio_policy.conf, qui dans ce vendor est la
+# configuration generique de l'emulateur goldfish, presque entierement en commentaire
+# (frameworks/av/services/audiopolicy/Android.mk).
+USE_XML_AUDIO_POLICY_CONF := 1
+
+# Bluetooth d'autoradio : bluetooth/bdroid_buildcfg.h (classe d'appareil « Car audio », A2DP sink compile) ; profils
+# voiture dans overlay/packages/apps/Bluetooth.
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
+
 # Treble / VNDK (ro.vndk.version=28)
 BOARD_VNDK_VERSION := current
 

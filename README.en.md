@@ -30,7 +30,7 @@ system-side HAL of Jancar's or MediaTek's own. Hence, for phase 1:
 | `vendor` | **stock vendor**, read from the unit (`tools/get_vendor_img.sh`) and reused (`BOARD_PREBUILT_VENDORIMAGE`), with the ViPERFX_RE driver added (`tools/vendor_add_viper.sh`); stays with you (2 GiB, specific to the unit) |
 | `boot` | **boot image from the CI of the LibreHU kernel** `stable-4.9.337` (`tools/fetch_kernel.sh` -> `prebuilt/boot-librehu-bootmenu.img`, taken as it is: `BOARD_PREBUILT_BOOTIMAGE`): header, command line and **AVB footer of the stock boot**, without which the LK refuses the image (reboot at the logo); KernelSU Next for root, TWRP / Android / Fastboot boot menu. LineageOS builds no `boot.img` (see [prebuilt/README.md](prebuilt/README.md)) |
 | `dtbo`, `vbmeta`, `lk`, `tee`... | stock, unchanged |
-| `recovery` | TWRP (`twrp` branch); LineageOS builds none (`TARGET_NO_RECOVERY`), its zip does not touch it |
+| `recovery` | TWRP (`twrp` branch); LineageOS builds none (`TARGET_NO_RECOVERY`), nothing writes it |
 
 LineageOS 16.0 is the only LineageOS version at the same level as Android 9: VNDK 28 and SELinux policy 28.0 match
 the stock vendor, with no compatibility layer.
@@ -39,12 +39,13 @@ the stock vendor, with no compatibility layer.
 
 | File | Role |
 |---|---|
-| `BoardConfig.mk` | architecture (Cortex-A53, arm64 + arm), boot (header v1, stock addresses), partitions (eMMC table of kernel #72), prebuilt vendor, VNDK, `SKIP_BOOT_JARS_CHECK` (the `com.autochips.*` package of `autochips.jar` is not in AOSP's whitelist) |
+| `BoardConfig.mk` | architecture (Cortex-A53, arm64 + arm), boot (header v1, stock addresses), partitions (eMMC table of kernel #72), prebuilt vendor, VNDK, the vendor's XML audio policy (`USE_XML_AUDIO_POLICY_CONF`, like the stock; otherwise the goldfish emulator configuration), head unit Bluetooth stack (`bluetooth/`), `SKIP_BOOT_JARS_CHECK` (the `com.autochips.*` package of `autochips.jar` is not in AOSP's whitelist) |
 | `lineage_ac8257_demo.mk`, `AndroidProducts.mk`, `vendorsetup.sh` | `lineage_ac8257_demo` product, **userdebug only** (in user: SELinux always enforcing, adb asks for authorization, permissive domains refused) (phone profile: 4G modem), stock vendor fingerprint; **adb without authorization from boot and `adb root` allowed, in every build** (LineageOS `WITH_ADB_INSECURE`: `ro.adb.secure=0`, `persist.sys.usb.config=adb`; `persist.sys.root_access=2`; userdebug and eng only, see "Install") |
 | `device.mk` | 1280 x 720 at 160 dpi (stock `wm size`), stock properties, overlays, packages; **persistent logs in every build** (`persist.logd.logpersistd=logcatd` + `logpersist.start`: all logcat buffers in `/data/misc/logd/`, at most 256 files of 1 MiB); call ECNR on as on the stock; `PRODUCT_BOOT_JARS += autochips` |
-| `overlay/` | on-screen navigation bar, no auto brightness, fixed landscape, screen always on |
-| `mcu_ready/` | native service: sends `PC_READY` to the Jancar MCU (`/dev/ttyS1`) from boot until it answers. **Required**: without it the MCU cuts the SoC about ten seconds after boot (on the stock, `com.jancar.services` sends it) |
-| `librehu/` | LibreHU apps, **all in `/system/priv-app`** (as LibreHU-service asks: `SET_TIME`, Bluetooth, reliable start), with the whitelist of their privileged permissions `privapp-permissions-librehu.xml` (LineageOS enforces `ro.control_privapp_permissions=enforce`: a missing permission makes `system_server` crash at boot; `check_privapp.py`, run by `fetch_apks.sh`, checks each APK): **LibreHU-service** (`latest-main`), **LibreHU Launcher** `librehu-service` edition (only home screen, replaces Trebuchet), **LibreHU Apps / OTA** (`latest-main`); APKs downloaded by `fetch_apks.sh`, original signature kept: the OTA app then updates them as on the stock ROM. **ViPER4Android LibreHU** 2.1.1 (`latest-librehu-service`). Also: **phone**, **FM radio**, **widgets** and **BtnRemap** (`librehu-service` edition), **EasySource**, **Disc**, **MCU Toolkit** (`latest-main`), **Android Auto** (Open Headunit LibreHU, `latest-main`) and **CarPlay** (xcertplay LibreHU, `latest-master`); a missing APK is skipped. All signed with the LibreHU key: the OTA app updates them. `ksunext/`: **KernelSU Next v3.4.2 manager** (version pinned to the kernel API, checksum checked by `fetch_apks.sh`), kept in `/system/etc/librehu/` and installed into `/data/app` at first boot by `librehu_ksunext`: the kernel only recognises its manager there (`throne_tracker.c`), never as a system app |
+| `overlay/` | on-screen navigation bar, no auto brightness, fixed landscape, screen always on; **Bluetooth profiles of a car** (`packages/apps/Bluetooth`: HFP client tied to Telecom, A2DP sink, AVRCP controller, PBAP and MAP client; phone roles off), those of the Android 9 reference car (`packages/services/Car`) |
+| `bluetooth/bdroid_buildcfg.h` | Bluetooth stack (`BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR`): the head unit declares itself as a **car** (class of device `0x240420`: Audio + Rendering, Audio/Video, "Car audio"; smartphone by default) and A2DP sink is built (`BTA_AV_SINK_INCLUDED`, false by default: without it no "Audio Sink" SDP record) |
+| `mcu_ready/` | native service: sends `PC_READY` to the Jancar MCU (`/dev/ttyS1`) from boot (`on init`) until it answers. **Required**: without it the MCU cuts the SoC about ten seconds after boot (on the stock, `com.jancar.services` sends it) |
+| `librehu/` | LibreHU apps, **all in `/system/priv-app`** (as LibreHU-service asks: `SET_TIME`, Bluetooth, reliable start), with the whitelist of their privileged permissions `privapp-permissions-librehu.xml` (LineageOS enforces `ro.control_privapp_permissions=enforce`: a missing permission makes `system_server` crash at boot; `check_privapp.py`, run by `fetch_apks.sh`, checks each APK): **LibreHU-service** (`latest-main`), **LibreHU Launcher** `librehu-service` edition (only home screen, replaces Trebuchet), **LibreHU Apps / OTA** (`latest-main`); APKs downloaded by `fetch_apks.sh`, original signature kept: the OTA app then updates them as on the stock ROM. **ViPER4Android LibreHU** 2.1.1 (`latest-librehu-service`). Also: **phone**, **FM radio**, **widgets** and **BtnRemap** (`librehu-service` edition), **EasySource**, **Disc**, **MCU Toolkit** (`latest-main`), **Android Auto** (Open Headunit LibreHU, `latest-main`) and **CarPlay** (xcertplay LibreHU, `latest-master`); a missing APK is skipped. All signed with the LibreHU key: the OTA app updates them. **Native libraries** (`native_libs.py`, run by `fetch_apks.sh`): Android 9 never extracts them for a system app, and the build would recompress an APK with compressed libraries, which strips its v2 signature (PackageManager would refuse it); such an APK (Android Auto) is therefore installed as it is and its libraries extracted to `/system/priv-app/<app>/lib/arm64/`; a 32-bit-only app (FM) is precompiled for arm (`LOCAL_MULTILIB := 32`). `ksunext/`: **KernelSU Next v3.4.2 manager** (version pinned to the kernel API, checksum checked by `fetch_apks.sh`), kept in `/system/etc/librehu/` and installed into `/data/app` at first boot by `librehu_ksunext`: the kernel only recognises its manager there (`throne_tracker.c`), never as a system app |
 | `proprietary-files.txt`, `extract-files.sh`, `setup-makefiles.sh` | proprietary `/system` files taken from stock V1.151R6: Autochips HIDL interfaces (rear camera, AVM, fast display, iAP2, ATC audio...), `autochips.jar` (BOOTCLASSPATH, pinned by SHA-1) and its JNI libraries, `libusbdvr.so`. They are in the [android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo) repository (`lineage-16.0` branch, cloned by the local manifest); `extract-files.sh` is only for another firmware |
 | `tools/get_vendor_img.sh` | reads the vendor partition of the unit (read only) |
 | `tools/vendor_add_viper.sh` | adds to the local vendor image (debugfs, copy `vendor.img.orig` kept) the [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 driver (official module, SHA-256 checked): `libv4a_re.so` in `/lib[64]/soundfx` and the `v4a_standard_re` effect in `/etc/audio_effects.xml`, like the `viper4android-re` zip of LibreHU-flashablesZips. In vendor because under Android 9 Treble effects are loaded by the vendor audio HAL, which cannot load a library from `/system` |
@@ -57,8 +58,8 @@ the stock vendor, with no compatibility layer.
 
 ## Build from scratch
 
-**Detailed step-by-step guide** (Proxmox LXC container, Ubuntu 20.04, sources, unit files, build of the flashable zip
-and images, install, updates, troubleshooting): [docs/BUILD.en.md](docs/BUILD.en.md). Summary below.
+**Detailed step-by-step guide** (Proxmox LXC container, Ubuntu 20.04, sources, unit files, build of the images, install,
+updates, troubleshooting): [docs/BUILD.en.md](docs/BUILD.en.md). Summary below.
 
 ### 1. Machine
 - Linux x86-64; **Ubuntu 18.04 or 20.04** recommended (LineageOS 16.0 dates from these versions; on newer ones,
@@ -116,20 +117,22 @@ cd ~/android/lineage
 export LC_ALL=C USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache && ccache -M 50G
 source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
-mka systemimage           # phase 1: system.img only (boot and vendor stay those of the unit)
-mka bootimage             # boot.img = copy of prebuilt/boot-librehu-bootmenu.img (kernel CI, stock AVB footer)
-# or all at once: mka bacon (images + TWRP flashable zip, which writes system and boot; vendor: docs/BUILD.en.md)
+mka systemimage bootimage vendorimage
 ```
-Result: `out/target/product/ac8257_demo/system.img`.
+Result in `out/target/product/ac8257_demo/`: `system.img`, `boot.img` (LibreHU kernel CI image, stock AVB footer,
+`androidboot.selinux=permissive`), `vendor.img` (your vendor with ViPERFX_RE and the modules of this kernel).
+**No zip**: LineageOS 16.0 refuses to make one for a non-A/B device without a recovery (`ota_from_target_files.py`),
+and the tree keeps TWRP as the recovery (details: [docs/BUILD.en.md](docs/BUILD.en.md), step 6).
 
-### 5. Install (phase 1)
+### 5. Install
 Nothing is automated. First:
 1. **Full backup**: SP Flash Tool (readback) with the stock scatter, and a TWRP backup of `system`, `vendor`, `boot`,
    `data`. Keep `para` too (`dd if=/dev/block/by-name/para of=...`).
 2. **vbmeta**, once, by hand (never done by these tools):
    `fastboot --disable-verity flash vbmeta vbmeta.img` (stock vbmeta).
-3. In TWRP: *Install > Install Image* > `system.img` > **System Image**, then *Wipe > Format Data* (LineageOS does not
-   start on the data of the stock ROM).
+3. In TWRP: *Wipe > Format Data* (LineageOS does not start on the data of the stock ROM), then `adb reboot bootloader`
+   and `fastboot flash` of `system.img`, `boot.img` and `vendor.img`, **all three**: the vendor holds the LibreHU
+   kernel modules (the stock kernel refuses them) and only this `boot.img` makes SELinux permissive.
 4. Going back: restore the TWRP backup (or SP Flash Tool).
 
 Root: LineageOS 16.0 only gives root to adb; several LibreHU-service features need it (as on the stock). The LibreHU
@@ -155,8 +158,8 @@ ROM, the service starts it).
 ## Roadmap
 
 1. **Starting tree** — ✅ this branch (20/10/2026), not built.
-2. **First build** of `system.img` and **first boot** on stock vendor + boot: screen, touch, adb, Wi-Fi, Bluetooth,
-   GPS (stock vendor modules), audio (vendor ATC HAL), MCU (`mcu_ready` then LibreHU-service).
+2. **First build** (`system`, `boot`, `vendor` images) and **first boot** on stock vendor + LibreHU kernel: screen, touch, adb, Wi-Fi, Bluetooth,
+   GPS (LibreHU kernel modules in vendor), audio (vendor ATC HAL), MCU (`mcu_ready` then LibreHU-service).
 3. **Head unit features** with the LibreHU apps: MCU / CAN, steering wheel keys, FM radio, rear camera and AVM, AV-in,
    phone (MediaTek RIL `c6m_1rild` with AOSP telephony), Android Auto / CarPlay.
 4. **SELinux policy** of the device: domain of `mcu_ready` done (09/11/2026, required for init to start it); then its
@@ -165,7 +168,8 @@ ROM, the service starts it).
    09/11/2026, `boot.img` is the kernel CI image (stock AVB footer), connectivity modules in vendor, to be tested.
 6. **Proprietary `/system` files** in a vendor repository — ✅ 09/11/2026: Autochips HIDL interfaces, deodexed
    `autochips.jar` (`PRODUCT_BOOT_JARS`) and its JNI libraries ([android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)), not built.
-7. **Full LineageOS zip** (`mka bacon`) installable from TWRP, builds published and updated by the OTA app.
+7. **Published builds** (images) updated by the OTA app. Flashable zip: not possible as it is (LineageOS 16.0 makes no
+   zip for a non-A/B device without a recovery); it would need an installer of LibreHU's own.
 
 ## Known risks
 
@@ -213,6 +217,9 @@ Still open:
   `persist.vendor.sys.pq.*` and colours `persist.sys.rgb.*` (readers unknown without the vendor files), properties of
   the Jancar apps and their Bluetooth stack, user choices (car, language, time zone) and `persist.netd.stable_secret`
   (specific to each unit).
+- **Bluetooth call audio**: as HFP client, Android 9's Bluetooth hands the call audio to the vendor audio HAL
+  (`hfp_enable`, `hfp_set_sampling_rate` parameters, BT SCO devices of `audio_policy_configuration.xml`); does the
+  stock MediaTek audio HAL handle them? To be tried (on the stock, Jancar's Bluetooth stack handled calls).
 
 - **RIL**: MediaTek modem (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`) with LineageOS's AOSP telephony: calls
   and data to be checked.

@@ -2,7 +2,7 @@
 
 *English: [BUILD.en.md](BUILD.en.md)*
 
-De zéro jusqu'au **zip flashable TWRP** et aux **images `.img`**, sur un serveur **Proxmox VE 8 ou 9** avec un
+De zéro jusqu'aux **images `system`, `boot` et `vendor`** à flasher, sur un serveur **Proxmox VE 8 ou 9** avec un
 conteneur LXC dédié (exemple : 2 × Xeon E5-2699 v3, 72 threads, 256 Go de RAM, NVMe 1 To). Sur un PC déjà sous
 Ubuntu 20.04, sauter l'étape 1.
 
@@ -16,7 +16,7 @@ Ubuntu 20.04, sauter l'étape 1.
 | 3. Outils de build | conteneur, utilisateur `build` | 10 min |
 | 4. Sources LineageOS + arbre | conteneur | environ 1 h (limité par les serveurs, pas par la fibre) |
 | 5. Fichiers de l'unité | PC + unité sous TWRP, puis conteneur | 20 min |
-| 6. Build : zip + images | conteneur | 1 à 2 h la première fois, 15 à 30 min ensuite (ccache) |
+| 6. Build : images | conteneur | 1 à 2 h la première fois, 15 à 30 min ensuite (ccache) |
 | 7. Récupérer les fichiers | PC | 5 min |
 | 8. Installer | PC + unité | 15 min |
 
@@ -183,16 +183,20 @@ rm -rf ~/stock                        # si vous l'avez fait : plus utile
 `debugfs rdump` affiche des erreurs « while changing ownership » : il ne peut pas donner les fichiers à root sans
 être root. Sans importance, le contenu est bien copié.
 
-## 6. Build : zip flashable et images
+## 6. Build : les images
 
 ```bash
 cd ~/android/lineage
 export LC_ALL=C
 source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
-mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
+mka systemimage bootimage vendorimage 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
 ```
-`mka` répartit le build sur tous les cœurs. Images seules, sans le zip : `mka systemimage bootimage`.
+`mka` répartit le build sur tous les cœurs.
+
+**Premier essai** : prendre l'image de boot sans menu, une inconnue de moins si Android ne démarre pas (le menu de
+démarrage n'a été essayé que sous la ROM stock) : `export LIBREHU_BOOT_IMAGE=plain` avant `lunch`. TWRP reste
+accessible par `adb reboot recovery` (adb répond dès le démarrage).
 
 **En cas d'erreur** : envoyer le log (`~/build-*.log`), ou au moins ses 200 dernières lignes :
 `tail -n 200 ~/build-*.log`.
@@ -201,32 +205,28 @@ mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
 
 | Fichier | Contenu |
 |---|---|
-| `lineage-16.0-AAAAMMJJ-UNOFFICIAL-ac8257_demo.zip` (+ `.md5sum`) | **zip flashable TWRP** : écrit `system` et `boot` (date UTC du build) |
 | `system.img` | image system (sparse) |
-| `boot.img` | copie de `prebuilt/boot-librehu-bootmenu.img` : image de boot de la CI du noyau LibreHU (menu TWRP / Android / Fastboot), avec le **pied AVB du boot stock** sans lequel le LK la refuse ; `LIBREHU_BOOT_IMAGE=plain` avant `lunch` pour l'image sans menu |
+| `boot.img` | copie de `prebuilt/boot-librehu-bootmenu.img` (ou `boot-librehu.img` avec `LIBREHU_BOOT_IMAGE=plain`) : image de boot de la CI du noyau LibreHU, avec le **pied AVB du boot stock** sans lequel le LK la refuse, et `androidboot.selinux=permissive` ajouté à la ligne de commande de son en-tête par `tools/fetch_kernel.sh` |
 | `vendor.img` | votre vendor avec ViPERFX_RE et les modules du noyau LibreHU (copie de `vendor/jancar/ac8257_demo/vendor.img`) ; **jamais publié** |
 
-À savoir, vérifié dans les sources de LineageOS 16.0 :
-- **Le zip n'écrit pas `vendor`** : il n'y met une partition vendor que si le build en a construit le contenu
-  (dossier `VENDOR/`) ; un vendor repris tel quel n'y est copié qu'en image
-  ([`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py#L602-L607),
-  [`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile#L3081-L3084)).
-  `vendor.img` s'installe donc à part (étape 8).
-- **Le zip ne touche ni `vbmeta`, ni `dtbo`, ni `lk`, ni `recovery`** : aucun recovery LineageOS n'est construit
-  (`TARGET_NO_RECOVERY`), TWRP reste en place.
-- **`boot` du zip = l'image de la CI du noyau** (`BOARD_PREBUILT_BOOTIMAGE` : copiée dans `IMAGES/boot.img`, reprise
-  telle quelle par [`common.GetBootableImage`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/common.py#L558-L574)).
-  Un `boot.img` construit par LineageOS n'aurait pas le pied AVB du boot stock : le LK le refuse et l'unité
-  redémarre au logo.
+Les trois vont ensemble : `vendor.img` contient les modules de **ce** noyau (le noyau stock les refuse), et seul ce
+`boot.img` met SELinux en permissif (sans lui, `mcu_ready` ne peut pas envoyer PC_READY et le MCU coupe le SoC).
+
+**Pas de zip flashable**, vérifié dans les sources de LineageOS 16.0 : son générateur de zip refuse un appareil non
+A/B sans recovery (« target build has specified no recovery »,
+[`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py#L1984-L1986)),
+et `mka bacon` n'a rien à empaqueter quand l'image de boot n'est pas construite par LineageOS
+(`TARGET_NO_KERNEL` : `build_ota_package := false`,
+[`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile#L2579-L2581)). Or l'arbre ne
+construit volontairement ni recovery (TWRP reste en place) ni `boot.img` (un `boot.img` de LineageOS n'aurait pas le
+pied AVB du boot stock : le LK le refuse et l'unité redémarre au logo).
 
 ## 7. Récupérer les fichiers (sur le PC)
 
 ```bash
-scp "build@<ip>:android/lineage/out/target/product/ac8257_demo/lineage-16.0-*-UNOFFICIAL-ac8257_demo.zip" .
-scp build@<ip>:android/lineage/out/target/product/ac8257_demo/vendor.img .
+for f in system boot vendor; do scp build@<ip>:android/lineage/out/target/product/ac8257_demo/$f.img .; done
 ```
-Pour les images : même chose avec `system.img` et `boot.img`. Depuis l'hôte Proxmox, `pct pull 160 <fichier> <destination>`
-fait la même chose.
+Depuis l'hôte Proxmox, `pct pull 160 <fichier> <destination>` fait la même chose.
 
 ## 8. Installer
 
@@ -236,32 +236,30 @@ fait la même chose.
 2. **vbmeta**, une seule fois, **à la main** si ce n'est pas déjà fait (jamais fait par ces outils) :
    `fastboot --disable-verity flash vbmeta vbmeta.img` (vbmeta stock).
 
-**A. Le zip (recommandé)**
+**Installation** :
 1. TWRP : *Wipe > Format Data*, taper `yes` (**première installation seulement** : LineageOS ne démarre pas sur les
    données de la ROM stock).
-2. TWRP : *Advanced > ADB Sideload*, glisser ; sur le PC :
-   `adb sideload lineage-16.0-AAAAMMJJ-UNOFFICIAL-ac8257_demo.zip`
-3. `adb reboot bootloader` (ou TWRP : *Reboot > Bootloader*), puis sur le PC :
-   ```bash
-   fastboot flash vendor vendor.img
-   fastboot reboot
-   ```
-
-**B. Les images**
-1. TWRP : *Wipe > Format Data*, `yes` (première installation seulement).
-2. `adb reboot bootloader`, puis :
+2. `adb reboot bootloader` (ou TWRP : *Reboot > Bootloader*), puis sur le PC :
    ```bash
    fastboot flash system system.img
    fastboot flash boot boot.img
    fastboot flash vendor vendor.img
    fastboot reboot
    ```
-   TWRP sait aussi écrire `system.img` (*Install > Install Image > System Image*) et `boot.img` (*Boot*), mais pas
-   `vendor.img` : son fstab n'a pas d'entrée image pour vendor.
+   Sans PC pour `system` et `boot` : TWRP, *Install > Install Image* (`system.img` > *System Image*, `boot.img` >
+   *Boot*) ; `vendor.img` demande fastboot (le fstab de TWRP n'a pas d'entrée image pour vendor).
 
-Après le premier démarrage : adb actif sans autorisation, `adb root` autorisé, journaux dans `/data/misc/logd/`, gestionnaire KernelSU
-Next installé tout seul (y autoriser LibreHU-service) ; détails, root, MTP : [README](../README.md#5-installer-phase-1).
-**Retour arrière** : restaurer la sauvegarde TWRP.
+**Après le premier démarrage**, depuis le PC :
+```bash
+adb shell getenforce                                               # Permissive
+adb shell getprop persist.sys.usb.config                           # contient adb
+adb shell 'echo $BOOTCLASSPATH' | tr ':' '\n' | grep autochips      # /system/framework/autochips.jar
+adb shell ls /system/priv-app/LibreHUAndroidAuto/lib/arm64         # bibliothèques d'Android Auto
+```
+Le téléphone doit voir l'autoradio comme une **voiture** (icône voiture dans sa liste Bluetooth) et lui envoyer la
+musique (A2DP) et les appels (HFP). Ensuite : adb actif sans autorisation, `adb root` autorisé, journaux dans
+`/data/misc/logd/`, gestionnaire KernelSU Next installé tout seul (y autoriser LibreHU-service) ; détails, root, MTP :
+[README](../README.md#5-installer). **Retour arrière** : restaurer la sauvegarde TWRP.
 
 ## 9. Builds suivants
 
@@ -274,7 +272,7 @@ device/alps/ac8257_demo/tools/vendor_add_conn_modules.sh
 export LC_ALL=C
 source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
-mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
+mka systemimage bootimage vendorimage 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
 ```
 **Builds faits avant le 09/11/2026** : `vendor/jancar/ac8257_demo/` existait déjà (votre `vendor.img`, et
 `proprietary/` d'`extract-files.sh`) et n'est pas un dépôt git, `repo sync` refuse donc d'y cloner le dépôt vendor.
@@ -287,9 +285,10 @@ repo sync -c -j16 --no-tags --no-clone-bundle
 mv ~/vendor.img* vendor/jancar/ac8257_demo/
 ```
 
-Installation : le zip par *ADB Sideload*, **sans** *Format Data*. Si `tools/fetch_kernel.sh` a pris un nouveau noyau,
-reflasher aussi `vendor.img` : ses modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pas à
-refaire (`vendor/jancar/ac8257_demo/` reste).
+Installation : `fastboot flash system system.img` et `fastboot flash boot boot.img` (ou TWRP, *Install Image*),
+**sans** *Format Data*. Si `tools/fetch_kernel.sh` a pris un nouveau noyau, reflasher aussi `vendor.img` : ses
+modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pas à refaire
+(`vendor/jancar/ac8257_demo/` reste).
 
 ## Dépannage
 
@@ -304,6 +303,9 @@ refaire (`vendor/jancar/ac8257_demo/` reste).
 | `repo sync` : `vendor/jancar/ac8257_demo` existe déjà / n'est pas un dépôt git | dossier d'un build d'avant le 09/11/2026 : voir *Builds suivants* (garder `vendor.img`, supprimer le dossier, `repo sync`) |
 | `No rule to make target 'vendor/jancar/ac8257_demo/proprietary/...'` | dépôt vendor absent ou pas à jour : manifest local de l'étape 4, puis `repo sync` |
 | Au démarrage, `ClassNotFoundException` (`com.autochips.*`) ou `UnsatisfiedLinkError` (`lib*_jni.so`) dans logcat | `echo $BOOTCLASSPATH` (adb shell) doit contenir `/system/framework/autochips.jar` ; sinon dépôt vendor pas à jour au build : `repo sync` et rebuild ; envoyer le logcat |
+| Android Auto absent, ou s'arrête dès son ouverture | `adb shell ls /system/priv-app/LibreHUAndroidAuto/lib/arm64` doit lister ses bibliothèques : relancer `librehu/fetch_apks.sh` (il lance `native_libs.py`) puis rebuild. Builds d'avant le 09/11/2026 au soir : le build recompressait son APK et retirait sa signature v2 (PackageManager le refusait) |
+| Pas de son | `adb logcat -d \| grep APM::Serializer` doit montrer la lecture de `/vendor/etc/audio_policy_configuration.xml` ; builds d'avant le 09/11/2026 au soir : `USE_XML_AUDIO_POLICY_CONF` absent, l'audio lisait la configuration de l'émulateur |
+| Le téléphone ne voit pas l'autoradio comme une voiture, ou pas de musique Bluetooth | builds d'avant le 09/11/2026 au soir (classe d'appareil smartphone, A2DP sink non compilé) ; sinon `adb shell settings get global bluetooth_class_of_device` doit répondre `null` (une valeur posée passe avant la classe « Car audio ») ; oublier l'appareil côté téléphone puis l'associer à nouveau |
 | `fetch_kernel.sh` : `'str' object has no attribute 'removeprefix'` | corrigé le 07/11/2026 (Python 3.8 d'Ubuntu 20.04) : `repo sync` |
 | `prebuilt/boot-librehu-bootmenu.img absent` (avertissement au `lunch`), puis `No rule to make target ... boot-librehu` | lancer `tools/fetch_kernel.sh` (depuis le 09/11/2026 il prend aussi les images de boot) |
 | `fetch_apks.sh` : `privapp-permissions-librehu.xml is short` | une appli demande une nouvelle permission privilégiée : ajouter les lignes affichées à `librehu/privapp-permissions-librehu.xml` (sinon `system_server` s'arrête au démarrage : `Signature|privileged permissions not in privapp-permissions whitelist`) |
@@ -355,14 +357,21 @@ démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journa
 - LineageOS 16.0 : [`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py),
   [`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile),
   [`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc),
-  [nom du zip](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/build/tasks/bacon.mk)
+  [`bacon.mk`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/build/tasks/bacon.mk)
+- Applis prébuilts : [`prebuilt_internal.mk`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/prebuilt_internal.mk)
+  et `uncompress-shared-libs` ([`definitions.mk`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/definitions.mk)) ;
+  Android 9 n'extrait pas les bibliothèques d'une appli système (`PackageManagerService.derivePackageAbi`)
+- Audio : [`frameworks/av/services/audiopolicy/Android.mk`](https://github.com/LineageOS/android_frameworks_av/blob/lineage-16.0/services/audiopolicy/Android.mk)
+  (`USE_XML_AUDIO_POLICY_CONF`) ; Bluetooth : [`bt_target.h`](https://github.com/LineageOS/android_system_bt/blob/lineage-16.0/internal_include/bt_target.h)
+  (`BTA_DM_COD`, `BTA_AV_SINK_INCLUDED`), [`fluoride.go`](https://github.com/LineageOS/android_system_bt/blob/lineage-16.0/build/fluoride.go),
+  profils voiture d'Android 9 : `packages/services/Car` (`car_product/overlay/packages/apps/Bluetooth`, pie-release)
 
 ## TL;DR
 
 1. Hôte Proxmox : modèle Ubuntu 20.04, `pct create 160 ... --cores 72 --memory 131072 --rootfs nvme:600`.
-2. Conteneur : paquets de l'étape 3, `repo init` + manifest local + `repo sync`.
-3. PC + TWRP : `adb pull` de `vendor` et `system`, `scp` dans le conteneur, puis les scripts
-   `tools/`.
-4. `lunch lineage_ac8257_demo-userdebug && mka bacon` : zip (`system` + `boot`) et images dans
-   `out/target/product/ac8257_demo/`.
-5. Installer : Format Data (première fois), `adb sideload` du zip, `fastboot flash vendor vendor.img`.
+2. Conteneur : paquets de l'étape 3, `repo init` + manifest local (arbre + dépôt vendor) + `repo sync`.
+3. PC + TWRP : `adb pull` de `vendor` et `system`, `scp` dans le conteneur, puis les scripts `tools/` et
+   `librehu/fetch_apks.sh`.
+4. `lunch lineage_ac8257_demo-userdebug && mka systemimage bootimage vendorimage` (pas de zip possible).
+5. Installer : Format Data (première fois), `fastboot flash` de `system`, `boot` et `vendor` ; vérifier
+   `adb shell getenforce` = `Permissive`.
