@@ -50,6 +50,7 @@ correspondent au vendor stock, sans couche de compatibilite.
 | `tools/fetch_kernel.sh` | noyau LibreHU `stable-4.9.337` (`Image.gz-dtb`) et ses modules Wi-Fi / BT / GPS / FM depuis la release `latest-stable-4.9.337` (empreintes de GitHub verifiees, noyau de l'image = celui des modules) ; non versionnes |
 | `tools/vendor_add_conn_modules.sh` | met ces modules dans `/lib/modules` de l'image vendor locale (debugfs, droits et contexte SELinux de l'original, marqueur `.librehu_conn`, copie `vendor.img.orig` gardee) : le noyau LibreHU refuse ceux du vendor stock (CRC des symboles differents), comme le font les zips `kernel-stable` sur l'unite |
 | `sepolicy/private/` | domaine SELinux de `mcu_ready` (cote system, `BOARD_PLAT_PRIVATE_SEPOLICY_DIR`) : sans lui, l'init d'Android 9 **refuse de lancer le service, meme en permissif** (« has incorrect label or no domain transition », `init/service.cpp`), PC_READY ne part pas et le MCU coupe le SoC une dizaine de secondes apres le demarrage |
+| `config.fs`, `BOARD_ROOT_EXTRA_FOLDERS` | points de montage du stock a la racine de `system` : `/jancar` (0755 root:root, partition `jancar` du fstab du vendor) et `/avm` (0775 root:system). Sans `/jancar`, `fs_mgr` ne peut pas monter la partition (racine en lecture seule), `mount_all` echoue et init ne lance pas la classe `main` (zygote) : Android ne demarre pas. Reperes par Reo Au In. `/vendor` est cree par le build |
 | `rootdir/etc/fstab.ac8257` | fstab du vendor stock |
 
 ## Compiler from scratch
@@ -156,7 +157,14 @@ redemarre au bout d'une dizaine de secondes ; pas de journal. Corrige ici depuis
 - **`boot.img` de LineageOS sans pied AVB** : refuse par le LK (redemarrage au logo) ; c'est maintenant l'image de la
   CI du noyau ;
 - **applis LibreHU dans `/system/app`** : sans leurs permissions privilegiees (heure, Bluetooth, widgets...) ; toutes
-  en `/system/priv-app` avec leur liste blanche.
+  en `/system/priv-app` avec leur liste blanche ;
+- **`/jancar` et `/avm` absents de la racine** (vus par Reo Au In, qui les avait ajoutes a la main) : sans `/jancar`,
+  `mount_all` echoue et init ne lance ni zygote ni le reste de la classe `main` ; crees par le build depuis le 09/11.
+
+Reo Au In a aussi repare son zip du 07/11 a sa facon (vbmeta non signe ecrit par le zip, pied AVB et drapeau de
+premier montage retires, arbre de hachage de vendor reconstruit, `fpsgo.ko` coupe) : ce depot garde ses regles
+(vbmeta jamais ecrit, `fastboot --disable-verity` a la main ; image de boot de la CI avec le pied AVB du stock) ;
+`fpsgo.ko` du stock est refuse par le noyau LibreHU sans autre effet (docs/STABLE.md du noyau).
 
 Toujours ouverts :
 - **Wi-Fi : identifiant de puce `0x0000`** : sur un `/data` vide (Format Data), le noyau `stable-4.9.337` repondait 0

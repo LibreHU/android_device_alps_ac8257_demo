@@ -81,6 +81,14 @@ TARGET_COPY_OUT_VENDOR := vendor
 
 # System-as-root (ro.build.system_root_image=true du stock)
 BOARD_BUILD_SYSTEM_ROOT_IMAGE := true
+# Points de montage de la racine du stock absents de LineageOS : /jancar (partition jancar, fstab du vendor) et /avm.
+# La racine est en lecture seule : fs_mgr ne peut pas les creer (mkdir avant le montage), le montage de /jancar
+# echoue, mount_all renvoie FS_MGR_MNTALL_FAIL et init ne declenche pas « nonencrypted », qui lance la classe main
+# (zygote...) : Android ne demarre pas (AOSP pie, fs_mgr.cpp et init/builtins.cpp, queue_fs_event). Reperes par
+# Reo Au In (reparation du build du 07/11/2026). /vendor est cree par le build (BOARD_PREBUILT_VENDORIMAGE).
+# Droits du stock : config.fs ; labels : sepolicy/private/file_contexts.
+BOARD_ROOT_EXTRA_FOLDERS := avm jancar
+TARGET_FS_CONFIG_GEN := $(DEVICE_PATH)/config.fs
 
 # Vendor stock (Android 9, PPR1.180610.011) : image lue sur l'unite par tools/get_vendor_img.sh,
 # jamais publiee dans ce depot. Ne pas definir BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE : sinon le build
