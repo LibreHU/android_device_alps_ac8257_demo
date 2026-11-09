@@ -9,3 +9,5 @@ librehu/*.apk.part
 prebuilt/kernel-librehu
 prebuilt/modules/
 prebuilt/modules.new/
+librehu/ksunext/*.apk
+librehu/ksunext/*.apk.part

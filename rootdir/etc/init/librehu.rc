@@ -1,0 +1,23 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Valeurs persist du stock qu'un /data vide (Format Data) n'a pas (getprop du stock, rapport LibreHU Helper du
+# 04/11/2026).
+
+# Wi-Fi / Bluetooth / GPS / FM (connsys) : identifiant de puce du SoC. Le build.prop du vendor stock le met a -1
+# (« a demander au noyau ») ; wmt_loader le demande alors au noyau et garde la reponse, meme 0 (noyau
+# stable-4.9.337 sur un /data vide) : le pilote Wi-Fi demarre avec une puce 0 et l'unite redemarre des que le Wi-Fi
+# s'allume. 0x8257 est la valeur du stock (wmt_launcher : « chip_id:0x8257 »), posee a early-boot : apres le
+# chargement des proprietes de /data (load_persist_props_action), avant on boot ou wmt_loader demarre. Un
+# « on property: » seul ne suffirait pas : l'init d'Android 9 n'active ces declencheurs qu'apres on boot.
+on early-boot && property:persist.vendor.connsys.chipid=-1
+    setprop persist.vendor.connsys.chipid 0x8257
+
+on early-boot && property:persist.vendor.connsys.chipid=0x0000
+    setprop persist.vendor.connsys.chipid 0x8257
+
+# Annulation d'echo et reduction de bruit des appels (ECNR) : active comme sur le stock
+# (persist.audiohal.third_ecnr_lib.enable=1, device.mk). Le HAL audio lit la propriete vendor a l'ouverture d'un
+# appel ; elle suit la persist, que change le reglage Micro de LibreHU-service.
+on property:persist.audiohal.third_ecnr_lib.enable=*
+    setprop vendor.audiohal.third_ecnr_lib.enable ${persist.audiohal.third_ecnr_lib.enable}

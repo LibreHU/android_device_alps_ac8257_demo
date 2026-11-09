@@ -1,0 +1,10 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# librehu_ksunext (librehu/ksunext/) : installe le gestionnaire KernelSU Next dans /data/app au demarrage. Domaine
+# propre pour la meme raison que mcu_ready (l'init d'Android 9 refuse un service sans transition de domaine, meme
+# en permissif) ; ses regles (pm / cmd package, lecture de l'APK) viendront avec le passage en enforcing.
+type librehu_ksunext, domain, coredomain;
+type librehu_ksunext_exec, exec_type, file_type;
+
+init_daemon_domain(librehu_ksunext)

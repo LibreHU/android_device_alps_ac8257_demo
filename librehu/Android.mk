@@ -44,3 +44,24 @@ LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_RELATIVE_PATH := permissions
 LOCAL_SRC_FILES := privapp-permissions-librehu.xml
 include $(BUILD_PREBUILT)
+
+# Gestionnaire KernelSU Next (APK de fetch_apks.sh, version de l'API du noyau LibreHU) : pas une appli systeme, le
+# noyau ne reconnait son gestionnaire que dans /data/app. L'APK est garde dans /system/etc/librehu et
+# librehu_ksunext l'installe dans /data/app au demarrage s'il n'y est pas (ksunext/).
+ifneq ($(wildcard $(LOCAL_PATH)/ksunext/KernelSUNext.apk),)
+include $(CLEAR_VARS)
+LOCAL_MODULE := KernelSUNext.apk
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_RELATIVE_PATH := librehu
+LOCAL_SRC_FILES := ksunext/KernelSUNext.apk
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := librehu_ksunext
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
+LOCAL_SRC_FILES := ksunext/librehu_ksunext.sh
+LOCAL_INIT_RC := ksunext/librehu_ksunext.rc
+LOCAL_REQUIRED_MODULES := KernelSUNext.apk
+include $(BUILD_PREBUILT)
+endif

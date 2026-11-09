@@ -5,6 +5,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# adb sans autorisation, actif des le demarrage, a chaque build : vendor/lineage/config/common.mk met alors
+# ro.adb.secure=0 (au lieu de 1) et build/tools/post_process_props.py ajoute persist.sys.usb.config=adb. Pris en compte
+# par adbd en userdebug et eng seulement (ALLOW_ADBD_NO_AUTH, system/core/adb/Android.mk) : en user, Android 9 exige
+# toujours l'autorisation. Avant les inherit-product : common.mk le lit a son chargement, qui vient apres ce fichier.
+# N'importe qui branche sur l'USB de l'unite a alors un shell (et le root une fois « Debogage root » active).
+WITH_ADB_INSECURE := true
+
 # Inherit from those products. Most specific first.
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)

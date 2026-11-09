@@ -1,0 +1,13 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Gestionnaire KernelSU Next dans /data/app une fois Android demarre (voir librehu_ksunext.sh)
+on property:sys.boot_completed=1
+    start librehu_ksunext
+
+service librehu_ksunext /system/bin/librehu_ksunext
+    class late_start
+    user root
+    group root
+    oneshot
+    disabled

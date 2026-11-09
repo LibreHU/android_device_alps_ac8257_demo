@@ -35,6 +35,22 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     pm.dexopt.install=speed
 
+# Journaux persistants a chaque build : logcatd ecrit tous les tampons de logcat dans /data/misc/logd/ (fichiers de
+# 1 Mio, 256 au plus), a lire apres un plantage ou un redemarrage (adb, LibreHU Helper). logpersist.start (logcatd et
+# son logcatd.rc) n'est mis par AOSP que dans PRODUCT_PACKAGES_DEBUG : ajoute ici pour toutes les variantes.
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.logd.logpersistd=logcatd
+PRODUCT_PACKAGES += \
+    logpersist.start
+
+# Valeurs persist du stock qu'un /data vide n'a pas (getprop du stock, rapport LibreHU Helper) : ECNR des appels active
+# (la propriete vendor que lit le HAL audio suit, voir rootdir/etc/init/librehu.rc) ; identifiant de puce connsys du
+# Wi-Fi pose par le meme fichier.
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.audiohal.third_ecnr_lib.enable=1
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/etc/init/librehu.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/librehu.rc
+
 # MCU Jancar : PC_READY des le demarrage (sans lui le MCU coupe le SoC), voir mcu_ready/
 PRODUCT_PACKAGES += \
     mcu_ready
@@ -46,6 +62,11 @@ PRODUCT_PACKAGES += \
     $(foreach app,LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
         LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay,\
         $(if $(wildcard $(LOCAL_PATH)/librehu/$(app).apk),$(app)))
+
+# Gestionnaire KernelSU Next (root du noyau LibreHU, indispensable a LibreHU-service) : installe dans /data/app au
+# premier demarrage, seul endroit ou le noyau le reconnait (librehu/ksunext/ ; APK de librehu/fetch_apks.sh).
+PRODUCT_PACKAGES += \
+    $(if $(wildcard $(LOCAL_PATH)/librehu/ksunext/KernelSUNext.apk),librehu_ksunext)
 
 # Precompilation speed (code natif complet) de ces applis a la construction de la ROM (dexpreopt d'Android 9).
 PRODUCT_DEXPREOPT_SPEED_APPS += \

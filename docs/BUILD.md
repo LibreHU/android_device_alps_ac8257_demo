@@ -167,6 +167,7 @@ tools/fetch_kernel.sh                 # noyau LibreHU stable-4.9.337 : images de
                                       # (tools/fetch_kernel.sh test-wifi-chipid : branche de test du correctif Wi-Fi)
 tools/vendor_add_conn_modules.sh      # ces modules dans vendor.img (le noyau LibreHU refuse ceux du stock)
 librehu/fetch_apks.sh                 # derniers APK LibreHU (toutes en priv-app ; vérifie leur liste blanche)
+                                      # + gestionnaire KernelSU Next v3.4.2 (empreinte vérifiée)
 cd ~/android/lineage
 rm -rf ~/stock                        # plus utile
 ```
@@ -249,7 +250,8 @@ fait la même chose.
    TWRP sait aussi écrire `system.img` (*Install > Install Image > System Image*) et `boot.img` (*Boot*), mais pas
    `vendor.img` : son fstab n'a pas d'entrée image pour vendor.
 
-Après le premier démarrage : root, MTP, etc., voir le [README](../README.md#5-installer-phase-1).
+Après le premier démarrage : adb actif sans autorisation, journaux dans `/data/misc/logd/`, gestionnaire KernelSU
+Next installé tout seul (y autoriser LibreHU-service) ; détails, root, MTP : [README](../README.md#5-installer-phase-1).
 **Retour arrière** : restaurer la sauvegarde TWRP.
 
 ## 9. Builds suivants
@@ -285,15 +287,22 @@ refaire (`vendor/jancar/ac8257_demo/` reste).
 | L'unité redémarre au logo, sans journal du noyau | `boot.img` sans pied AVB (builds d'avant le 09/11/2026) : flasher `prebuilt/boot-librehu-bootmenu.img` (ou le zip `kernel-stable` de LibreHU Apps) dans `boot` |
 | Animation de démarrage sans fin, rien ne se lance ; `logcat` : `Failed to mount an un-encryptable or wiped partition on ... at /jancar` | builds d'avant le 09/11/2026 : `/jancar` absent de la racine de `system`, `mount_all` échoue et init ne lance pas zygote ; `repo sync` et rebuild |
 | Android démarre puis l'unité redémarre au bout d'une dizaine de secondes | builds d'avant le 09/11/2026 : `mcu_ready` sans domaine SELinux, jamais lancé par init (PC_READY absent, le MCU coupe le SoC) ; `repo sync` et rebuild. Sinon, envoyer le journal du noyau du démarrage raté (ci-dessous) |
-| Boucle de redémarrages dès que le Wi-Fi s'allume (Android Auto l'allume tout seul) | `persist.vendor.connsys.chipid` vaut `0x0000` : `su -c 'getprop persist.vendor.connsys.chipid'` ; Wi-Fi coupé, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` puis redémarrer ; correctif du noyau à essayer : `tools/fetch_kernel.sh test-wifi-chipid` |
+| Boucle de redémarrages dès que le Wi-Fi s'allume (Android Auto l'allume tout seul) | `persist.vendor.connsys.chipid` vaut `0x0000` : `su -c 'getprop persist.vendor.connsys.chipid'` ; builds d'avant le 09/11/2026 (sans `rootdir/etc/init/librehu.rc`) : Wi-Fi coupé, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` puis redémarrer ; correctif du noyau à essayer : `tools/fetch_kernel.sh test-wifi-chipid` |
+| `fetch_apks.sh` : `sha256sum: WARNING: 1 computed checksum did NOT match` sur `KernelSUNext.apk` | téléchargement abîmé : relancer ; si ça revient, la release v3.4.2 de KernelSU Next a changé, ne pas contourner |
+| Gestionnaire KernelSU Next absent après le premier démarrage | `adb logcat -d -s LibreHU-KSU` (raison du refus de `pm install`) ; `ksunext/KernelSUNext.apk` absent au build : relancer `fetch_apks.sh` |
+| `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 bacon` |
+| `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
 
 **Journal d'un démarrage raté** : le noyau garde la fin du journal du démarrage précédent dans la console RAM de
 MediaTek (`/proc/last_kmsg`, sans `pstore` sur ce noyau). Juste après le redémarrage raté, dès que `adb` répond
 (Android stock ou LineageOS ; TWRP si son noyau l'expose aussi) : `adb shell cat /proc/last_kmsg > last_kmsg.txt`.
 Android le range aussi dans le dropbox (`SYSTEM_LAST_KMSG`), que LibreHU-service lit à son démarrage. Avec le menu de
 démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journal) avant de l'avoir lu.
-| `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 bacon` |
-| `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
+
+**Journaux d'Android** (builds depuis le 09/11/2026) : logcat est enregistré en continu dans `/data/misc/logd/`
+(`persist.logd.logpersistd=logcatd`), donc gardé après un redémarrage. adb répond sans autorisation dès le démarrage ;
+la lecture demande le root : *Options pour les développeurs > Débogage root*, puis `adb root` et
+`adb pull /data/misc/logd`.
 
 ## Sources
 
@@ -304,6 +313,18 @@ démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journa
   [PVE 9](http://download.proxmox.com/images/aplinfo-pve-9.dat),
   [versions Ubuntu acceptées](https://git.proxmox.com/?p=pve-container.git;a=blob;f=src/PVE/LXC/Setup/Ubuntu.pm)
 - AOSP, quotas par adresse IP : https://source.android.com/docs/setup/download/troubleshoot-sync
+- LineageOS 16.0, adb et journaux : [`WITH_ADB_INSECURE`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/config/common.mk#L19-L30),
+  [`post_process_props.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/post_process_props.py#L40-L54),
+  [`ALLOW_ADBD_NO_AUTH`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/adb/Android.mk#L346),
+  [`adb root`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/adb/services.cpp#L86-L93),
+  [`logcatd.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/logcat/logcatd.rc),
+  [`PRODUCT_PACKAGES_DEBUG`](https://github.com/LineageOS/android_build/blob/lineage-16.0/target/product/base.mk#L168-L173),
+  ordre de l'init ([`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc#L279-L318),
+  [`queue_property_triggers`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/init/init.cpp#L432-L436),
+  [`Action::CheckEvent`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/init/action.cpp#L179-L181))
+- KernelSU Next : [release v3.4.2](https://github.com/KernelSU-Next/KernelSU-Next/releases/tag/v3.4.2) (empreinte de
+  l'APK) ; le noyau ne cherche le gestionnaire que dans `/data/app` (`drivers/kernelsu/manager/throne_tracker.c` du
+  noyau LibreHU)
 - LineageOS 16.0 : [`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py),
   [`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile),
   [`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc),
