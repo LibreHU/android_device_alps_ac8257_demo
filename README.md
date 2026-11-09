@@ -88,6 +88,8 @@ cat > .repo/local_manifests/ujc201.xml <<'EOF'
 <manifest>
   <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo"
            remote="github" revision="lineage-16.0" />
+  <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo"
+           remote="github" revision="lineage-16.0" />
 </manifest>
 EOF
 repo sync -c -j"$(nproc)" --no-tags --no-clone-bundle
@@ -187,11 +189,15 @@ Toujours ouverts :
   pose `0x8257` a `early-boot` (avant `wmt_loader`, quel que soit le noyau) et remplace un `0x0000` deja enregistre ;
   correctif du noyau aussi dans la branche de test `test-wifi-chipid` (`tools/fetch_kernel.sh test-wifi-chipid`).
   Les deux sont a essayer.
-- **`autochips.jar` absent** : sur le stock, les classes Autochips sont dans `/system/framework/autochips.jar` (dans
-  le `BOOTCLASSPATH`) ; ce `/system` ne l'a pas. Sans lui, LibreHU-service ne peut pas rendre l'affichage a Android
-  apres l'ARM2 (video materielle verte : cameras, AV-in) ni lire les reglages Autochips. A recuperer sur une unite
-  sous le stock (`adb pull /system/framework/autochips.jar`, et `/system/framework/arm64/boot-autochips.*` si le jar
-  n'a plus son `classes.dex`), puis a ajouter a `proprietary-files.txt` et au `BOOTCLASSPATH`.
+- **`autochips.jar`** (09/11) : sur le stock, les classes Autochips sont dans `/system/framework/autochips.jar` (dans
+  le `BOOTCLASSPATH`) ; sans lui, LibreHU-service ne peut pas rendre l'affichage a Android apres l'ARM2 (video
+  materielle verte : cameras, AV-in) ni lire les reglages Autochips. Desodexe de `boot-autochips.vdex` (stock
+  V1.151R6) dans le depot [android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)
+  (branche `lineage-16.0`, manifest local ci-dessus), epingle dans `proprietary-files.txt`, `PRODUCT_BOOT_JARS +=
+  autochips` (`device.mk`). **Pas encore compile ni essaye** (attendu : `echo $BOOTCLASSPATH` contient
+  `autochips.jar`). **Manquent encore** ses bibliotheques JNI (`lib{metazone,logo,dvr,atcavm,atcvobsub}_jni.so` et
+  dependances) : 2e extraction du `/system` stock ; sans elles, les classes qui les chargent levent
+  `UnsatisfiedLinkError` a l'appel.
 - **Autres valeurs `persist` d'un `/data` vide** : tirees du `getprop` d'un stock (rapport LibreHU Helper du
   04/11/2026, 415 proprietes `persist`, dont 331 viennent du `build.prop` du vendor stock, garde ici). Reprises :
   `connsys.chipid` et l'ECNR des appels (`persist.audiohal.third_ecnr_lib.enable=1`). Laissees : gain du micro (remis

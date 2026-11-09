@@ -23,9 +23,11 @@ testé que sur Ubuntu 20.04 ([wiki LineageOS](https://wiki.lineageos.org/devices
 deux (`python-is-python2`, `libncurses5`, toujours sur archive.ubuntu.com) ; Ubuntu 24.04 n'a plus Python 2. Pas de
 Java à installer : l'OpenJDK 9 de LineageOS 16.0 vient avec les sources (même page du wiki).
 
-**Ne jamais publier** : `vendor.img`, `system-stock.img`, le dossier `vendor/jancar/` (fichiers propriétaires de
-Jancar / Autochips / MediaTek), ni les partitions propres à l'unité (`nvram`, `nvdata`, `proinfo`, `persist`,
-`metazone`).
+**Ne jamais publier** les données propres à l'unité : adresses MAC Bluetooth et Wi-Fi, numéro de série, certificat
+Apple MFi (CarPlay), donc ni `nvram`, `nvdata`, `proinfo` tels quels, ni `persist` / `metazone` sans vérification.
+Les fichiers propriétaires Jancar / Autochips / MediaTek côté `/system` sont publiés dans le dépôt
+[android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo) (cloné par le
+manifest local, étape 4) ; `vendor.img` et `system-stock.img` restent chez vous (trop gros, propres à l'unité).
 
 ## 1. Conteneur LXC (shell root de l'hôte Proxmox)
 
@@ -117,6 +119,8 @@ cat > .repo/local_manifests/ujc201.xml <<'EOF'
 <manifest>
   <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo"
            remote="github" revision="lineage-16.0" />
+  <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo"
+           remote="github" revision="lineage-16.0" />
 </manifest>
 EOF
 repo sync -c -j16 --no-tags --no-clone-bundle
@@ -162,6 +166,7 @@ ls ~/stock/system/lib64 | grep vendor.autochips
 
 cd device/alps/ac8257_demo
 ./extract-files.sh ~/stock            # bibliothèques HIDL Autochips -> vendor/jancar/ac8257_demo/proprietary
+                                      # (autochips.jar, épinglé, vient du dépôt vendor : gardé tel quel)
 tools/vendor_add_viper.sh             # pilote ViPERFX_RE dans vendor.img (copie vendor.img.orig gardée)
 tools/fetch_kernel.sh                 # noyau LibreHU stable-4.9.337 : images de boot + modules Wi-Fi / BT / GPS / FM
                                       # (tools/fetch_kernel.sh test-wifi-chipid : branche de test du correctif Wi-Fi)

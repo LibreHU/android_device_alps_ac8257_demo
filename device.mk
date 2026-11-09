@@ -73,5 +73,9 @@ PRODUCT_DEXPREOPT_SPEED_APPS += \
     LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
     LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay
 
-# Proprietaires cote system (interfaces HIDL Autochips / MediaTek, voir proprietary-files.txt)
+# Proprietaires cote system (interfaces HIDL Autochips / MediaTek, autochips.jar ; voir proprietary-files.txt)
 $(call inherit-product-if-exists, vendor/jancar/ac8257_demo/ac8257_demo-vendor.mk)
+
+# autochips.jar dans le BOOTCLASSPATH comme sur le stock (AtcMetazone, AtcLogo, BackCar, LocalBluetoothManager...,
+# utilises par LibreHU-service) ; module du depot vendor
+PRODUCT_BOOT_JARS += autochips
