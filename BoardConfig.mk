@@ -95,6 +95,11 @@ TARGET_FS_CONFIG_GEN := $(DEVICE_PATH)/config.fs
 # d'Android 9 reconstruit une vendor depuis les sources et ignore celle-ci (build/core/Makefile).
 BOARD_PREBUILT_VENDORIMAGE := vendor/jancar/ac8257_demo/vendor.img
 
+# autochips.jar dans PRODUCT_BOOT_JARS (device.mk) : check-boot-jars (droidcore, donc `m` par defaut) le refuserait
+# (paquets com.autochips.* / vendor.autochips.* absents de build/make/core/tasks/check_boot_jars/package_whitelist.txt,
+# et un jar prebuilt n'a pas le classes.jar que lit la verification : core/tasks/boot_jars_package_check.mk)
+SKIP_BOOT_JARS_CHECK := true
+
 # Treble / VNDK (ro.vndk.version=28)
 BOARD_VNDK_VERSION := current
 

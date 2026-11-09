@@ -1,5 +1,7 @@
 # Construire LineageOS 16.0 pour l'UJC201, pas à pas
 
+*English: [BUILD.en.md](BUILD.en.md)*
+
 De zéro jusqu'au **zip flashable TWRP** et aux **images `.img`**, sur un serveur **Proxmox VE 8 ou 9** avec un
 conteneur LXC dédié (exemple : 2 × Xeon E5-2699 v3, 72 threads, 256 Go de RAM, NVMe 1 To). Sur un PC déjà sous
 Ubuntu 20.04, sauter l'étape 1.
@@ -133,8 +135,10 @@ repo sync -c -j16 --no-tags --no-clone-bundle
 
 ## 5. Fichiers de l'unité (une seule fois)
 
-Le build reprend la **partition vendor** de votre unité et quelques bibliothèques de son **/system stock**
-(`proprietary-files.txt`). On les lit depuis un **PC** (Windows, macOS ou Linux, avec les
+Le build reprend la **partition vendor** de votre unité. Les fichiers propriétaires de son **/system stock**
+(`proprietary-files.txt` : interfaces HIDL Autochips, `autochips.jar` et ses JNI) viennent du dépôt vendor, cloné à
+l'étape 4 (ROM stock V1.151R6) ; l'image `system` ne sert que de sauvegarde, ou pour un autre firmware. On les lit
+depuis un **PC** (Windows, macOS ou Linux, avec les
 [platform-tools](https://developer.android.com/tools/releases/platform-tools)), l'unité démarrée sous **TWRP**
 (adb root) et branchée en USB :
 ```bash
@@ -271,6 +275,17 @@ source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
 mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
 ```
+**Builds faits avant le 09/11/2026** : `vendor/jancar/ac8257_demo/` existait déjà (votre `vendor.img`, et
+`proprietary/` d'`extract-files.sh`) et n'est pas un dépôt git, `repo sync` refuse donc d'y cloner le dépôt vendor.
+Une seule fois, à la place du `repo sync` ci-dessus (garde `vendor.img` et sa copie `vendor.img.orig`) :
+```bash
+cd ~/android/lineage
+mv vendor/jancar/ac8257_demo/vendor.img* ~/
+rm -rf vendor/jancar/ac8257_demo
+repo sync -c -j16 --no-tags --no-clone-bundle
+mv ~/vendor.img* vendor/jancar/ac8257_demo/
+```
+
 Installation : le zip par *ADB Sideload*, **sans** *Format Data*. Si `tools/fetch_kernel.sh` a pris un nouveau noyau,
 reflasher aussi `vendor.img` : ses modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pas à
 refaire (`vendor/jancar/ac8257_demo/` reste).
@@ -284,7 +299,10 @@ refaire (`vendor/jancar/ac8257_demo/` reste).
 | `flex` ou `bison` : `Assertion ... loadlocale.c` | `export LC_ALL=C` avant `source build/envsetup.sh` |
 | `libncurses.so.5: cannot open shared object file` | `sudo apt install libncurses5` |
 | `debugfs manquant` | `sudo apt install e2fsprogs` |
-| `extract-files.sh` : `!! file not found in source` | `~/stock/system/lib64/...` absent : refaire le `rdump` de l'étape 5 |
+| `extract-files.sh` : `!! file not found in source` | (autre firmware seulement) `~/stock/system/lib64/...` absent : refaire le `rdump` de l'étape 5 |
+| `repo sync` : `vendor/jancar/ac8257_demo` existe déjà / n'est pas un dépôt git | dossier d'un build d'avant le 09/11/2026 : voir *Builds suivants* (garder `vendor.img`, supprimer le dossier, `repo sync`) |
+| `No rule to make target 'vendor/jancar/ac8257_demo/proprietary/...'` | dépôt vendor absent ou pas à jour : manifest local de l'étape 4, puis `repo sync` |
+| Au démarrage, `ClassNotFoundException` (`com.autochips.*`) ou `UnsatisfiedLinkError` (`lib*_jni.so`) dans logcat | `echo $BOOTCLASSPATH` (adb shell) doit contenir `/system/framework/autochips.jar` ; sinon dépôt vendor pas à jour au build : `repo sync` et rebuild ; envoyer le logcat |
 | `fetch_kernel.sh` : `'str' object has no attribute 'removeprefix'` | corrigé le 07/11/2026 (Python 3.8 d'Ubuntu 20.04) : `repo sync` |
 | `prebuilt/boot-librehu-bootmenu.img absent` (avertissement au `lunch`), puis `No rule to make target ... boot-librehu` | lancer `tools/fetch_kernel.sh` (depuis le 09/11/2026 il prend aussi les images de boot) |
 | `fetch_apks.sh` : `privapp-permissions-librehu.xml is short` | une appli demande une nouvelle permission privilégiée : ajouter les lignes affichées à `librehu/privapp-permissions-librehu.xml` (sinon `system_server` s'arrête au démarrage : `Signature|privileged permissions not in privapp-permissions whitelist`) |
