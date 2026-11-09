@@ -293,9 +293,13 @@ refaire (`vendor/jancar/ac8257_demo/` reste).
 | `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 bacon` |
 | `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
 
-**Journal d'un démarrage raté** : le noyau garde la fin du journal du démarrage précédent dans la console RAM de
-MediaTek (`/proc/last_kmsg`, sans `pstore` sur ce noyau). Juste après le redémarrage raté, dès que `adb` répond
-(Android stock ou LineageOS ; TWRP si son noyau l'expose aussi) : `adb shell cat /proc/last_kmsg > last_kmsg.txt`.
+**Journal d'un démarrage raté** : le noyau LibreHU garde la fin (256 Kio) du journal du démarrage précédent dans
+pstore (ramoops, zone réservée `0x47c90000`, `CONFIG_PSTORE_RAM`) : `/sys/fs/pstore/console-ramoops`, repris dans
+`/proc/last_kmsg` derrière l'en-tête de la console RAM MediaTek. Ce journal ne survit qu'à un redémarrage à chaud
+(panique, chien de garde, `reboot`) : une coupure d'alimentation du SoC (le MCU qui le coupe, contact coupé) efface la
+RAM, et on n'y trouve alors que le début du démarrage en cours (console pstore précoce du noyau). Juste après le
+redémarrage raté, dès que `adb` répond (Android stock ou LineageOS ; TWRP si son noyau l'expose aussi) :
+`adb shell cat /sys/fs/pstore/console-ramoops > last_kmsg.txt` (ou `/proc/last_kmsg`).
 Android le range aussi dans le dropbox (`SYSTEM_LAST_KMSG`), que LibreHU-service lit à son démarrage. Avec le menu de
 démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journal) avant de l'avoir lu.
 
