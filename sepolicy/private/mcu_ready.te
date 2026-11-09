@@ -4,9 +4,14 @@
 # mcu_ready (mcu_ready/) : PC_READY au MCU Jancar des le demarrage, sans quoi le MCU coupe le SoC une dizaine de
 # secondes apres. Un domaine propre est obligatoire : l'init d'Android 9 refuse de lancer un service dont le binaire
 # n'a pas de transition de domaine (« has incorrect label or no domain transition »), meme en SELinux permissif
-# (system/core/init/service.cpp, ComputeContextFromExecutable). SELinux reste permissif (BoardConfig.mk) : les
-# regles d'acces au port serie viendront avec le passage en enforcing (Roadmap, point 4).
+# (system/core/init/service.cpp, ComputeContextFromExecutable).
+# SELinux est permissif pour la mise au point (androidboot.selinux=permissive ajoute a l'en-tete de l'image de boot par
+# tools/fetch_kernel.sh). Ce domaine l'est aussi a lui seul : meme en enforcing, PC_READY doit partir. /dev/ttyS1 est
+# un ttyS_device, type de la politique vendor, que la politique system ne peut pas nommer (regles Treble) ; les vraies
+# regles viendront avec le passage en enforcing (Roadmap, point 4). Les domaines permissifs sont refuses en build user
+# (system/sepolicy/Android.mk) : userdebug seulement.
 type mcu_ready, domain, coredomain;
 type mcu_ready_exec, exec_type, file_type;
 
 init_daemon_domain(mcu_ready)
+permissive mcu_ready;

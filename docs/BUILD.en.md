@@ -171,6 +171,7 @@ debugfs -R "cat /build.prop" vendor/jancar/ac8257_demo/vendor.img 2>/dev/null | 
 cd device/alps/ac8257_demo
 tools/vendor_add_viper.sh             # ViPERFX_RE driver in vendor.img (copy vendor.img.orig kept)
 tools/fetch_kernel.sh                 # LibreHU kernel stable-4.9.337: boot images + Wi-Fi / BT / GPS / FM modules
+                                      # (+ androidboot.selinux=permissive in the header of the boot images)
                                       # (tools/fetch_kernel.sh test-wifi-chipid: test branch of the Wi-Fi fix)
 tools/vendor_add_conn_modules.sh      # these modules in vendor.img (the LibreHU kernel refuses the stock ones)
 librehu/fetch_apks.sh                 # latest LibreHU APKs (all in priv-app; checks their whitelist)
@@ -306,7 +307,7 @@ done again (`vendor/jancar/ac8257_demo/` stays).
 | `fetch_apks.sh`: `privapp-permissions-librehu.xml is short` | an app asks for a new privileged permission: add the printed lines to `librehu/privapp-permissions-librehu.xml` (otherwise `system_server` stops at boot: `Signature|privileged permissions not in privapp-permissions whitelist`) |
 | The unit reboots at the logo, with no kernel log | `boot.img` without AVB footer (builds before 09/11/2026): flash `prebuilt/boot-librehu-bootmenu.img` (or the `kernel-stable` zip of LibreHU Apps) into `boot` |
 | Endless boot animation, nothing starts; `logcat`: `Failed to mount an un-encryptable or wiped partition on ... at /jancar` | builds before 09/11/2026: `/jancar` missing from the root of `system`, `mount_all` fails and init does not start zygote; `repo sync` and rebuild |
-| Android starts then the unit reboots after about ten seconds | builds before 09/11/2026: `mcu_ready` without SELinux domain, never started by init (no PC_READY, the MCU cuts the SoC); `repo sync` and rebuild. Otherwise, send the kernel log of the failed boot (below) |
+| Android starts then the unit reboots after about ten seconds; or `adb shell getenforce` answers `Enforcing` | boot images taken before the SELinux fix of 09/11/2026 evening (header without `androidboot.selinux=permissive`): `repo sync`, run `tools/fetch_kernel.sh` again (it adds it), rebuild, flash `boot` again. Otherwise, builds before 09/11/2026: `mcu_ready` without SELinux domain, never started by init (no PC_READY, the MCU cuts the SoC); `repo sync` and rebuild. Otherwise, send the kernel log of the failed boot (below) |
 | Reboot loop as soon as Wi-Fi turns on (Android Auto turns it on by itself) | `persist.vendor.connsys.chipid` is `0x0000`: `su -c 'getprop persist.vendor.connsys.chipid'`; builds before 09/11/2026 (without `rootdir/etc/init/librehu.rc`): Wi-Fi off, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` then reboot; kernel fix to try: `tools/fetch_kernel.sh test-wifi-chipid` |
 | `fetch_apks.sh`: `sha256sum: WARNING: 1 computed checksum did NOT match` on `KernelSUNext.apk` | damaged download: run again; if it comes back, the KernelSU Next v3.4.2 release changed, do not bypass |
 | KernelSU Next manager missing after the first boot | `adb logcat -d -s LibreHU-KSU` (reason `pm install` refused); `ksunext/KernelSUNext.apk` missing at build time: run `fetch_apks.sh` again |

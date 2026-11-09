@@ -6,4 +6,3 @@
 #
 
 add_lunch_combo lineage_ac8257_demo-userdebug
-add_lunch_combo lineage_ac8257_demo-user

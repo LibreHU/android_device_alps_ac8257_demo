@@ -11,12 +11,14 @@
 #     mettre dans l'image vendor par tools/vendor_add_conn_modules.sh : ce noyau refuse ceux du vendor stock (CRC des
 #     symboles differents) ;
 #   - ses images de boot (boot_ac8257_bootmenu.img, boot_ac8257.img) -> prebuilt/boot-librehu-bootmenu.img et
-#     prebuilt/boot-librehu.img, prises telles quelles par BoardConfig.mk (BOARD_PREBUILT_BOOTIMAGE) : en-tete, ligne
-#     de commande et pied AVB du boot stock, sans lequel le LK refuse l'image.
+#     prebuilt/boot-librehu.img, prises par BoardConfig.mk (BOARD_PREBUILT_BOOTIMAGE) : en-tete, ligne de commande et
+#     pied AVB du boot stock, sans lequel le LK refuse l'image. Seul ajout : androidboot.selinux=permissive a la ligne
+#     de commande de l'en-tete (voir plus bas ; LIBREHU_SELINUX=enforcing pour ne pas l'ajouter).
 # Empreintes verifiees (celles que GitHub donne pour les fichiers de la release), et le noyau de chaque image doit
 # etre celui des modules.
 # Branche de test du correctif de l'identifiant de puce Wi-Fi (persist.vendor.connsys.chipid 0x0000 sur un /data
-# vide, boucle de redemarrages des que le Wi-Fi s'allume) : tools/fetch_kernel.sh test-wifi-chipid Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
+# vide, boucle de redemarrages des que le Wi-Fi s'allume) : tools/fetch_kernel.sh test-wifi-chipid
+# Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
 #   tools/fetch_kernel.sh [branche]
 #
 
@@ -84,6 +86,33 @@ for n in ("boot_ac8257.img", "boot_ac8257_bootmenu.img"):
     if m is None or m.group(0).decode() != kv:
         sys.exit(f"le noyau de {n} n'est pas celui des modules")
 PY
+# SELinux permissif pour la mise au point de LineageOS. L'init d'un build userdebug ne passe en permissif que si la
+# ligne de commande du noyau contient androidboot.selinux=permissive (system/core/init/selinux.cpp, StatusFromCmdline :
+# enforcing par defaut). BOARD_KERNEL_CMDLINE ne sert pas avec une image de boot prebuilt, l'en-tete de ces images est
+# celui du stock (bootopt=64S3,32N2,64N2 buildvariant=user) et le LK n'ajoute pas androidboot.selinux (/proc/cmdline du
+# stock, rapport LibreHU Helper) : sans cet ajout, LineageOS serait en enforcing, mcu_ready ne pourrait pas ouvrir
+# /dev/ttyS1 et le MCU couperait le SoC une dizaine de secondes apres le demarrage. Le LK transmet bien la ligne de
+# commande de l'en-tete (bootopt=... est dans /proc/cmdline). Seul ce champ change (octets 64 a 575 de l'en-tete v1) :
+# noyau, ramdisk, taille de l'image et pied AVB restent ceux de la CI.
+if [ "${LIBREHU_SELINUX:-permissive}" = permissive ]; then
+    python3 - "$T/boot_ac8257.img" "$T/boot_ac8257_bootmenu.img" <<'PY'
+import sys
+ARG = b"androidboot.selinux=permissive"
+for p in sys.argv[1:]:
+    b = bytearray(open(p, "rb").read())
+    size, footer = len(b), bytes(b[-64:])
+    cmd = bytes(b[64:576]).rstrip(b"\0")
+    if ARG not in cmd.split():
+        new = cmd + b" " + ARG if cmd else ARG
+        if len(new) > 511:
+            sys.exit(f"{p} : ligne de commande de l'en-tete trop longue")
+        b[64:576] = new.ljust(512, b"\0")
+    if len(b) != size or bytes(b[-64:]) != footer or b[:8] != b"ANDROID!":
+        sys.exit(f"{p} : image modifiee au-dela de la ligne de commande")
+    open(p, "wb").write(b)
+    print(f"{p.rsplit('/', 1)[-1]} : {bytes(b[64:576]).rstrip(bytes(1)).decode()}")
+PY
+fi
 cp "$T/release.txt" "$OUT/modules.new/release.txt"
 cp "$T/Image.gz-dtb" "$OUT/kernel-librehu"
 cp "$T/boot_ac8257.img" "$OUT/boot-librehu.img"

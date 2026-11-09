@@ -41,7 +41,10 @@ TARGET_SCREEN_DENSITY := 160
 BOARD_BOOTIMG_HEADER_VERSION := 1
 BOARD_KERNEL_BASE := 0x40078000
 BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 buildvariant=user
-# Mise au point : SELinux permissif comme le stock (summary du dump : Permissive), a retirer ensuite
+# Mise au point : SELinux permissif comme le stock (getenforce : Permissive), a retirer ensuite. ATTENTION : cette
+# ligne ne sert pas avec l'image de boot prebuilt ci-dessous ; c'est tools/fetch_kernel.sh qui ajoute
+# androidboot.selinux=permissive a la ligne de commande de son en-tete (sans quoi l'init de LineageOS passe en
+# enforcing). Gardee pour un boot.img construit par LineageOS.
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
 BOARD_KERNEL_PAGESIZE := 2048
 BOARD_RAMDISK_OFFSET := 0x11a88000
