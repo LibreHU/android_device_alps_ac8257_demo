@@ -29,3 +29,19 @@ lib64/vendor.autochips.hardware.watermark@1.0.so
 # depot android_vendor_jancar_ac8257_demo (branche lineage-16.0). Epingle (|sha1) : extract-files.sh garde ce jar au
 # lieu de le refaire (son desodexage laisse un dex que le verificateur d'ART refuse, voir le README du depot vendor).
 -framework/autochips.jar|18a7652291a53099d813810e6f02dc2b2756fde3
+
+# Bibliotheques JNI de autochips.jar (System.loadLibrary des classes AtcAvm, VobSubTrack, Dvr, AtcLogo, AtcMetazone)
+lib/libatcavm_jni.so
+lib/libatcvobsub_jni.so
+lib/libdvr_jni.so
+lib/liblogo_jni.so
+lib/libmetazone_jni.so
+lib64/libatcavm_jni.so
+lib64/libatcvobsub_jni.so
+lib64/libdvr_jni.so
+lib64/liblogo_jni.so
+lib64/libmetazone_jni.so
+
+# Dependance non-AOSP de libdvr_jni.so (enregistrement USB ; le reste de ses NEEDED est dans LineageOS)
+lib/libusbdvr.so
+lib64/libusbdvr.so

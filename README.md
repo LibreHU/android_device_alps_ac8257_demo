@@ -194,10 +194,11 @@ Toujours ouverts :
   materielle verte : cameras, AV-in) ni lire les reglages Autochips. Desodexe de `boot-autochips.vdex` (stock
   V1.151R6) dans le depot [android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)
   (branche `lineage-16.0`, manifest local ci-dessus), epingle dans `proprietary-files.txt`, `PRODUCT_BOOT_JARS +=
-  autochips` (`device.mk`). **Pas encore compile ni essaye** (attendu : `echo $BOOTCLASSPATH` contient
-  `autochips.jar`). **Manquent encore** ses bibliotheques JNI (`lib{metazone,logo,dvr,atcavm,atcvobsub}_jni.so` et
-  dependances) : 2e extraction du `/system` stock ; sans elles, les classes qui les chargent levent
-  `UnsatisfiedLinkError` a l'appel.
+  autochips` (`device.mk`), avec ses bibliotheques JNI (`lib{,64}/lib{atcavm,atcvobsub,dvr,logo,metazone}_jni.so`)
+  et `libusbdvr.so` (dependance de `libdvr_jni.so`), dans `proprietary-files.txt` et le depot vendor comme les
+  interfaces HIDL. **Pas encore compile ni essaye** (attendu : `echo $BOOTCLASSPATH` contient `autochips.jar`,
+  LibreHU-service trouve `AtcMetazone`, `AtcLogo`, `BackCar`, sans `ClassNotFoundException` ni
+  `UnsatisfiedLinkError`).
 - **Autres valeurs `persist` d'un `/data` vide** : tirees du `getprop` d'un stock (rapport LibreHU Helper du
   04/11/2026, 415 proprietes `persist`, dont 331 viennent du `build.prop` du vendor stock, garde ici). Reprises :
   `connsys.chipid` et l'ECNR des appels (`persist.audiohal.third_ecnr_lib.enable=1`). Laissees : gain du micro (remis

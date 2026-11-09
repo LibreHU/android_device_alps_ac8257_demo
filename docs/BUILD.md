@@ -159,14 +159,13 @@ mv ~/vendor.img vendor/jancar/ac8257_demo/vendor.img
 stat -c %s vendor/jancar/ac8257_demo/vendor.img        # 2147483648
 debugfs -R "cat /build.prop" vendor/jancar/ac8257_demo/vendor.img 2>/dev/null | grep ro.vndk.version   # 28
 
-# /system stock (system-as-root : le dossier system/ est à la racine de l'image)
-mkdir -p ~/stock
-debugfs -R "rdump /system $HOME/stock" ~/system-stock.img
-ls ~/stock/system/lib64 | grep vendor.autochips
+# Fichiers propriétaires côté /system (interfaces HIDL Autochips, autochips.jar et ses JNI) : déjà dans le dépôt
+# vendor (manifest local, étape 4), repris de la ROM stock V1.151R6. Autre firmware : les reprendre du vôtre
+# (autochips.jar, épinglé, reste celui du dépôt) :
+#   mkdir -p ~/stock && debugfs -R "rdump /system $HOME/stock" ~/system-stock.img
+#   (cd device/alps/ac8257_demo && ./extract-files.sh ~/stock)
 
 cd device/alps/ac8257_demo
-./extract-files.sh ~/stock            # bibliothèques HIDL Autochips -> vendor/jancar/ac8257_demo/proprietary
-                                      # (autochips.jar, épinglé, vient du dépôt vendor : gardé tel quel)
 tools/vendor_add_viper.sh             # pilote ViPERFX_RE dans vendor.img (copie vendor.img.orig gardée)
 tools/fetch_kernel.sh                 # noyau LibreHU stable-4.9.337 : images de boot + modules Wi-Fi / BT / GPS / FM
                                       # (tools/fetch_kernel.sh test-wifi-chipid : branche de test du correctif Wi-Fi)
@@ -174,7 +173,7 @@ tools/vendor_add_conn_modules.sh      # ces modules dans vendor.img (le noyau Li
 librehu/fetch_apks.sh                 # derniers APK LibreHU (toutes en priv-app ; vérifie leur liste blanche)
                                       # + gestionnaire KernelSU Next v3.4.2 (empreinte vérifiée)
 cd ~/android/lineage
-rm -rf ~/stock                        # plus utile
+rm -rf ~/stock                        # si vous l'avez fait : plus utile
 ```
 `debugfs rdump` affiche des erreurs « while changing ownership » : il ne peut pas donner les fichiers à root sans
 être root. Sans importance, le contenu est bien copié.
@@ -343,7 +342,7 @@ démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journa
 
 1. Hôte Proxmox : modèle Ubuntu 20.04, `pct create 160 ... --cores 72 --memory 131072 --rootfs nvme:600`.
 2. Conteneur : paquets de l'étape 3, `repo init` + manifest local + `repo sync`.
-3. PC + TWRP : `adb pull` de `vendor` et `system`, `scp` dans le conteneur, puis `extract-files.sh` et les scripts
+3. PC + TWRP : `adb pull` de `vendor` et `system`, `scp` dans le conteneur, puis les scripts
    `tools/`.
 4. `lunch lineage_ac8257_demo-userdebug && mka bacon` : zip (`system` + `boot`) et images dans
    `out/target/product/ac8257_demo/`.
