@@ -210,7 +210,7 @@ redemarre au bout d'une dizaine de secondes ; pas de journal. Cause la plus prob
   chaque demarrage ; le stock est en `log`. Remis a `log` (`lineage_ac8257_demo.mk`, avant les `inherit-product` pour
   passer devant LineageOS).
 - **Proprietes du `default.prop` du vendor** (audit du 09/11, nuit) : `ro.zygote` et `ro.vndk.version` viennent du
-  vendor stock (Treble) ; reprises cote system par securite, et `persist.sys.usb.config=adb` dans le `build.prop` du
+  `default.prop` du vendor stock ; reprises cote system par securite, et `persist.sys.usb.config=adb` dans le `build.prop` du
   system pour garder adb quoi que pose le vendor (`device.mk`).
 
 Reo Au In a aussi repare son zip du 07/11 a sa facon (vbmeta non signe ecrit par le zip, pied AVB et drapeau de

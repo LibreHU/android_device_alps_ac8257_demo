@@ -208,7 +208,7 @@ since (09/11), to be tried again:
   every boot; the stock ROM uses `log`. Set back to `log` (`lineage_ac8257_demo.mk`, before the `inherit-product`
   lines so that it comes before LineageOS's value).
 - **Properties of the vendor `default.prop`** (audit of 09/11, night): `ro.zygote` and `ro.vndk.version` come from the
-  stock vendor (Treble); set on the system side too as a safety net, and `persist.sys.usb.config=adb` in the system
+  stock vendor `default.prop`; set on the system side too as a safety net, and `persist.sys.usb.config=adb` in the system
   `build.prop` to keep adb whatever the vendor sets (`device.mk`).
 
 Reo Au In also repaired his 07/11 zip his own way (unsigned vbmeta written by the zip, AVB footer and first-mount flag

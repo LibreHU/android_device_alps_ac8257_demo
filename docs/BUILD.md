@@ -245,8 +245,7 @@ Depuis l'hôte Proxmox, `pct pull 160 <fichier> <destination>` fait la même cho
    pas (`BOARD_AVB_ENABLE := false`, la clé Jancar n'est pas disponible) : libavb rend `ERROR_INVALID_METADATA`, fatal
    même déverrouillé (`external/avb/libavb/avb_slot_verify.c` d'Android 9 ; `system/core/fs_mgr/fs_mgr_avb.cpp`), et
    l'unité redémarre au logo sans journal. Avec `--disable-verification`, le drapeau `VERIFICATION_DISABLED` fait
-   ignorer la chaîne ; c'est aussi la consigne de Google pour un système générique (GSI). Retour au stock : possible
-   avec ce vbmeta tel quel.
+   ignorer la chaîne. Retour au stock : possible avec ce vbmeta tel quel.
 
 **Installation** :
 1. TWRP : *Wipe > Format Data*, taper `yes` (**première installation seulement** : LineageOS ne démarre pas sur les
@@ -384,7 +383,7 @@ démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journa
 - Verified Boot : [`avb_slot_verify.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_slot_verify.c)
   d'Android 9 (pied AVB absent d'une partition chaînée : `ERROR_INVALID_METADATA`, `result_should_continue` faux ;
   `VERIFICATION_DISABLED` : descripteurs non lus), [`fs_mgr_avb.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr_avb.cpp)
-  (seuls `OK` et `ERROR_VERIFICATION` acceptés), [GSI : désactiver AVB avant de flasher](https://developer.android.com/topic/generic-system-image)
+  (seuls `OK` et `ERROR_VERIFICATION` acceptés)
 - Permissions privilégiées : [`common.mk`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/config/common.mk)
   (`enforce`), [`PermissionManagerService`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/services/core/java/com/android/server/pm/permission/PermissionManagerService.java)
   (`systemReady` lève `IllegalStateException` en `enforce`), [`RoSystemProperties`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/core/java/com/android/internal/os/RoSystemProperties.java) ;

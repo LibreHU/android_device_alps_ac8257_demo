@@ -243,8 +243,7 @@ From the Proxmox host, `pct pull 160 <file> <destination>` does the same.
    (`BOARD_AVB_ENABLE := false`, the Jancar key is not available): libavb returns `ERROR_INVALID_METADATA`, fatal even
    when unlocked (Android 9 `external/avb/libavb/avb_slot_verify.c`; `system/core/fs_mgr/fs_mgr_avb.cpp`), and the
    unit reboots at the logo with no log. With `--disable-verification`, the `VERIFICATION_DISABLED` flag makes them
-   skip the chain; it is also Google's instruction for a generic system image (GSI). Going back to the stock ROM works
-   with this vbmeta as it is.
+   skip the chain. Going back to the stock ROM works with this vbmeta as it is.
 
 **Install**:
 1. TWRP: *Wipe > Format Data*, type `yes` (**first install only**: LineageOS does not start on the data of the stock
@@ -383,7 +382,7 @@ menu, choosing **TWRP** avoids starting Android again (and overwriting this log)
 - Verified Boot: Android 9 [`avb_slot_verify.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_slot_verify.c)
   (AVB footer missing on a chained partition: `ERROR_INVALID_METADATA`, `result_should_continue` false;
   `VERIFICATION_DISABLED`: descriptors not read), [`fs_mgr_avb.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr_avb.cpp)
-  (only `OK` and `ERROR_VERIFICATION` accepted), [GSI: disable AVB before flashing](https://developer.android.com/topic/generic-system-image)
+  (only `OK` and `ERROR_VERIFICATION` accepted)
 - Privileged permissions: [`common.mk`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/config/common.mk)
   (`enforce`), [`PermissionManagerService`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/services/core/java/com/android/server/pm/permission/PermissionManagerService.java)
   (`systemReady` throws `IllegalStateException` in `enforce`), [`RoSystemProperties`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/core/java/com/android/internal/os/RoSystemProperties.java);

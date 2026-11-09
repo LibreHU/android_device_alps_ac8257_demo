@@ -29,7 +29,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.default_network=9,9 \
     qemu.hw.mainkeys=0
 
-# Proprietes que le build met dans le default.prop du vendor (PRODUCT_DEFAULT_PROPERTY_OVERRIDES, Treble :
+# Proprietes que le build met dans le default.prop du vendor (PRODUCT_DEFAULT_PROPERTY_OVERRIDES avec
 # BOARD_PROPERTY_OVERRIDES_SPLIT_ENABLED), donc jamais installees ici puisque le vendor est l'image stock : celui-ci
 # les a (getprop du stock : ro.zygote=zygote64_32, ro.vndk.version=28). Reprises cote system par securite, memes
 # valeurs : sans ro.zygote, init.rc n'importe pas init.zygote64_32.rc et zygote ne demarre pas ; sans ro.vndk.version,
