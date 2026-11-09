@@ -5,9 +5,10 @@
 # Applis LibreHU integrees a /system/priv-app (APK telecharges par fetch_apks.sh, signature d'origine gardee).
 # Un APK absent est simplement ignore : la ROM se construit sans lui.
 # Toutes privilegiees, comme LibreHU-service le demande (README du service : SET_TIME, Bluetooth, demarrage fiable) :
-# leurs permissions privilegiees d'Android 9 sont dans privapp-permissions-librehu.xml (LineageOS impose
-# ro.control_privapp_permissions=enforce : une permission absente de la liste fait planter system_server au
-# demarrage) ; check_privapp.py le verifie pour chaque APK telecharge.
+# leurs permissions privilegiees d'Android 9 sont dans privapp-permissions-librehu.xml ; check_privapp.py le verifie
+# pour chaque APK telecharge. LineageOS impose ro.control_privapp_permissions=enforce (une permission absente de la
+# liste ferait planter system_server au demarrage) ; lineage_ac8257_demo.mk remet « log » comme le stock : un oubli
+# n'est alors qu'un avertissement dans logcat.
 # Precompiles a la construction (dexpreopt, filtre speed via PRODUCT_DEXPREOPT_SPEED_APPS de device.mk) sans retirer
 # le dex de l'APK (nostripping) : la signature d'origine reste valable et une mise a jour dans /data s'installe.
 #

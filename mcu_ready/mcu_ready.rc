@@ -1,5 +1,7 @@
-# PC_READY au MCU Jancar le plus tot possible (voir mcu_ready.c) : a « on init », /dev/ttyS1 existe deja (coldboot de
-# ueventd fini avant), la politique SELinux est chargee et /system est la racine (system-as-root).
+# PC_READY au MCU Jancar le plus tot possible (voir mcu_ready.c ; le MCU coupe le SoC sans lui : 15 min au plus a
+# froid, 10 s apres une veille) : a « on init », /dev/ttyS1 existe deja (coldboot de ueventd fini avant), la politique
+# SELinux est chargee et /system est la racine (system-as-root). Journal : logcat -s mcu_ready, ou dmesg | grep
+# mcu_ready (logd n'est pas encore lance a « on init »).
 on init
     start mcu_ready
 

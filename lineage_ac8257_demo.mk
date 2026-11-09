@@ -19,6 +19,17 @@ WITH_ADB_INSECURE := true
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.sys.root_access=2
 
+# Liste blanche des permissions privilegiees en « log », comme le stock (ro.control_privapp_permissions=log dans le
+# build.prop de son vendor). LineageOS met « enforce » (vendor/lineage/config/common.mk) : une permission privilegiee
+# d'une appli de /system/priv-app absente des listes fait alors lever une IllegalStateException a systemReady, et
+# system_server plante a chaque demarrage (frameworks/base, PermissionManagerService). En « log », la permission est
+# accordee et l'ecart seulement journalise (« not in privapp-permissions whitelist »). Les ro.* gardent leur premiere
+# valeur (core/Makefile : uniq-pairs-by-first-component ; init : propriete ro deja posee) : ici, avant les
+# inherit-product, celle-ci passe devant celle de LineageOS (core/node_fns.mk). Le vendor stock remet « log » apres,
+# sans effet. librehu/check_privapp.py garde la liste juste.
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    ro.control_privapp_permissions=log
+
 # Inherit from those products. Most specific first.
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)

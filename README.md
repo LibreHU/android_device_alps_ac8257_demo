@@ -129,8 +129,13 @@ stock, `androidboot.selinux=permissive`), `vendor.img` (votre vendor avec ViPERF
 Rien n'est automatise. Avant tout :
 1. **Sauvegarde complete** : SP Flash Tool (readback) avec le scatter stock, et sauvegarde TWRP de `system`,
    `vendor`, `boot`, `data`. Garder aussi `para` (`dd if=/dev/block/by-name/para of=...`).
-2. **vbmeta**, une seule fois, a la main (jamais fait par ces outils) :
-   `fastboot --disable-verity flash vbmeta vbmeta.img` (vbmeta stock).
+2. **vbmeta**, une seule fois, a la main (jamais fait par ces outils), **avec les deux options** :
+   `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img` (vbmeta stock : sauvegarde, ou
+   `images/vbmeta.img` d'un rapport LibreHU Helper). Le vbmeta stock **chaine la partition `system`** (cle Jancar) et
+   le `system.img` de LineageOS n'a pas le pied AVB attendu : avec `--disable-verity` seul, le LK et l'init (montage de
+   vendor) s'arretent sur `ERROR_INVALID_METADATA` de libavb, fatal meme deverrouille, et l'unite redemarre au logo
+   sans aucun journal. `--disable-verification` fait ignorer la chaine. Deja passe avec `--disable-verity` seul (noyau
+   LibreHU sous stock) : le refaire avec les deux (detail : [docs/BUILD.md](docs/BUILD.md), etape 8).
 3. Sous TWRP : *Wipe > Format Data* (LineageOS ne demarre pas sur les donnees de la ROM stock), puis
    `adb reboot bootloader` et `fastboot flash` de `system.img`, `boot.img` et `vendor.img`, **les trois** : le vendor a
    les modules du noyau LibreHU (le noyau stock les refuse) et seul ce `boot.img` met SELinux en permissif.
@@ -175,9 +180,13 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
 ## Risques connus
 
 Premier essai d'un testeur (Reo Au In, 08/11/2026, build de la branche du 07/11) : Android demarre puis l'unite
-redemarre au bout d'une dizaine de secondes ; pas de journal. Corrige ici depuis (09/11), a reessayer :
-- **`mcu_ready` jamais lance** (pas de domaine SELinux, voir `sepolicy/`) : sans PC_READY, le MCU coupe le SoC une
-  dizaine de secondes apres le demarrage ;
+redemarre au bout d'une dizaine de secondes ; pas de journal. Cause la plus probable : l'identifiant de puce Wi-Fi
+`0x0000` d'un `/data` vide (plus bas). Corrige ici depuis (09/11), a reessayer :
+- **`mcu_ready` jamais lance** (pas de domaine SELinux, voir `sepolicy/`) : sans PC_READY, le MCU coupe le SoC (10 s
+  apres une sortie de veille, 15 min au demarrage a froid : `docs/mcu_firmware.md` de MCU-tools-app, section 5).
+  Depuis le 09/11 (nuit), `mcu_ready` attend la reponse du MCU a PC_READY (acquittement `C0 1F` ou version `0A`) et
+  non la premiere trame venue (le MCU relaie les trames du boitier CAN sans PC_READY), renvoie toutes les secondes,
+  et ecrit aussi dans le journal du noyau (`dmesg | grep mcu_ready`) ;
 - **`boot.img` de LineageOS sans pied AVB** : refuse par le LK (redemarrage au logo) ; c'est maintenant l'image de la
   CI du noyau ;
 - **applis LibreHU dans `/system/app`** : sans leurs permissions privilegiees (heure, Bluetooth, widgets...) ; toutes
@@ -189,11 +198,26 @@ redemarre au bout d'une dizaine de secondes ; pas de journal. Corrige ici depuis
   userdebug passait donc en enforcing, `mcu_ready` (sans regles) ne pouvait pas ouvrir `/dev/ttyS1` et le MCU coupait
   le SoC. Corrige : `tools/fetch_kernel.sh` l'ajoute a l'en-tete des images de boot, et `mcu_ready` / `librehu_ksunext`
   sont des domaines permissifs. A verifier au demarrage : `adb shell getenforce` = `Permissive`.
+- **vbmeta : `system` chaine** (audit du 09/11, nuit) : le vbmeta stock contient `chain recovery`, `chain system`,
+  `hashtree vendor`, `hash dtbo` et `hash boot`. Le LK et l'init de LineageOS suivent la chaine de `system` et lisent
+  le vbmeta du pied AVB de la partition ; celui de LineageOS n'en a pas (`BOARD_AVB_ENABLE := false`) :
+  `ERROR_INVALID_METADATA`, fatal meme deverrouille (`external/avb/libavb/avb_slot_verify.c` d'Android 9,
+  `result_should_continue` ; `system/core/fs_mgr/fs_mgr_avb.cpp`). Avec `--disable-verity` seul, le demarrage
+  dependait donc de restes du system stock en fin de partition. Corrige : `fastboot --disable-verity
+  --disable-verification` (etape 5 ci-dessus), ce que faisait aussi le vbmeta « flags 3 » de Reo Au In.
+- **Liste blanche des permissions privilegiees en `enforce`** (audit du 09/11, nuit) : LineageOS impose
+  `ro.control_privapp_permissions=enforce`, ou une seule permission privilegiee manquante fait planter system_server a
+  chaque demarrage ; le stock est en `log`. Remis a `log` (`lineage_ac8257_demo.mk`, avant les `inherit-product` pour
+  passer devant LineageOS).
+- **Proprietes du `default.prop` du vendor** (audit du 09/11, nuit) : `ro.zygote` et `ro.vndk.version` viennent du
+  vendor stock (Treble) ; reprises cote system par securite, et `persist.sys.usb.config=adb` dans le `build.prop` du
+  system pour garder adb quoi que pose le vendor (`device.mk`).
 
 Reo Au In a aussi repare son zip du 07/11 a sa facon (vbmeta non signe ecrit par le zip, pied AVB et drapeau de
 premier montage retires, arbre de hachage de vendor reconstruit, `fpsgo.ko` coupe) : ce depot garde ses regles
-(vbmeta jamais ecrit, `fastboot --disable-verity` a la main ; image de boot de la CI avec le pied AVB du stock) ;
-`fpsgo.ko` du stock est refuse par le noyau LibreHU sans autre effet (docs/STABLE.md du noyau).
+(vbmeta jamais ecrit par les outils, `fastboot --disable-verity --disable-verification` a la main ; image de boot de la
+CI avec le pied AVB du stock) ; `fpsgo.ko` du stock est refuse par le noyau LibreHU sans autre effet (docs/STABLE.md du
+noyau).
 
 Toujours ouverts :
 - **Wi-Fi : identifiant de puce `0x0000`** : sur un `/data` vide (Format Data), le noyau `stable-4.9.337` repondait 0
@@ -236,7 +260,7 @@ Toujours ouverts :
 ## Regles
 
 - Rien n'est ecrit sous dm-verity et vbmeta n'est jamais desactive automatiquement :
-  `fastboot --disable-verity flash vbmeta vbmeta.img` a la main.
+  `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img` a la main.
 - Ne jamais publier les donnees propres a l'unite : adresses MAC Bluetooth et Wi-Fi, numero de serie, certificat Apple
   MFi (donc ni `nvram`, `nvdata`, `proinfo` tels quels, ni `persist` / `metazone` sans verification). Les fichiers
   proprietaires Jancar / Autochips / MediaTek sont publies (depot vendor), verifies avant chaque ajout.

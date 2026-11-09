@@ -128,8 +128,13 @@ and the tree keeps TWRP as the recovery (details: [docs/BUILD.en.md](docs/BUILD.
 Nothing is automated. First:
 1. **Full backup**: SP Flash Tool (readback) with the stock scatter, and a TWRP backup of `system`, `vendor`, `boot`,
    `data`. Keep `para` too (`dd if=/dev/block/by-name/para of=...`).
-2. **vbmeta**, once, by hand (never done by these tools):
-   `fastboot --disable-verity flash vbmeta vbmeta.img` (stock vbmeta).
+2. **vbmeta**, once, by hand (never done by these tools), **with both options**:
+   `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img` (stock vbmeta: your backup, or
+   `images/vbmeta.img` of a LibreHU Helper report). The stock vbmeta **chains the `system` partition** (Jancar key) and
+   the LineageOS `system.img` does not have the expected AVB footer: with `--disable-verity` alone, the LK and init
+   (vendor mount) stop on libavb's `ERROR_INVALID_METADATA`, fatal even when unlocked, and the unit reboots at the logo
+   with no log at all. `--disable-verification` makes them skip the chain. Already done with `--disable-verity` alone
+   (LibreHU kernel on the stock ROM): do it again with both (details: [docs/BUILD.en.md](docs/BUILD.en.md), step 8).
 3. In TWRP: *Wipe > Format Data* (LineageOS does not start on the data of the stock ROM), then `adb reboot bootloader`
    and `fastboot flash` of `system.img`, `boot.img` and `vendor.img`, **all three**: the vendor holds the LibreHU
    kernel modules (the stock kernel refuses them) and only this `boot.img` makes SELinux permissive.
@@ -174,9 +179,13 @@ ROM, the service starts it).
 ## Known risks
 
 First try by a tester (Reo Au In, 08/11/2026, build of the 07/11 branch): Android started, then the unit restarted
-after about ten seconds; no log. Fixed here since (09/11), to be tried again:
-- **`mcu_ready` never started** (no SELinux domain, see `sepolicy/`): without PC_READY, the MCU cuts the SoC about ten
-  seconds after boot;
+after about ten seconds; no log. Most likely cause: the Wi-Fi chip id `0x0000` of an empty `/data` (below). Fixed here
+since (09/11), to be tried again:
+- **`mcu_ready` never started** (no SELinux domain, see `sepolicy/`): without PC_READY, the MCU cuts the SoC (10 s after
+  leaving standby, 15 min on a cold start: `docs/mcu_firmware.md` of MCU-tools-app, section 5). Since 09/11 (night),
+  `mcu_ready` waits for the MCU's answer to PC_READY (acknowledgement `C0 1F` or version `0A`), not for whatever frame
+  comes first (the MCU relays the CAN box frames without PC_READY), sends again every second, and also writes to the
+  kernel log (`dmesg | grep mcu_ready`);
 - **LineageOS `boot.img` without AVB footer**: refused by the LK (reboot at the logo); it is now the kernel CI image;
 - **LibreHU apps in `/system/app`**: without their privileged permissions (time, Bluetooth, widgets...); all in
   `/system/priv-app` with their whitelist;
@@ -187,11 +196,25 @@ after about ten seconds; no log. Fixed here since (09/11), to be tried again:
   userdebug's init therefore went enforcing, `mcu_ready` (no rules) could not open `/dev/ttyS1` and the MCU cut the SoC.
   Fixed: `tools/fetch_kernel.sh` adds it to the header of the boot images, and `mcu_ready` / `librehu_ksunext` are
   permissive domains. To check at boot: `adb shell getenforce` = `Permissive`.
+- **vbmeta: `system` is chained** (audit of 09/11, night): the stock vbmeta holds `chain recovery`, `chain system`,
+  `hashtree vendor`, `hash dtbo` and `hash boot`. The LK and LineageOS's init follow the `system` chain and read the
+  vbmeta of the partition's AVB footer; the LineageOS one has none (`BOARD_AVB_ENABLE := false`):
+  `ERROR_INVALID_METADATA`, fatal even when unlocked (Android 9 `external/avb/libavb/avb_slot_verify.c`,
+  `result_should_continue`; `system/core/fs_mgr/fs_mgr_avb.cpp`). With `--disable-verity` alone, booting therefore
+  depended on leftovers of the stock system at the end of the partition. Fixed: `fastboot --disable-verity
+  --disable-verification` (step 5 above), which Reo Au In's "flags 3" vbmeta also did.
+- **Privileged permission whitelist in `enforce`** (audit of 09/11, night): LineageOS sets
+  `ro.control_privapp_permissions=enforce`, where a single missing privileged permission makes system_server crash at
+  every boot; the stock ROM uses `log`. Set back to `log` (`lineage_ac8257_demo.mk`, before the `inherit-product`
+  lines so that it comes before LineageOS's value).
+- **Properties of the vendor `default.prop`** (audit of 09/11, night): `ro.zygote` and `ro.vndk.version` come from the
+  stock vendor (Treble); set on the system side too as a safety net, and `persist.sys.usb.config=adb` in the system
+  `build.prop` to keep adb whatever the vendor sets (`device.mk`).
 
 Reo Au In also repaired his 07/11 zip his own way (unsigned vbmeta written by the zip, AVB footer and first-mount flag
-removed, vendor hash tree rebuilt, `fpsgo.ko` disabled): this repository keeps its rules (vbmeta never written,
-`fastboot --disable-verity` by hand; kernel CI boot image with the stock AVB footer); the stock `fpsgo.ko` is refused
-by the LibreHU kernel with no other effect (docs/STABLE.md of the kernel).
+removed, vendor hash tree rebuilt, `fpsgo.ko` disabled): this repository keeps its rules (vbmeta never written by the
+tools, `fastboot --disable-verity --disable-verification` by hand; kernel CI boot image with the stock AVB footer); the
+stock `fpsgo.ko` is refused by the LibreHU kernel with no other effect (docs/STABLE.md of the kernel).
 
 Still open:
 - **Wi-Fi: chip id `0x0000`**: on an empty `/data` (Format Data), the `stable-4.9.337` kernel answered 0 to the chip id
@@ -231,7 +254,7 @@ Still open:
 ## Rules
 
 - Nothing is written under dm-verity and vbmeta is never disabled automatically:
-  `fastboot --disable-verity flash vbmeta vbmeta.img` by hand.
+  `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img` by hand.
 - Never publish a unit's own data: Bluetooth and Wi-Fi MAC addresses, serial number, Apple MFi certificate (so neither
   `nvram`, `nvdata`, `proinfo` as they are, nor `persist` / `metazone` unchecked). Jancar / Autochips / MediaTek
   proprietary files are published (vendor repository), checked before each addition.

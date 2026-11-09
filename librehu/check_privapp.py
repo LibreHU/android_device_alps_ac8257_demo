@@ -4,9 +4,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 """Checks that each APK of this folder (all installed in /system/priv-app) has every Android 9 privileged permission it
-asks for in privapp-permissions-librehu.xml. LineageOS sets ro.control_privapp_permissions=enforce: a privileged
-permission of a priv-app missing from the whitelist makes system_server stop at boot (boot loop). Run by
-fetch_apks.sh after each download; no dependency (reads the binary AndroidManifest.xml itself).
+asks for in privapp-permissions-librehu.xml. LineageOS sets ro.control_privapp_permissions=enforce, where a
+privileged permission of a priv-app missing from the whitelist makes system_server stop at boot (boot loop); this tree
+puts it back to "log" like the stock (lineage_ac8257_demo.mk), so a miss is only a logcat warning, but the list is
+kept right for a later "enforce". Run by fetch_apks.sh after each download; no dependency (reads the binary
+AndroidManifest.xml itself).
 
   check_privapp.py <folder>     exit 1 and the missing <permission> lines when the whitelist is short
 """

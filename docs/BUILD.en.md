@@ -231,8 +231,20 @@ From the Proxmox host, `pct pull 160 <file> <destination>` does the same.
 **Before the first install**:
 1. **Full TWRP backup** on a USB stick or a microSD card: System Image, Vendor, Boot, Data and the partitions specific
    to the unit. Keep `vendor.img` and `system-stock.img` from step 5 too.
-2. **vbmeta**, once, **by hand** if not done yet (never done by these tools):
-   `fastboot --disable-verity flash vbmeta vbmeta.img` (stock vbmeta).
+2. **vbmeta**, once, **by hand** (never done by these tools), **with both options**, even if `--disable-verity` alone
+   was already used for the LibreHU kernel on the stock ROM:
+   ```bash
+   fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img
+   ```
+   `vbmeta.img` = the stock one (your backup, or `images/vbmeta.img` of a LibreHU Helper report). Why both: the stock
+   vbmeta **chains the `system` partition** (descriptors `chain recovery`, `chain system`, `hashtree vendor`,
+   `hash dtbo`, `hash boot`, read on 09/11/2026 from a Helper report). The LK, then init when it mounts `vendor` (`avb`
+   flag of the DT fstab), therefore read the vbmeta of `system`'s AVB footer. The LineageOS `system.img` has none
+   (`BOARD_AVB_ENABLE := false`, the Jancar key is not available): libavb returns `ERROR_INVALID_METADATA`, fatal even
+   when unlocked (Android 9 `external/avb/libavb/avb_slot_verify.c`; `system/core/fs_mgr/fs_mgr_avb.cpp`), and the
+   unit reboots at the logo with no log. With `--disable-verification`, the `VERIFICATION_DISABLED` flag makes them
+   skip the chain; it is also Google's instruction for a generic system image (GSI). Going back to the stock ROM works
+   with this vbmeta as it is.
 
 **Install**:
 1. TWRP: *Wipe > Format Data*, type `yes` (**first install only**: LineageOS does not start on the data of the stock
@@ -251,8 +263,11 @@ From the Proxmox host, `pct pull 160 <file> <destination>` does the same.
 ```bash
 adb shell getenforce                                               # Permissive
 adb shell getprop persist.sys.usb.config                           # contains adb
+adb shell getprop ro.control_privapp_permissions                   # log
 adb shell 'echo $BOOTCLASSPATH' | tr ':' '\n' | grep autochips      # /system/framework/autochips.jar
 adb shell ls /system/priv-app/LibreHUAndroidAuto/lib/arm64         # Android Auto's libraries
+adb shell dmesg | grep mcu_ready                                   # the MCU got PC_READY
+adb logcat -d | grep 'not in privapp-permissions whitelist'        # nothing expected (else: add to the list)
 ```
 The phone must see the head unit as a **car** (car icon in its Bluetooth list) and send it music (A2DP) and calls
 (HFP). Then: adb on without authorization, `adb root` allowed, logs in `/data/misc/logd/`, KernelSU Next manager
@@ -305,10 +320,11 @@ the same build as the `boot` kernel. Step 5 does not need to be done again (`ven
 | The phone does not see the head unit as a car, or no Bluetooth music | builds before 09/11/2026 evening (smartphone device class, A2DP sink not built); otherwise `adb shell settings get global bluetooth_class_of_device` must answer `null` (a value set there wins over the "Car audio" class); forget the device on the phone and pair again |
 | `fetch_kernel.sh`: `'str' object has no attribute 'removeprefix'` | fixed on 07/11/2026 (Python 3.8 of Ubuntu 20.04): `repo sync` |
 | `prebuilt/boot-librehu-bootmenu.img absent` (warning at `lunch`), then `No rule to make target ... boot-librehu` | run `tools/fetch_kernel.sh` (since 09/11/2026 it also takes the boot images) |
-| `fetch_apks.sh`: `privapp-permissions-librehu.xml is short` | an app asks for a new privileged permission: add the printed lines to `librehu/privapp-permissions-librehu.xml` (otherwise `system_server` stops at boot: `Signature|privileged permissions not in privapp-permissions whitelist`) |
-| The unit reboots at the logo, with no kernel log | `boot.img` without AVB footer (builds before 09/11/2026): flash `prebuilt/boot-librehu-bootmenu.img` (or the `kernel-stable` zip of LibreHU Apps) into `boot` |
+| `fetch_apks.sh`: `privapp-permissions-librehu.xml is short` | an app asks for a new privileged permission: add the printed lines to `librehu/privapp-permissions-librehu.xml` (since 09/11/2026 the ROM uses `log` like the stock: the permission is granted and the miss logged; earlier builds, in `enforce`, stopped `system_server`: `Signature|privileged permissions not in privapp-permissions whitelist`) |
+| The unit reboots at the logo, with no kernel log | first **vbmeta**: done with `--disable-verity` alone, the LK follows the `system` chain of the stock vbmeta and refuses the LineageOS `system.img` (step 8): `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`. Otherwise `boot.img` without AVB footer (builds before 09/11/2026): flash `prebuilt/boot-librehu-bootmenu.img` (or the `kernel-stable` zip of LibreHU Apps) into `boot` |
+| The unit goes back to fastboot mode (or TWRP) right after the logo; `last_kmsg`: `avb_slot_verify failed` or `Failed to mount required partitions early` | same cause, seen by init when it mounts `vendor`: flash vbmeta again with both options (step 8) |
 | Endless boot animation, nothing starts; `logcat`: `Failed to mount an un-encryptable or wiped partition on ... at /jancar` | builds before 09/11/2026: `/jancar` missing from the root of `system`, `mount_all` fails and init does not start zygote; `repo sync` and rebuild |
-| Android starts then the unit reboots after about ten seconds; or `adb shell getenforce` answers `Enforcing` | boot images taken before the SELinux fix of 09/11/2026 evening (header without `androidboot.selinux=permissive`): `repo sync`, run `tools/fetch_kernel.sh` again (it adds it), rebuild, flash `boot` again. Otherwise, builds before 09/11/2026: `mcu_ready` without SELinux domain, never started by init (no PC_READY, the MCU cuts the SoC); `repo sync` and rebuild. Otherwise, send the kernel log of the failed boot (below) |
+| Android starts then the unit reboots after about ten seconds; or `adb shell getenforce` answers `Enforcing` | first `persist.vendor.connsys.chipid` (next row), the most likely cause on an empty `/data`. Boot images taken before the SELinux fix of 09/11/2026 evening (header without `androidboot.selinux=permissive`): `repo sync`, run `tools/fetch_kernel.sh` again (it adds it), rebuild, flash `boot` again. Builds before 09/11/2026: `mcu_ready` without SELinux domain, never started by init (no PC_READY: the MCU cuts the SoC 10 s after leaving standby, 15 min on a cold start); `repo sync` and rebuild. `adb shell dmesg \| grep mcu_ready` (or `last_kmsg`) tells whether the MCU answered. Otherwise, send the kernel log of the failed boot (below) |
 | Reboot loop as soon as Wi-Fi turns on (Android Auto turns it on by itself) | `persist.vendor.connsys.chipid` is `0x0000`: `su -c 'getprop persist.vendor.connsys.chipid'`; builds before 09/11/2026 (without `rootdir/etc/init/librehu.rc`): Wi-Fi off, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` then reboot; kernel fix to try: `tools/fetch_kernel.sh test-wifi-chipid` |
 | `fetch_apks.sh`: `sha256sum: WARNING: 1 computed checksum did NOT match` on `KernelSUNext.apk` | damaged download: run again; if it comes back, the KernelSU Next v3.4.2 release changed, do not bypass |
 | KernelSU Next manager missing after the first boot | `adb logcat -d -s LibreHU-KSU` (reason `pm install` refused); `ksunext/KernelSUNext.apk` missing at build time: run `fetch_apks.sh` again |
@@ -364,6 +380,18 @@ menu, choosing **TWRP** avoids starting Android again (and overwriting this log)
   (`USE_XML_AUDIO_POLICY_CONF`); Bluetooth: [`bt_target.h`](https://github.com/LineageOS/android_system_bt/blob/lineage-16.0/internal_include/bt_target.h)
   (`BTA_DM_COD`, `BTA_AV_SINK_INCLUDED`), [`fluoride.go`](https://github.com/LineageOS/android_system_bt/blob/lineage-16.0/build/fluoride.go),
   Android 9 car profiles: `packages/services/Car` (`car_product/overlay/packages/apps/Bluetooth`, pie-release)
+- Verified Boot: Android 9 [`avb_slot_verify.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_slot_verify.c)
+  (AVB footer missing on a chained partition: `ERROR_INVALID_METADATA`, `result_should_continue` false;
+  `VERIFICATION_DISABLED`: descriptors not read), [`fs_mgr_avb.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr_avb.cpp)
+  (only `OK` and `ERROR_VERIFICATION` accepted), [GSI: disable AVB before flashing](https://developer.android.com/topic/generic-system-image)
+- Privileged permissions: [`common.mk`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/config/common.mk)
+  (`enforce`), [`PermissionManagerService`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/services/core/java/com/android/server/pm/permission/PermissionManagerService.java)
+  (`systemReady` throws `IllegalStateException` in `enforce`), [`RoSystemProperties`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/core/java/com/android/internal/os/RoSystemProperties.java);
+  property order: [`property_service.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/init/property_service.cpp),
+  [`node_fns.mk`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/node_fns.mk),
+  `uniq-pairs-by-first-component` ([`definitions.mk`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/definitions.mk))
+- MCU: [`docs/mcu_firmware.md`](https://github.com/LibreHU/MCU-tools-app/blob/main/docs/mcu_firmware.md) of
+  MCU-tools-app (PC_READY, `C0` acknowledgement, 15 min wait on a cold start and 10 s after standby)
 
 ## TL;DR
 
@@ -372,5 +400,6 @@ menu, choosing **TWRP** avoids starting Android again (and overwriting this log)
 3. PC + TWRP: `adb pull` of `vendor` and `system`, `scp` into the container, then the `tools/` scripts and
    `librehu/fetch_apks.sh`.
 4. `lunch lineage_ac8257_demo-userdebug && mka systemimage bootimage vendorimage` (no zip possible).
-5. Install: Format Data (first time), `fastboot flash` of `system`, `boot` and `vendor`; check
+5. Install: stock vbmeta once with `fastboot --disable-verity --disable-verification` (the stock vbmeta chains
+   `system`), Format Data (first time), `fastboot flash` of `system`, `boot` and `vendor`; check
    `adb shell getenforce` = `Permissive`.

@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # LineageOS 16.0 (Android 9) pour l'UJC201 (Jancar, Autochips AC8257).
-# Phase 1 : systeme LineageOS + partition vendor stock (Android 9, VNDK 28, Treble) + noyau stock #72.
+# Systeme LineageOS + partition vendor stock (Android 9, VNDK 28, Treble) + noyau LibreHU (image de boot de sa CI).
 #
 
 DEVICE_PATH := device/alps/ac8257_demo
@@ -116,14 +116,20 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
 # Treble / VNDK (ro.vndk.version=28)
 BOARD_VNDK_VERSION := current
 
-# Recovery : on garde TWRP (branche twrp) ; LineageOS ne construit ni n'installe de recovery (son zip ne touche pas a
-# la partition recovery).
+# Recovery : on garde TWRP (branche twrp) ; LineageOS ne construit ni n'installe de recovery (et ne fait donc pas de
+# zip : images flashees par fastboot, voir docs/BUILD.md).
 TARGET_NO_RECOVERY := true
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/rootdir/etc/fstab.ac8257
 TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 
-# Verified Boot : rien n'est signe ni desactive automatiquement. vbmeta se passe a la main :
-#   fastboot --disable-verity flash vbmeta vbmeta.img
+# Verified Boot : rien n'est signe ni desactive automatiquement. vbmeta se passe a la main, avec les DEUX options :
+#   fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img   (vbmeta stock)
+# Le vbmeta stock chaine la partition system (descripteur « chain system », cle Jancar) : le LK et l'init (montage de
+# vendor, drapeau avb du fstab du DT) lisent alors le vbmeta du pied AVB de system. Le system.img de LineageOS n'en a
+# pas (BOARD_AVB_ENABLE := false) : libavb rend ERROR_INVALID_METADATA, fatal meme deverrouille
+# (external/avb/libavb/avb_slot_verify.c, result_should_continue ; system/core/fs_mgr/fs_mgr_avb.cpp). Avec
+# --disable-verification, la chaine n'est plus lue (drapeau VERIFICATION_DISABLED). --disable-verity seul ne suffit
+# que pour le system stock.
 BOARD_AVB_ENABLE := false
 
 # SELinux : la politique vendor est dans la partition vendor stock (Treble, mapping 28.0) ; cote system, le domaine

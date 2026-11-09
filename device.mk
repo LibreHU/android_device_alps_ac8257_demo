@@ -29,6 +29,22 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.default_network=9,9 \
     qemu.hw.mainkeys=0
 
+# Proprietes que le build met dans le default.prop du vendor (PRODUCT_DEFAULT_PROPERTY_OVERRIDES, Treble :
+# BOARD_PROPERTY_OVERRIDES_SPLIT_ENABLED), donc jamais installees ici puisque le vendor est l'image stock : celui-ci
+# les a (getprop du stock : ro.zygote=zygote64_32, ro.vndk.version=28). Reprises cote system par securite, memes
+# valeurs : sans ro.zygote, init.rc n'importe pas init.zygote64_32.rc et zygote ne demarre pas ; sans ro.vndk.version,
+# le linker ne prend pas ld.config.28.txt. Si le vendor les pose aussi, sa valeur est ignoree (ro.* deja posee).
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    ro.zygote=zygote64_32 \
+    ro.vndk.version=28
+
+# adb a chaque demarrage, quoi que pose le default.prop du vendor (contenu inconnu, charge apres prop.default) :
+# build.prop du system est lu apres lui (init/property_service.cpp : property_load_boot_defaults puis
+# load_system_props), et l'init de LineageOS 16.0 n'ajoute plus « adb » de lui-meme (update_sys_usb_config seulement
+# une fois les proprietes de /data chargees). Valeur du stock.
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.sys.usb.config=adb
+
 # Fluidite des applis LibreHU (Jetpack Compose) : sans code natif, Android 9 les fait tourner en interprete / JIT, et
 # la compilation de fond n'a lieu qu'appareil inactif et en charge (presque jamais sur un autoradio). Installations
 # et mises a jour (LibreHU Apps) compilees en speed ; applis de la ROM precompilees en speed a la construction.
