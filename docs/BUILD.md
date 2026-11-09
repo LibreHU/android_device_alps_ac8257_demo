@@ -163,9 +163,10 @@ ls ~/stock/system/lib64 | grep vendor.autochips
 cd device/alps/ac8257_demo
 ./extract-files.sh ~/stock            # bibliothèques HIDL Autochips -> vendor/jancar/ac8257_demo/proprietary
 tools/vendor_add_viper.sh             # pilote ViPERFX_RE dans vendor.img (copie vendor.img.orig gardée)
-tools/fetch_kernel.sh                 # noyau LibreHU stable-4.9.337 + ses modules Wi-Fi / BT / GPS / FM
+tools/fetch_kernel.sh                 # noyau LibreHU stable-4.9.337 : images de boot + modules Wi-Fi / BT / GPS / FM
+                                      # (tools/fetch_kernel.sh test-wifi-chipid : branche de test du correctif Wi-Fi)
 tools/vendor_add_conn_modules.sh      # ces modules dans vendor.img (le noyau LibreHU refuse ceux du stock)
-librehu/fetch_apks.sh                 # derniers APK LibreHU
+librehu/fetch_apks.sh                 # derniers APK LibreHU (toutes en priv-app ; vérifie leur liste blanche)
 cd ~/android/lineage
 rm -rf ~/stock                        # plus utile
 ```
@@ -192,9 +193,8 @@ mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
 |---|---|
 | `lineage-16.0-AAAAMMJJ-UNOFFICIAL-ac8257_demo.zip` (+ `.md5sum`) | **zip flashable TWRP** : écrit `system` et `boot` (date UTC du build) |
 | `system.img` | image system (sparse) |
-| `boot.img` | noyau LibreHU (`prebuilt/kernel-librehu`), ou le noyau stock #72 si `tools/fetch_kernel.sh` n'a pas tourné |
+| `boot.img` | copie de `prebuilt/boot-librehu-bootmenu.img` : image de boot de la CI du noyau LibreHU (menu TWRP / Android / Fastboot), avec le **pied AVB du boot stock** sans lequel le LK la refuse ; `LIBREHU_BOOT_IMAGE=plain` avant `lunch` pour l'image sans menu |
 | `vendor.img` | votre vendor avec ViPERFX_RE et les modules du noyau LibreHU (copie de `vendor/jancar/ac8257_demo/vendor.img`) ; **jamais publié** |
-| `recovery.img` | recovery LineageOS : **ne pas flasher**, on garde TWRP |
 
 À savoir, vérifié dans les sources de LineageOS 16.0 :
 - **Le zip n'écrit pas `vendor`** : il n'y met une partition vendor que si le build en a construit le contenu
@@ -202,10 +202,12 @@ mka bacon 2>&1 | tee ~/build-$(date +%Y%m%d-%H%M).log
   ([`ota_from_target_files.py`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/ota_from_target_files.py#L602-L607),
   [`core/Makefile`](https://github.com/LineageOS/android_build/blob/lineage-16.0/core/Makefile#L3081-L3084)).
   `vendor.img` s'installe donc à part (étape 8).
-- **Le zip ne touche ni `vbmeta`, ni `dtbo`, ni `lk`, ni `recovery`.** Il met dans `/system` de quoi réécrire le
-  recovery LineageOS, mais LineageOS 16.0 ne le fait que si `persist.sys.recovery_update=true`
-  ([`init.rc`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/rootdir/init.rc#L762-L769)) :
-  TWRP reste en place. Ne pas activer ce réglage.
+- **Le zip ne touche ni `vbmeta`, ni `dtbo`, ni `lk`, ni `recovery`** : aucun recovery LineageOS n'est construit
+  (`TARGET_NO_RECOVERY`), TWRP reste en place.
+- **`boot` du zip = l'image de la CI du noyau** (`BOARD_PREBUILT_BOOTIMAGE` : copiée dans `IMAGES/boot.img`, reprise
+  telle quelle par [`common.GetBootableImage`](https://github.com/LineageOS/android_build/blob/lineage-16.0/tools/releasetools/common.py#L558-L574)).
+  Un `boot.img` construit par LineageOS n'aurait pas le pied AVB du boot stock : le LK le refuse et l'unité
+  redémarre au logo.
 
 ## 7. Récupérer les fichiers (sur le PC)
 
@@ -278,6 +280,17 @@ refaire (`vendor/jancar/ac8257_demo/` reste).
 | `debugfs manquant` | `sudo apt install e2fsprogs` |
 | `extract-files.sh` : `!! file not found in source` | `~/stock/system/lib64/...` absent : refaire le `rdump` de l'étape 5 |
 | `fetch_kernel.sh` : `'str' object has no attribute 'removeprefix'` | corrigé le 07/11/2026 (Python 3.8 d'Ubuntu 20.04) : `repo sync` |
+| `prebuilt/boot-librehu-bootmenu.img absent` (avertissement au `lunch`), puis `No rule to make target ... boot-librehu` | lancer `tools/fetch_kernel.sh` (depuis le 09/11/2026 il prend aussi les images de boot) |
+| `fetch_apks.sh` : `privapp-permissions-librehu.xml is short` | une appli demande une nouvelle permission privilégiée : ajouter les lignes affichées à `librehu/privapp-permissions-librehu.xml` (sinon `system_server` s'arrête au démarrage : `Signature|privileged permissions not in privapp-permissions whitelist`) |
+| L'unité redémarre au logo, sans journal du noyau | `boot.img` sans pied AVB (builds d'avant le 09/11/2026) : flasher `prebuilt/boot-librehu-bootmenu.img` (ou le zip `kernel-stable` de LibreHU Apps) dans `boot` |
+| Android démarre puis l'unité redémarre au bout d'une dizaine de secondes | builds d'avant le 09/11/2026 : `mcu_ready` sans domaine SELinux, jamais lancé par init (PC_READY absent, le MCU coupe le SoC) ; `repo sync` et rebuild. Sinon, envoyer le journal du noyau du démarrage raté (ci-dessous) |
+| Boucle de redémarrages dès que le Wi-Fi s'allume (Android Auto l'allume tout seul) | `persist.vendor.connsys.chipid` vaut `0x0000` : `su -c 'getprop persist.vendor.connsys.chipid'` ; Wi-Fi coupé, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` puis redémarrer ; correctif du noyau à essayer : `tools/fetch_kernel.sh test-wifi-chipid` |
+
+**Journal d'un démarrage raté** : le noyau garde la fin du journal du démarrage précédent dans la console RAM de
+MediaTek (`/proc/last_kmsg`, sans `pstore` sur ce noyau). Juste après le redémarrage raté, dès que `adb` répond
+(Android stock ou LineageOS ; TWRP si son noyau l'expose aussi) : `adb shell cat /proc/last_kmsg > last_kmsg.txt`.
+Android le range aussi dans le dropbox (`SYSTEM_LAST_KMSG`), que LibreHU-service lit à son démarrage. Avec le menu de
+démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journal) avant de l'avoir lu.
 | `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 bacon` |
 | `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
 

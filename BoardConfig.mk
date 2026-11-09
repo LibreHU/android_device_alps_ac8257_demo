@@ -35,9 +35,9 @@ TARGET_BOARD_PLATFORM := ac8257
 TARGET_SCREEN_DENSITY := 160
 
 # Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche stable-4.9.337 : linux-stable 4.9.337,
-# KernelSU Next) telecharge par tools/fetch_kernel.sh dans prebuilt/kernel-librehu, avec ses modules Wi-Fi / BT /
-# GPS / FM a mettre dans l'image vendor (tools/vendor_add_conn_modules.sh : il refuse ceux du stock) ; a defaut,
-# noyau stock #72 (22/01/2026) de prebuilt/kernel, voir prebuilt/README.md.
+# KernelSU Next ; tools/fetch_kernel.sh test-wifi-chipid pour la branche de test) : image de boot de sa CI
+# (BOARD_PREBUILT_BOOTIMAGE ci-dessous), avec ses modules Wi-Fi / BT / GPS / FM a mettre dans l'image vendor
+# (tools/vendor_add_conn_modules.sh : il refuse ceux du stock). Voir prebuilt/README.md.
 BOARD_BOOTIMG_HEADER_VERSION := 1
 BOARD_KERNEL_BASE := 0x40078000
 BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 buildvariant=user
@@ -50,7 +50,19 @@ BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOTIMG_HEADER_VERSION)
 BOARD_MKBOOTIMG_ARGS += --ramdisk_offset $(BOARD_RAMDISK_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
 BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
-TARGET_PREBUILT_KERNEL := $(if $(wildcard $(DEVICE_PATH)/prebuilt/kernel-librehu),$(DEVICE_PATH)/prebuilt/kernel-librehu,$(DEVICE_PATH)/prebuilt/kernel)
+# Image de boot : celle de la CI du noyau LibreHU, telechargee par tools/fetch_kernel.sh (en-tete, ligne de commande
+# et pied AVB du boot stock, comme les zips kernel-stable). LineageOS n'en construit pas : sans le pied AVB du boot
+# stock (« AVBf » a la fin de la partition, BOARD_AVB_ENABLE est a false ici), le LK refuse l'image et l'unite
+# redemarre au logo sans journal du noyau (tools/ac8257/repack_boot.py du depot du noyau). Par defaut l'image avec le
+# menu de demarrage (TWRP / Android / Fastboot, Android au bout de 3 s) ; LIBREHU_BOOT_IMAGE=plain pour l'autre.
+# Les adresses et la ligne de commande ci-dessus sont celles de cette image (et du boot stock) ; elles ne servent
+# plus a construire boot.img.
+TARGET_NO_KERNEL := true
+LIBREHU_BOOT_IMAGE ?= bootmenu
+BOARD_PREBUILT_BOOTIMAGE := $(DEVICE_PATH)/prebuilt/boot-librehu$(if $(filter plain,$(LIBREHU_BOOT_IMAGE)),,-bootmenu).img
+ifeq ($(wildcard $(BOARD_PREBUILT_BOOTIMAGE)),)
+$(warning $(BOARD_PREBUILT_BOOTIMAGE) absent : lancer tools/fetch_kernel.sh avant le build)
+endif
 # La partition dtbo stock est gardee : pas de dtbo.img construit.
 
 # Partitions (table eMMC du noyau stock #72)
@@ -78,7 +90,9 @@ BOARD_PREBUILT_VENDORIMAGE := vendor/jancar/ac8257_demo/vendor.img
 # Treble / VNDK (ro.vndk.version=28)
 BOARD_VNDK_VERSION := current
 
-# Recovery : on garde TWRP (branche twrp) ; le recovery LineageOS n'est pas a flasher.
+# Recovery : on garde TWRP (branche twrp) ; LineageOS ne construit ni n'installe de recovery (son zip ne touche pas a
+# la partition recovery).
+TARGET_NO_RECOVERY := true
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/rootdir/etc/fstab.ac8257
 TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 
@@ -86,7 +100,9 @@ TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 #   fastboot --disable-verity flash vbmeta vbmeta.img
 BOARD_AVB_ENABLE := false
 
-# SELinux : la politique vendor est dans la partition vendor stock (Treble, mapping 28.0)
+# SELinux : la politique vendor est dans la partition vendor stock (Treble, mapping 28.0) ; cote system, le domaine
+# de mcu_ready (sans domaine, l'init d'Android 9 refuse de lancer le service, meme en permissif).
+BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(DEVICE_PATH)/sepolicy/private
 
 # Security patch (vendor stock)
 VENDOR_SECURITY_PATCH := 2021-10-05

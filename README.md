@@ -27,9 +27,9 @@ HAL cote system propre a Jancar ou MediaTek. D'ou, pour la phase 1 :
 |---|---|
 | `system` | **LineageOS 16.0 construit ici** + applis LibreHU (service, launcher, OTA, ViPER4Android, telephone, FM, widgets, BtnRemap, EasySource, Disc, MCU Toolkit, Android Auto, CarPlay) + `mcu_ready` |
 | `vendor` | **vendor stock**, lu sur l'unite (`tools/get_vendor_img.sh`) et repris (`BOARD_PREBUILT_VENDORIMAGE`), avec le pilote ViPERFX_RE ajoute (`tools/vendor_add_viper.sh`) ; jamais publie |
-| `boot` | **noyau LibreHU** `stable-4.9.337` construit par la CI du depot du noyau (`tools/fetch_kernel.sh` -> `prebuilt/kernel-librehu`, KernelSU Next pour le root) ; a defaut, noyau stock #72 (`prebuilt/kernel`, voir [prebuilt/README.md](prebuilt/README.md)) |
+| `boot` | **image de boot de la CI du noyau LibreHU** `stable-4.9.337` (`tools/fetch_kernel.sh` -> `prebuilt/boot-librehu-bootmenu.img`, prise telle quelle : `BOARD_PREBUILT_BOOTIMAGE`) : en-tete, ligne de commande et **pied AVB du boot stock**, sans lequel le LK refuse l'image (redemarrage au logo) ; KernelSU Next pour le root, menu de demarrage TWRP / Android / Fastboot. LineageOS ne construit pas de `boot.img` (voir [prebuilt/README.md](prebuilt/README.md)) |
 | `dtbo`, `vbmeta`, `lk`, `tee`... | stock, non modifies |
-| `recovery` | TWRP (branche `twrp`) ; le recovery LineageOS n'est pas a flasher |
+| `recovery` | TWRP (branche `twrp`) ; LineageOS n'en construit pas (`TARGET_NO_RECOVERY`), son zip n'y touche pas |
 
 LineageOS 16.0 est la seule version de LineageOS de meme niveau qu'Android 9 : VNDK 28 et politique SELinux 28.0
 correspondent au vendor stock, sans couche de compatibilite.
@@ -43,13 +43,14 @@ correspondent au vendor stock, sans couche de compatibilite.
 | `device.mk` | 1280 x 720 a 160 dpi (`wm size` du stock), proprietes du stock, overlays, paquets |
 | `overlay/` | barre de navigation a l'ecran, pas de luminosite auto, paysage fixe, ecran toujours allume |
 | `mcu_ready/` | service natif : envoie `PC_READY` au MCU Jancar (`/dev/ttyS1`) des le demarrage, jusqu'a sa reponse. **Indispensable** : sans lui le MCU coupe le SoC une dizaine de secondes apres le demarrage (sur le stock c'est `com.jancar.services` qui l'envoie) |
-| `librehu/` | applis LibreHU dans `/system/app` : **LibreHU-service** (`latest-main`), **LibreHU Launcher** edition `librehu-service` (seul ecran d'accueil, remplace Trebuchet), **LibreHU Apps / OTA** (`latest-main`) ; APK telecharges par `fetch_apks.sh`, signature d'origine gardee : l'appli OTA les met ensuite a jour comme sur la ROM stock. **ViPER4Android LibreHU** 2.1.1 (`latest-librehu-service`) dans `/system/priv-app` avec sa liste blanche (`MODIFY_AUDIO_ROUTING`, `DUMP` ; LineageOS impose `ro.control_privapp_permissions=enforce`). Aussi dans `/system/app` : **telephone**, **radio FM**, **widgets** et **BtnRemap** (edition `librehu-service`), **EasySource**, **Disc**, **MCU Toolkit** (`latest-main`), **Android Auto** (Open Headunit LibreHU, `latest-main`) et **CarPlay** (xcertplay LibreHU, `latest-master`) ; un APK absent est ignore. Toutes signees avec la cle LibreHU : l'appli OTA les met a jour |
+| `librehu/` | applis LibreHU **toutes dans `/system/priv-app`** (comme le demande LibreHU-service : `SET_TIME`, Bluetooth, demarrage fiable), avec la liste blanche de leurs permissions privilegiees `privapp-permissions-librehu.xml` (LineageOS impose `ro.control_privapp_permissions=enforce` : une permission manquante fait planter `system_server` au demarrage ; `check_privapp.py`, lance par `fetch_apks.sh`, verifie chaque APK) : **LibreHU-service** (`latest-main`), **LibreHU Launcher** edition `librehu-service` (seul ecran d'accueil, remplace Trebuchet), **LibreHU Apps / OTA** (`latest-main`) ; APK telecharges par `fetch_apks.sh`, signature d'origine gardee : l'appli OTA les met ensuite a jour comme sur la ROM stock. **ViPER4Android LibreHU** 2.1.1 (`latest-librehu-service`). Aussi : **telephone**, **radio FM**, **widgets** et **BtnRemap** (edition `librehu-service`), **EasySource**, **Disc**, **MCU Toolkit** (`latest-main`), **Android Auto** (Open Headunit LibreHU, `latest-main`) et **CarPlay** (xcertplay LibreHU, `latest-master`) ; un APK absent est ignore. Toutes signees avec la cle LibreHU : l'appli OTA les met a jour |
 | `proprietary-files.txt`, `extract-files.sh`, `setup-makefiles.sh` | interfaces HIDL Autochips cote system (camera de recul, AVM, affichage rapide, iAP2, audio ATC...) reprises du stock |
 | `tools/get_vendor_img.sh` | lit la partition vendor de l'unite (lecture seule) |
 | `tools/vendor_add_viper.sh` | ajoute a l'image vendor locale (debugfs, copie `vendor.img.orig` gardee) le pilote [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 (module officiel, SHA-256 verifie) : `libv4a_re.so` dans `/lib[64]/soundfx` et l'effet `v4a_standard_re` dans `/etc/audio_effects.xml`, comme le zip `viper4android-re` de LibreHU-flashablesZips. Dans vendor car sous Android 9 Treble les effets sont charges par le HAL audio du vendor, qui ne peut pas charger de bibliotheque de `/system` |
 | `tools/fetch_kernel.sh` | noyau LibreHU `stable-4.9.337` (`Image.gz-dtb`) et ses modules Wi-Fi / BT / GPS / FM depuis la release `latest-stable-4.9.337` (empreintes de GitHub verifiees, noyau de l'image = celui des modules) ; non versionnes |
 | `tools/vendor_add_conn_modules.sh` | met ces modules dans `/lib/modules` de l'image vendor locale (debugfs, droits et contexte SELinux de l'original, marqueur `.librehu_conn`, copie `vendor.img.orig` gardee) : le noyau LibreHU refuse ceux du vendor stock (CRC des symboles differents), comme le font les zips `kernel-stable` sur l'unite |
-| `rootdir/etc/fstab.ac8257` | fstab du vendor stock (pour le build du recovery) |
+| `sepolicy/private/` | domaine SELinux de `mcu_ready` (cote system, `BOARD_PLAT_PRIVATE_SEPOLICY_DIR`) : sans lui, l'init d'Android 9 **refuse de lancer le service, meme en permissif** (« has incorrect label or no domain transition », `init/service.cpp`), PC_READY ne part pas et le MCU coupe le SoC une dizaine de secondes apres le demarrage |
+| `rootdir/etc/fstab.ac8257` | fstab du vendor stock |
 
 ## Compiler from scratch
 
@@ -95,7 +96,8 @@ L'unite sous TWRP (adb root) ou sous la ROM stock avec root, branchee en USB :
 ```bash
 device/alps/ac8257_demo/tools/get_vendor_img.sh      # -> vendor/jancar/ac8257_demo/vendor.img (2 Go, reste local)
 device/alps/ac8257_demo/tools/vendor_add_viper.sh    # pilote ViPERFX_RE dans cette image (sudo apt install e2fsprogs)
-device/alps/ac8257_demo/tools/fetch_kernel.sh        # noyau LibreHU stable-4.9.337 + ses modules (prebuilt/)
+device/alps/ac8257_demo/tools/fetch_kernel.sh        # noyau LibreHU stable-4.9.337 : images de boot + modules (prebuilt/)
+# (tools/fetch_kernel.sh test-wifi-chipid : branche de test, correctif de l'identifiant de puce Wi-Fi)
 device/alps/ac8257_demo/tools/vendor_add_conn_modules.sh  # ces modules dans l'image vendor (Wi-Fi, BT, GPS, FM)
 cd device/alps/ac8257_demo
 ./extract-files.sh                                   # interfaces HIDL Autochips de /system (adb)
@@ -109,7 +111,7 @@ export LC_ALL=C USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache && ccache -M 50G
 source build/envsetup.sh
 lunch lineage_ac8257_demo-userdebug
 mka systemimage           # phase 1 : seulement system.img (boot et vendor restent ceux de l'unite)
-mka bootimage             # boot.img avec le noyau de prebuilt/ (LibreHU si tools/fetch_kernel.sh a tourne)
+mka bootimage             # boot.img = copie de prebuilt/boot-librehu-bootmenu.img (CI du noyau, pied AVB stock)
 # ou tout en une fois : mka bacon (images + zip flashable TWRP, qui ecrit system et boot ; vendor : docs/BUILD.md)
 ```
 Resultat : `out/target/product/ac8257_demo/system.img`.
@@ -139,12 +141,38 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
    Bluetooth, GPS (modules vendor stock), audio (HAL ATC du vendor), MCU (`mcu_ready` puis LibreHU-service).
 3. **Fonctions autoradio** avec les applis LibreHU : MCU / CAN, touches au volant, radio FM, camera de recul et AVM,
    AV-in, telephone (RIL MediaTek `c6m_1rild` avec la telephonie AOSP), Android Auto / CarPlay.
-4. **Politique SELinux** du device (`mcu_ready`, applis) puis mode enforcing (aujourd'hui permissif, comme le stock).
-5. **Noyau LibreHU** a la place du noyau stock, `boot.img` construit, root (KernelSU Next) — dans l'arbre depuis le
-   01/11/2026 (`stable-4.9.337` prebuilt de la CI, modules de connectivite dans vendor), a tester.
+4. **Politique SELinux** du device : domaine de `mcu_ready` fait (09/11/2026, indispensable pour qu'init le lance) ;
+   ensuite ses regles et celles des applis, puis le mode enforcing (aujourd'hui permissif, comme le stock).
+5. **Noyau LibreHU** a la place du noyau stock, root (KernelSU Next) — dans l'arbre depuis le 01/11/2026 ; depuis le
+   09/11/2026, `boot.img` est l'image de la CI du noyau (pied AVB stock), modules de connectivite dans vendor, a tester.
 6. **Zip LineageOS complet** (`mka bacon`) installable depuis TWRP, builds publies et mis a jour par l'appli OTA.
 
 ## Risques connus
+
+Premier essai d'un testeur (Reo Au In, 08/11/2026, build de la branche du 07/11) : Android demarre puis l'unite
+redemarre au bout d'une dizaine de secondes ; pas de journal. Corrige ici depuis (09/11), a reessayer :
+- **`mcu_ready` jamais lance** (pas de domaine SELinux, voir `sepolicy/`) : sans PC_READY, le MCU coupe le SoC une
+  dizaine de secondes apres le demarrage ;
+- **`boot.img` de LineageOS sans pied AVB** : refuse par le LK (redemarrage au logo) ; c'est maintenant l'image de la
+  CI du noyau ;
+- **applis LibreHU dans `/system/app`** : sans leurs permissions privilegiees (heure, Bluetooth, widgets...) ; toutes
+  en `/system/priv-app` avec leur liste blanche.
+
+Toujours ouverts :
+- **Wi-Fi : identifiant de puce `0x0000`** : sur un `/data` vide (Format Data), le noyau `stable-4.9.337` repondait 0
+  a la demande d'identifiant de `wmt_loader`, qui l'enregistre dans `persist.vendor.connsys.chipid` ; le pilote Wi-Fi
+  demarre alors avec une puce 0 et l'unite redemarre en boucle des que le Wi-Fi s'allume (constate par Reo Au In,
+  repare chez lui par `setprop persist.vendor.connsys.chipid 0x8257`). Correctif dans la branche de test
+  `test-wifi-chipid` du noyau (`tools/fetch_kernel.sh test-wifi-chipid`), a essayer ; en attendant, apres le premier
+  demarrage : `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` puis redemarrer, Wi-Fi coupe.
+- **`autochips.jar` absent** : sur le stock, les classes Autochips sont dans `/system/framework/autochips.jar` (dans
+  le `BOOTCLASSPATH`) ; ce `/system` ne l'a pas. Sans lui, LibreHU-service ne peut pas rendre l'affichage a Android
+  apres l'ARM2 (video materielle verte : cameras, AV-in) ni lire les reglages Autochips. A recuperer sur une unite
+  sous le stock (`adb pull /system/framework/autochips.jar`, et `/system/framework/arm64/boot-autochips.*` si le jar
+  n'a plus son `classes.dex`), puis a ajouter a `proprietary-files.txt` et au `BOOTCLASSPATH`.
+- **Autres valeurs `persist` d'un `/data` vide** : comme `connsys.chipid`, des proprietes ecrites sur le stock par les
+  applis Jancar ou le premier demarrage d'usine manquent apres Format Data ; liste a tirer d'un `getprop` du stock
+  (rapport LibreHU Helper).
 
 - **RIL** : modem MediaTek (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`) avec la telephonie AOSP de LineageOS :
   appels et donnees a verifier.

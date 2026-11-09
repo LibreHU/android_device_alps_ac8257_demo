@@ -17,5 +17,15 @@ Pas de `dtbo.img` : la partition `dtbo` stock est gardee.
 Autochips, correctifs linux-stable jusqu'a 4.9.337, KernelSU Next), `Image.gz-dtb` de sa release
 `latest-stable-4.9.337`, et ses six modules de connectivite (`wmt_drv`, `wmt_chrdev_wifi`, `wlan_drv_gen4m`,
 `bt_drv`, `gps_drv`, `fmradio_drv`, avec `SHA256SUMS`, `kernel_version` et `release.txt`), ecrits par
-`tools/fetch_kernel.sh`. Quand `kernel-librehu` existe, `BoardConfig.mk` le prend a la place de `kernel` ; les modules
-vont alors dans l'image vendor (`tools/vendor_add_conn_modules.sh`), ce noyau refusant ceux du stock.
+`tools/fetch_kernel.sh`. Les modules vont dans l'image vendor (`tools/vendor_add_conn_modules.sh`), ce noyau
+refusant ceux du stock.
+
+`boot-librehu-bootmenu.img` et `boot-librehu.img` (non versionnes) : **images de boot** de la meme release
+(`boot_ac8257_bootmenu.img`, avec le menu TWRP / Android / Fastboot, et `boot_ac8257.img`), ecrites par
+`tools/fetch_kernel.sh` apres verification (en-tete Android, 10 Mio au plus, pied AVB, noyau = celui des modules).
+`BoardConfig.mk` prend la premiere telle quelle (`TARGET_NO_KERNEL` + `BOARD_PREBUILT_BOOTIMAGE` ;
+`LIBREHU_BOOT_IMAGE=plain` pour la seconde) : elles ont l'en-tete, la ligne de commande et le **pied AVB du boot
+stock** (`AVBf`, vbmeta chaine du boot), sans lequel le LK refuse l'image, deverrouille ou non (l'unite redemarre au
+logo sans journal du noyau : `tools/ac8257/repack_boot.py` du depot du noyau). Un `boot.img` construit par LineageOS
+(`BOARD_AVB_ENABLE := false`) n'a pas ce pied. Le zip `mka bacon` reprend cette image (`IMAGES/boot.img`).
+Le noyau stock #72 (`kernel`) n'est plus utilise par le build : il n'y a pas d'image de boot stock a publier.

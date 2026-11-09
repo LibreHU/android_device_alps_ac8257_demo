@@ -7,6 +7,8 @@
 # Les APK ne sont pas versionnes dans le depot (voir .gitignore) : a relancer avant chaque build pour prendre les
 # dernieres versions. Ils restent signes avec la cle commune des applis LibreHU (LOCAL_CERTIFICATE := PRESIGNED),
 # l'appli OTA peut donc ensuite les mettre a jour.
+# Toutes vont dans /system/priv-app : check_privapp.py verifie ensuite que privapp-permissions-librehu.xml contient
+# chaque permission privilegiee qu'elles demandent (sinon LineageOS s'arrete au demarrage) et s'arrete sinon.
 #
 
 set -e
@@ -38,3 +40,4 @@ for line in "${APPS[@]}"; do
     mv "$out.part" "$out"
 done
 sha256sum ./*.apk
+python3 -I check_privapp.py .

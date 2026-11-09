@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<!--
+     Applis LibreHU de la ROM, toutes dans /system/priv-app : permissions privilegiees d'Android 9 que leurs APK
+     demandent (liste des permissions privilegiees : privileged-permissions-android9.txt). LineageOS impose
+     ro.control_privapp_permissions=enforce : une permission privilegiee demandee et absente d'ici fait planter
+     system_server au demarrage. check_privapp.py (lance par fetch_apks.sh) verifie chaque APK telecharge.
+     Une appli sans permission privilegiee n'a pas d'entree.
+-->
+<permissions>
+    <!-- LibreHU-service : heure du MCU, appairage et repertoire Bluetooth sans demande, mode nuit -->
+    <privapp-permissions package="org.librehu.service">
+        <permission name="android.permission.BLUETOOTH_PRIVILEGED"/>
+        <permission name="android.permission.MODIFY_DAY_NIGHT_MODE"/>
+        <permission name="android.permission.SET_TIME"/>
+    </privapp-permissions>
+
+    <!-- LibreHU Launcher : widgets sans demande, appels, arret / redemarrage, mode nuit, arret d'une appli -->
+    <privapp-permissions package="org.librehu.launcher">
+        <permission name="android.permission.BIND_APPWIDGET"/>
+        <permission name="android.permission.CALL_PRIVILEGED"/>
+        <permission name="android.permission.FORCE_STOP_PACKAGES"/>
+        <permission name="android.permission.MODIFY_DAY_NIGHT_MODE"/>
+        <permission name="android.permission.REBOOT"/>
+        <permission name="android.permission.SHUTDOWN"/>
+    </privapp-permissions>
+
+    <!-- Radio FM : radio et son de la radio, heure du RDS -->
+    <privapp-permissions package="org.librehu.fm">
+        <permission name="android.permission.ACCESS_BROADCAST_RADIO"/>
+        <permission name="android.permission.CAPTURE_AUDIO_OUTPUT"/>
+        <permission name="android.permission.MODIFY_AUDIO_ROUTING"/>
+        <permission name="android.permission.SET_TIME"/>
+    </privapp-permissions>
+
+    <!-- ViPER4Android LibreHU -->
+    <privapp-permissions package="com.llsl.viper4android">
+        <permission name="android.permission.DUMP"/>
+        <permission name="android.permission.MODIFY_AUDIO_ROUTING"/>
+    </privapp-permissions>
+
+    <!-- Journaux pour les rapports : Android Auto (Open Headunit LibreHU), LibreHU Apps / OTA, MCU Toolkit -->
+    <privapp-permissions package="org.librehu.headunit">
+        <permission name="android.permission.READ_LOGS"/>
+    </privapp-permissions>
+    <privapp-permissions package="org.librehu.ota">
+        <permission name="android.permission.READ_LOGS"/>
+    </privapp-permissions>
+    <privapp-permissions package="com.dokt.jacmcu">
+        <permission name="android.permission.READ_LOGS"/>
+    </privapp-permissions>
+</permissions>

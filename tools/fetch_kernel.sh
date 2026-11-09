@@ -9,9 +9,14 @@
 #   - Image.gz-dtb -> prebuilt/kernel-librehu, pris par BoardConfig.mk a la place du noyau stock (prebuilt/kernel) ;
 #   - ses modules Wi-Fi / BT / GPS / FM recompiles avec lui (librehu_connectivity_ksu.zip) -> prebuilt/modules/, a
 #     mettre dans l'image vendor par tools/vendor_add_conn_modules.sh : ce noyau refuse ceux du vendor stock (CRC des
-#     symboles differents).
-# Empreintes verifiees (celles que GitHub donne pour les fichiers de la release), et le noyau de l'image doit etre
-# celui des modules. Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
+#     symboles differents) ;
+#   - ses images de boot (boot_ac8257_bootmenu.img, boot_ac8257.img) -> prebuilt/boot-librehu-bootmenu.img et
+#     prebuilt/boot-librehu.img, prises telles quelles par BoardConfig.mk (BOARD_PREBUILT_BOOTIMAGE) : en-tete, ligne
+#     de commande et pied AVB du boot stock, sans lequel le LK refuse l'image.
+# Empreintes verifiees (celles que GitHub donne pour les fichiers de la release), et le noyau de chaque image doit
+# etre celui des modules.
+# Branche de test du correctif de l'identifiant de puce Wi-Fi (persist.vendor.connsys.chipid 0x0000 sur un /data
+# vide, boucle de redemarrages des que le Wi-Fi s'allume) : tools/fetch_kernel.sh test-wifi-chipid Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
 #   tools/fetch_kernel.sh [branche]
 #
 
@@ -32,7 +37,7 @@ t = sys.argv[1]
 r = json.load(open(f"{t}/release.json"))
 assets = {a["name"]: a for a in r["assets"]}
 with open(f"{t}/assets", "w") as f:
-    for n in ("Image.gz-dtb", "librehu_connectivity_ksu.zip", "release.txt"):
+    for n in ("Image.gz-dtb", "librehu_connectivity_ksu.zip", "boot_ac8257.img", "boot_ac8257_bootmenu.img", "release.txt"):
         a = assets.get(n)
         if a is None:
             sys.exit(f"{n} absent de la release {r['tag_name']}")
@@ -49,7 +54,7 @@ done < "$T/assets"
 rm -rf "$OUT/modules.new"
 mkdir -p "$OUT/modules.new"
 python3 - "$T" "$OUT/modules.new" <<'PY'
-import hashlib, re, sys, zipfile, zlib
+import hashlib, re, struct, sys, zipfile, zlib
 t, out = sys.argv[1], sys.argv[2]
 names = ["wmt_drv", "wmt_chrdev_wifi", "bt_drv", "gps_drv", "fmradio_drv", "wlan_drv_gen4m"]
 z = zipfile.ZipFile(f"{t}/librehu_connectivity_ksu.zip")
@@ -68,12 +73,24 @@ m = re.search(rb"Linux version [^\n\x00]+", image)
 if m is None or m.group(0).decode() != kv:
     sys.exit("le noyau de Image.gz-dtb n'est pas celui des modules")
 open(f"{out}/kernel_version", "w").write(kv + "\n")
+# Images de boot : en-tete Android v1, 10 Mio au plus (partition boot), pied AVB, noyau = celui des modules
+for n in ("boot_ac8257.img", "boot_ac8257_bootmenu.img"):
+    b = open(f"{t}/{n}", "rb").read()
+    if b[:8] != b"ANDROID!" or len(b) > 10485760 or b[-64:-60] != b"AVBf":
+        sys.exit(f"{n} : pas une image de boot de l'UJC201 (en-tete, taille ou pied AVB)")
+    ksize, page = struct.unpack_from("<I", b, 8)[0], struct.unpack_from("<I", b, 36)[0]
+    kimg = zlib.decompressobj(16 + zlib.MAX_WBITS).decompress(b[page:page + ksize])
+    m = re.search(rb"Linux version [^\n\x00]+", kimg)
+    if m is None or m.group(0).decode() != kv:
+        sys.exit(f"le noyau de {n} n'est pas celui des modules")
 PY
 cp "$T/release.txt" "$OUT/modules.new/release.txt"
 cp "$T/Image.gz-dtb" "$OUT/kernel-librehu"
+cp "$T/boot_ac8257.img" "$OUT/boot-librehu.img"
+cp "$T/boot_ac8257_bootmenu.img" "$OUT/boot-librehu-bootmenu.img"
 rm -rf "$OUT/modules"
 mv "$OUT/modules.new" "$OUT/modules"
 
 echo "noyau : $(sed -n 's/^version=//p' "$OUT/modules/release.txt") ($BRANCH)"
 echo "  $(cat "$OUT/modules/kernel_version")"
-sha256sum "$OUT/kernel-librehu" "$OUT"/modules/*.ko
+sha256sum "$OUT/kernel-librehu" "$OUT/boot-librehu.img" "$OUT/boot-librehu-bootmenu.img" "$OUT"/modules/*.ko
