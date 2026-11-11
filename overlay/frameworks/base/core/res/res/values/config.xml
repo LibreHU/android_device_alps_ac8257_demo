@@ -15,4 +15,9 @@
 
     <!-- Alimente par le vehicule : ne pas rallumer l'ecran sur un changement d'alimentation -->
     <bool name="config_unplugTurnsOnScreen">false</bool>
+
+    <!-- Reseau filaire : eth* (adaptateurs Ethernet USB, iPhone) et usb* (partage de connexion USB d'un telephone
+         Android, RNDIS ou NCM, que Linux nomme usb0). Android 9 ne prend que "eth\d" par defaut : le partage d'un
+         telephone Android etait ignore. Meme valeur que le defaut d'Android 15 ; zip usb-tethering pour le stock. -->
+    <string name="config_ethernet_iface_regex" translatable="false">(eth|usb)\\d+</string>
 </resources>
