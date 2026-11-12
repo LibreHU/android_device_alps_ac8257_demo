@@ -36,7 +36,10 @@ the local manifest, step 4); `vendor.img` and `system-stock.img` stay with you (
 The repository builds LineageOS 16.0 itself on GitHub Actions (`.github/workflows/lineage-build.yml`, free runners of
 public repositories: 4 CPUs, 16 GB of RAM, 6 h per job) on every push to the `lineage-16.0` branch whose message holds
 `[build]`. Same steps as this guide (sections 4 to 6), `systemimage` only: the vendor stays the unit's own (never
-published). In the repository's **Actions** tab → the run → **Artifacts** (a GitHub account is needed):
+published). Two differences with no effect on the images: `SKIP_ABI_CHECKS=true` (no ABI check of the VNDK
+libraries, about 1 h less on the runner) and the build in a 13 GiB memory cgroup (short of memory, a build process is
+killed and the log says so, instead of losing the runner and the log with it). In the repository's **Actions** tab →
+the run → **Artifacts** (a GitHub account is needed):
 - `lineage-images`: **`LibreHU-LineageOS-16.0-ac8257_demo-<date>.zip`** (to flash in TWRP, section 8),
   `system.img.zst` (`zstd -d` then `fastboot flash system`), `boot-librehu.img` and `boot-librehu-bootmenu.img`
   (LibreHU kernel with `androidboot.selinux=permissive`), `SHA256SUMS`;

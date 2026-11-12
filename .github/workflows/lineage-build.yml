@@ -27,6 +27,9 @@ jobs:
       USE_CCACHE: "1"
       CCACHE_EXEC: /usr/bin/ccache
       WITHOUT_CHECK_API: "true"
+      # No VNDK ABI dumps (header-abi-dumper on every source file of the VNDK libraries, ~1 h on the runner): a
+      # check of the build only, the libraries and the images are the same (cc/cc.go, createVndkSourceAbiDump).
+      SKIP_ABI_CHECKS: "true"
       LC_ALL: C
     steps:
       - name: Free the runner's disk
@@ -105,10 +108,24 @@ jobs:
         timeout-minutes: 290
         run: |
           ccache -M 8G >/dev/null; ccache -o compression=true >/dev/null 2>&1 || true
+          # The build in a memory cgroup of its own (13 GiB of RAM, 12 GiB of swap): short of memory, the kernel swaps
+          # or kills a build process inside it, never the runner. A runner starved of memory loses its link to GitHub,
+          # and the whole log with it ("The hosted runner lost communication with the server", run 43184707906).
+          CG=/sys/fs/cgroup/lineage-build
+          if [ -f /sys/fs/cgroup/cgroup.controllers ] && sudo mkdir -p $CG \
+              && echo 13G | sudo tee $CG/memory.max >/dev/null \
+              && { [ ! -f $CG/memory.swap.max ] || echo 12G | sudo tee $CG/memory.swap.max >/dev/null; } \
+              && echo $$ | sudo tee $CG/cgroup.procs >/dev/null; then
+            echo "build cgroup: memory.max $(cat $CG/memory.max), memory.swap.max $(cat $CG/memory.swap.max 2>/dev/null)"
+          else
+            echo "no build cgroup (cgroup v2 not writable): the build runs without a memory limit"
+          fi
           source build/envsetup.sh
           lunch lineage_ac8257_demo-userdebug
-          # Progress every 5 minutes; the whole log is an artifact.
-          ( while sleep 300; do tail -n 1 /home/runner/build.log | cut -c1-200; done ) &
+          # Progress and memory every 5 minutes; the whole log is an artifact.
+          ( while sleep 300; do
+              echo "$(tail -n 1 /home/runner/build.log | cut -c1-160) | $(free -m | awk '/^Mem/{r=$3} /^Swap/{s=$3} END{print "RAM " r " MiB, swap " s " MiB"}')"
+            done ) &
           m -j"$(nproc)" systemimage > /home/runner/build.log 2>&1
         continue-on-error: true
 
@@ -118,6 +135,8 @@ jobs:
           grep -n -E "FAILED:|error:|ninja: build stopped|#### failed|neverallow" /home/runner/build.log | head -80 || true
           tail -n 60 /home/runner/build.log || true
           df -h / /mnt; ccache -s | head -20 || true
+          # oom_kill > 0: a build process was killed for memory (the FAILED line above names it)
+          grep -H . /sys/fs/cgroup/lineage-build/memory.events /sys/fs/cgroup/lineage-build/memory.peak 2>/dev/null || true
 
       - name: Save ccache
         if: always()

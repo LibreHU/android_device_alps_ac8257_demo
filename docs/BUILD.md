@@ -36,7 +36,10 @@ manifest local, étape 4) ; `vendor.img` et `system-stock.img` restent chez vous
 Le dépôt compile lui-même LineageOS 16.0 sur GitHub Actions (`.github/workflows/lineage-build.yml`, runners gratuits
 des dépôts publics : 4 CPU, 16 Go de RAM, 6 h par job) à chaque push de la branche `lineage-16.0` dont le message
 contient `[build]`. Mêmes étapes que ce guide (sections 4 à 6), `systemimage` seulement : le vendor reste celui de
-l'unité (jamais publié). Dans l'onglet **Actions** du dépôt → le run → **Artifacts** (compte GitHub nécessaire) :
+l'unité (jamais publié). Deux différences sans effet sur les images : `SKIP_ABI_CHECKS=true` (pas de vérification
+d'ABI des bibliothèques VNDK, environ 1 h de moins sur le runner) et le build dans un cgroup mémoire de 13 Gio (s'il
+manque de mémoire, c'est un processus du build qui est tué et le journal le dit, au lieu de perdre le runner et le
+journal avec lui). Dans l'onglet **Actions** du dépôt → le run → **Artifacts** (compte GitHub nécessaire) :
 - `lineage-images` : **`LibreHU-LineageOS-16.0-ac8257_demo-<date>.zip`** (à flasher dans TWRP, section 8),
   `system.img.zst` (`zstd -d` puis `fastboot flash system`), `boot-librehu.img` et `boot-librehu-bootmenu.img`
   (noyau LibreHU avec `androidboot.selinux=permissive`), `SHA256SUMS` ;
