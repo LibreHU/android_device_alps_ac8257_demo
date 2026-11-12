@@ -38,6 +38,14 @@ PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
     ro.zygote=zygote64_32 \
     ro.vndk.version=28
 
+# Dossier des rc du vendor (getprop du stock : /vendor/etc/init/hw/), absent des deux build.prop du stock donc venu
+# d'un default.prop : init.ac8257.rc du vendor importe ${ro.vendor.rc}init.connectivity.rc (wpa_supplicant, mnld),
+# init.modem.rc, init.ago.rc, init.volte.rc, init.mal.rc, et l'import est developpe a la lecture des rc, quand seuls
+# prop.default et /vendor/default.prop sont charges. Sans la valeur : plus de Wi-Fi ni de GPS. Meme valeur que le stock,
+# sans effet si le vendor la pose aussi (ro.* : la premiere gagne, prop.default est lu en premier).
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    ro.vendor.rc=/vendor/etc/init/hw/
+
 # adb a chaque demarrage, quoi que pose le default.prop du vendor (contenu inconnu, charge apres prop.default) :
 # build.prop du system est lu apres lui (init/property_service.cpp : property_load_boot_defaults puis
 # load_system_props), et l'init de LineageOS 16.0 n'ajoute plus « adb » de lui-meme (update_sys_usb_config seulement

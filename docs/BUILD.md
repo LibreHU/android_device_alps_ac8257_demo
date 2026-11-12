@@ -31,6 +31,17 @@ Les fichiers propriétaires Jancar / Autochips / MediaTek côté `/system` sont 
 [android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo) (cloné par le
 manifest local, étape 4) ; `vendor.img` et `system-stock.img` restent chez vous (trop gros, propres à l'unité).
 
+## 0. Sans PC de build : la CI de GitHub
+
+Le dépôt compile lui-même LineageOS 16.0 sur GitHub Actions (`.github/workflows/lineage-build.yml`, runners gratuits
+des dépôts publics : 4 CPU, 16 Go de RAM, 6 h par job) à chaque push de la branche `lineage-16.0` dont le message
+contient `[build]`. Mêmes étapes que ce guide (sections 4 à 6), `systemimage` seulement : le vendor reste celui de
+l'unité (jamais publié). Dans l'onglet **Actions** du dépôt → le run → **Artifacts** (compte GitHub nécessaire) :
+- `lineage-images` : **`LibreHU-LineageOS-16.0-ac8257_demo-<date>.zip`** (à flasher dans TWRP, section 8),
+  `system.img.zst` (`zstd -d` puis `fastboot flash system`), `boot-librehu.img` et `boot-librehu-bootmenu.img`
+  (noyau LibreHU avec `androidboot.selinux=permissive`), `SHA256SUMS` ;
+- `lineage-build-log` : le journal complet du build.
+
 ## 1. Conteneur LXC (shell root de l'hôte Proxmox)
 
 **Modèle Ubuntu 20.04.** Proxmox 8 le liste encore, Proxmox 9 ne liste plus que 24.04 et 26.04
@@ -246,6 +257,17 @@ Depuis l'hôte Proxmox, `pct pull 160 <fichier> <destination>` fait la même cho
    même déverrouillé (`external/avb/libavb/avb_slot_verify.c` d'Android 9 ; `system/core/fs_mgr/fs_mgr_avb.cpp`), et
    l'unité redémarre au logo sans journal. Avec `--disable-verification`, le drapeau `VERIFICATION_DISABLED` fait
    ignorer la chaîne. Retour au stock : possible avec ce vbmeta tel quel.
+
+**Installation avec le zip de la CI (TWRP)** : après la sauvegarde et le vbmeta ci-dessus :
+1. Copier le zip sur une clé USB ou la microSD, TWRP : *Install* → le zip. Il écrit `system` (vérifié en relisant toute
+   la partition), `boot` (noyau LibreHU, SELinux permissif ; mettre `bootmenu` dans le nom du zip pour l'image avec le
+   menu de démarrage) et les modules Wi-Fi / BT / GPS / FM de ce noyau dans `/vendor/lib/modules` (originaux
+   sauvegardés dans `/sdcard/LibreHU/backup/conn-modules-orig`). Il s'arrête **sans rien écrire** si la vérification
+   de vbmeta n'est pas désactivée, et ne touche jamais vbmeta ni `/data`.
+2. **Première installation** : *Wipe > Format Data*, taper `yes`, **avant** de redémarrer (le zip le rappelle si
+   `/data` vient d'une autre ROM).
+3. *Reboot > System*. Au premier démarrage, Android demande l'écran d'accueil : **LibreHU Launcher**, *Toujours*
+   (Trebuchet reste en secours si LibreHU Launcher ne démarrait pas).
 
 **Installation** :
 1. TWRP : *Wipe > Format Data*, taper `yes` (**première installation seulement** : LineageOS ne démarre pas sur les

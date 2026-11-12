@@ -4,19 +4,20 @@ name: LineageOS 16.0 build (lineage_ac8257_demo)
 # the same steps). Only `systemimage`: the vendor image is the user's own (never published) and the boot image is
 # the LibreHU kernel's CI image. Runs on a push to lineage-16.0 whose message holds "[build]", or by hand.
 # Disk: the runner's toolchains are removed, the sources go to /mnt (temporary disk), the output and ccache to /.
-# Outputs: the build log always; system.img (sparse, zstd) when the build ends.
+# Outputs: the build log always; when it builds: a TWRP zip (tools/make_flashable_zip.py), system.img (sparse,
+# zstd) and the LibreHU boot images for fastboot.
 on:
   push:
     branches: [lineage-16.0]
   workflow_dispatch:
 
-concurrency:
-  group: lineage-build
-  cancel-in-progress: true
-
 jobs:
   build:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]')
+    # On the job, not the workflow: a push without "[build]" (skipped job) does not cancel a build in progress.
+    concurrency:
+      group: lineage-build
+      cancel-in-progress: true
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
@@ -79,9 +80,13 @@ jobs:
           done
           du -sh /mnt/lineage; df -h / /mnt
 
-      - name: LibreHU apps (librehu/fetch_apks.sh)
+      - name: LibreHU apps (librehu/fetch_apks.sh) and boot images (tools/fetch_kernel.sh)
         working-directory: /mnt/lineage/device/alps/ac8257_demo
-        run: librehu/fetch_apks.sh
+        run: |
+          librehu/fetch_apks.sh
+          # LibreHU kernel stable-4.9.337: boot images with the stock AVB footer, androidboot.selinux=permissive added
+          tools/fetch_kernel.sh
+          ls -la prebuilt
 
       - name: ccache
         uses: actions/cache/restore@v4
@@ -117,13 +122,22 @@ jobs:
           path: /home/runner/.ccache
           key: lineage-ccache-${{ github.sha }}
 
-      - name: system.img (zstd)
+      - name: Images to flash (system.img zstd, boot images)
         if: steps.build.outcome == 'success'
         run: |
           P=$OUT_DIR/target/product/ac8257_demo
           ls -la $P | head -40
-          zstd -T0 -10 $P/system.img -o /home/runner/system.img.zst
-          cp $P/system/build.prop /home/runner/build.prop || true
+          mkdir -p /home/runner/flash
+          zstd -T0 -10 $P/system.img -o /home/runner/flash/system.img.zst
+          cp /mnt/lineage/device/alps/ac8257_demo/prebuilt/boot-librehu-bootmenu.img \
+             /mnt/lineage/device/alps/ac8257_demo/prebuilt/boot-librehu.img /home/runner/flash/
+          cp $P/system/build.prop /home/runner/flash/build.prop || true
+          # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), modules of the same kernel
+          D=$(date -u +%Y%m%d)
+          python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
+            /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/flash/LibreHU-LineageOS-16.0-ac8257_demo-$D.zip \
+            --build "lineage-16.0 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)"
+          (cd /home/runner/flash && sha256sum * > SHA256SUMS && cat SHA256SUMS)
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -135,10 +149,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: steps.build.outcome == 'success'
         with:
-          name: lineage-system-img
-          path: |
-            /home/runner/system.img.zst
-            /home/runner/build.prop
+          name: lineage-images
+          path: /home/runner/flash
           retention-days: 14
 
       - name: Result

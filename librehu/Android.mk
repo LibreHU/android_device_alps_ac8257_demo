@@ -52,8 +52,10 @@ include $$(BUILD_PREBUILT)
 endif
 endef
 
-# LibreHU Launcher : seul ecran d'accueil, remplace Trebuchet
-$(eval $(call librehu-priv-app,LibreHULauncher,Launcher3 Launcher3QuickStep TrebuchetQuickStep))
+# LibreHU Launcher : ecran d'accueil ; Trebuchet (lanceur de LineageOS) reste en secours : si LibreHU Launcher plantait
+# au demarrage, sans autre ecran d'accueil l'animation de demarrage ne finirait jamais (elle s'arrete quand un ecran
+# d'accueil s'affiche). Au premier demarrage Android demande lequel garder : choisir LibreHU Launcher, « Toujours ».
+$(eval $(call librehu-priv-app,LibreHULauncher,Launcher3 Launcher3QuickStep))
 $(foreach app,$(filter-out LibreHULauncher,$(LIBREHU_APPS)),$(eval $(call librehu-priv-app,$(app),)))
 
 include $(CLEAR_VARS)
