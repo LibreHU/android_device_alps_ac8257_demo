@@ -144,12 +144,17 @@ repo sync -c -j16 --no-tags --no-clone-bundle
 (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
 device/alps/ac8257_demo/tools/patch_lineage_sources.sh
 ```
-- `tools/patch_lineage_sources.sh` (**after every `repo sync`**, which puts the original files back): removes the line
-  `genfscon fuseblk / u:object_r:vfat:s0` from `device/lineage/sepolicy/common/private/genfs_contexts`. The Jancar
-  vendor's SELinux policy already labels `fuseblk` as `sdcardfs`; at boot, init compiles the system + vendor policy
-  with `secilc`, which refuses two different `genfscon` for the same path, and init without a policy reboots to
-  fastboot (first try on 12/11/2026). Without this script the build stops at `lunch` on
-  `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar`.
+- `tools/patch_lineage_sources.sh` (**after every `repo sync`**, which puts the original files back) fixes two
+  LineageOS files. Without it, init stops and the unit reboots to fastboot right after the boot menu (tries of
+  12/11/2026):
+  - `system/core/fs_mgr/fs_mgr.cpp`: `fs_mgr_is_device_unlocked()` also reads `androidboot.vbmeta.device_state`. The
+    Jancar LK reports `verifiedbootstate=green` even unlocked; fs_mgr believed the unit was locked and refused the
+    vbmeta changed by `fastboot --disable-verification`: `/vendor` was not mounted.
+  - `device/lineage/sepolicy/common/private/genfs_contexts`: removes `genfscon fuseblk / u:object_r:vfat:s0`. The
+    Jancar vendor's SELinux policy already labels `fuseblk` as `sdcardfs`; at boot, init compiles the system + vendor
+    policy with `secilc`, which refuses two different `genfscon` for the same path.
+
+  Without this script the build stops at `lunch` (messages in [troubleshooting](#troubleshooting)).
 - WebView: its prebuilt APK (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 MB) is a Git LFS file;
   `repo sync` only lays its pointer, hence the `git lfs pull` command (package `git-lfs`).
 - `--depth=1`: without the history, much less to download.
@@ -345,8 +350,8 @@ the same build as the `boot` kernel. Step 5 does not need to be done again (`ven
 | Symptom | Fix |
 |---|---|
 | `repo sync`: download errors, 429, `RESOURCE_EXHAUSTED` | run the same command again, with `-j4` if it comes back |
-| At `lunch`: `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` from the top of the sources (again after every `repo sync`) |
-| Boot menu, then the unit **reboots to fastboot** | Android's init hit a fatal error (its `LOG(FATAL)` reboots to the bootloader), before the LineageOS logo: SELinux policy that does not compile (the case on 12/11/2026, fixed by `tools/patch_lineage_sources.sh`), or `/vendor` mount. To go back: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, then TWRP from the menu |
+| At `lunch`: `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` or `fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green)` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` from the top of the sources (again after every `repo sync`) |
+| Boot menu, then the unit **reboots to fastboot** | Android's init hit a fatal error (its `LOG(FATAL)` reboots to the bootloader), before the LineageOS logo: `/vendor` refused by fs_mgr (Jancar LK in `green`) then SELinux policy that does not compile (tries of 12/11/2026, fixed by `tools/patch_lineage_sources.sh`), or another first-stage mount. To go back: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, then TWRP from the menu |
 | No boot menu any more, the unit **stays on the maker's logo** | stock vbmeta **with** verification and LineageOS's `system` (no AVB footer): the LK refuses to boot (section 8). If `fastboot devices` answers: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`. Otherwise: SP Flash Tool, *Download* tab, **Download Only**, only `vbmeta`, with a copy of `vbmeta.img` whose byte 123 is 3 (never *Format All + Download*) |
 | `python` not found, or `SyntaxError` in a build script | `python --version` must give 2.7: `sudo apt install python-is-python2` |
 | `flex` or `bison`: `Assertion ... loadlocale.c` | `export LC_ALL=C` before `source build/envsetup.sh` |
@@ -426,7 +431,11 @@ menu, choosing **TWRP** avoids starting Android again (and overwriting this log)
 - Verified Boot: Android 9 [`avb_slot_verify.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_slot_verify.c)
   (AVB footer missing on a chained partition: `ERROR_INVALID_METADATA`, `result_should_continue` false;
   `VERIFICATION_DISABLED`: descriptors not read), [`fs_mgr_avb.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr_avb.cpp)
-  (only `OK` and `ERROR_VERIFICATION` accepted)
+  (only `OK` and `ERROR_VERIFICATION` accepted, the latter only when the unit is seen unlocked),
+  [`fs_mgr_is_device_unlocked`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr.cpp#L503-L509)
+  (unlocked only when `orange`), [`avb_vbmeta_image.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_vbmeta_image.c)
+  (the hash covers the header, so its flags), [`init.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/init/init.cpp#L616-L617)
+  (`Failed to mount required partitions early`, fatal)
 - Privileged permissions: [`common.mk`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/config/common.mk)
   (`enforce`), [`PermissionManagerService`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/services/core/java/com/android/server/pm/permission/PermissionManagerService.java)
   (`systemReady` throws `IllegalStateException` in `enforce`), [`RoSystemProperties`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/core/java/com/android/internal/os/RoSystemProperties.java);

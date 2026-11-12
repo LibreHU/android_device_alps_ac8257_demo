@@ -144,12 +144,17 @@ repo sync -c -j16 --no-tags --no-clone-bundle
 (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
 device/alps/ac8257_demo/tools/patch_lineage_sources.sh
 ```
-- `tools/patch_lineage_sources.sh` (**après chaque `repo sync`**, qui remet les fichiers d'origine) : retire de
-  `device/lineage/sepolicy/common/private/genfs_contexts` la ligne `genfscon fuseblk / u:object_r:vfat:s0`. La
-  politique SELinux du vendor Jancar étiquette déjà `fuseblk` en `sdcardfs` ; au démarrage, l'init compile la
-  politique system + vendor avec `secilc`, qui refuse deux `genfscon` différents pour le même chemin, et l'init sans
-  politique redémarre en fastboot (premier essai du 12/11/2026). Sans ce script, le build s'arrête dès `lunch` sur
-  `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar`.
+- `tools/patch_lineage_sources.sh` (**après chaque `repo sync`**, qui remet les fichiers d'origine) corrige deux
+  fichiers de LineageOS. Sans lui, l'init s'arrête et l'unité redémarre en fastboot juste après le menu de démarrage
+  (essais du 12/11/2026) :
+  - `system/core/fs_mgr/fs_mgr.cpp` : `fs_mgr_is_device_unlocked()` lit aussi `androidboot.vbmeta.device_state`. Le
+    LK de Jancar annonce `verifiedbootstate=green` même déverrouillé ; fs_mgr croyait l'unité verrouillée et refusait
+    le vbmeta modifié par `fastboot --disable-verification` : `/vendor` ne se montait pas.
+  - `device/lineage/sepolicy/common/private/genfs_contexts` : retire `genfscon fuseblk / u:object_r:vfat:s0`. La
+    politique SELinux du vendor Jancar étiquette déjà `fuseblk` en `sdcardfs` ; au démarrage, l'init compile la
+    politique system + vendor avec `secilc`, qui refuse deux `genfscon` différents pour le même chemin.
+
+  Sans ce script, le build s'arrête dès `lunch` (messages dans le [dépannage](#dépannage)).
 - WebView : son APK précompilé (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 Mo) est un fichier
   Git LFS ; `repo sync` n'en pose que le pointeur, d'où la commande `git lfs pull` (paquet `git-lfs`).
 - `--depth=1` : sans l'historique, beaucoup moins à télécharger.
@@ -348,8 +353,8 @@ modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pa
 | Symptôme | Solution |
 |---|---|
 | `repo sync` : erreurs de téléchargement, 429, `RESOURCE_EXHAUSTED` | relancer la même commande, avec `-j4` si ça revient |
-| Dès `lunch` : `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` depuis la racine des sources (à refaire après chaque `repo sync`) |
-| Menu de démarrage, puis l'unité **redémarre en fastboot** | l'init d'Android a rencontré une erreur fatale (son `LOG(FATAL)` redémarre en bootloader), avant le logo LineageOS : politique SELinux qui ne compile pas (cas du 12/11/2026, corrigé par `tools/patch_lineage_sources.sh`), ou montage de `/vendor`. Pour revenir : `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, puis TWRP par le menu |
+| Dès `lunch` : `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` ou `fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green)` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` depuis la racine des sources (à refaire après chaque `repo sync`) |
+| Menu de démarrage, puis l'unité **redémarre en fastboot** | l'init d'Android a rencontré une erreur fatale (son `LOG(FATAL)` redémarre en bootloader), avant le logo LineageOS : `/vendor` refusé par fs_mgr (LK Jancar en `green`) puis politique SELinux qui ne compile pas (essais du 12/11/2026, corrigés par `tools/patch_lineage_sources.sh`), ou autre montage de la première étape. Pour revenir : `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, puis TWRP par le menu |
 | Plus de menu de démarrage, l'unité **reste sur le logo** du constructeur | vbmeta du stock **avec** vérification et `system` de LineageOS (sans pied AVB) : le LK refuse de démarrer (section 8). Si `fastboot devices` répond : `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`. Sinon : SP Flash Tool, onglet *Download*, **Download Only**, uniquement `vbmeta`, avec une copie de `vbmeta.img` dont l'octet 123 vaut 3 (jamais *Format All + Download*) |
 | `python` introuvable, ou `SyntaxError` dans un script du build | `python --version` doit donner 2.7 : `sudo apt install python-is-python2` |
 | `flex` ou `bison` : `Assertion ... loadlocale.c` | `export LC_ALL=C` avant `source build/envsetup.sh` |
@@ -427,7 +432,11 @@ démarrage, choisir **TWRP** évite de relancer Android (et d'écraser ce journa
 - Verified Boot : [`avb_slot_verify.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_slot_verify.c)
   d'Android 9 (pied AVB absent d'une partition chaînée : `ERROR_INVALID_METADATA`, `result_should_continue` faux ;
   `VERIFICATION_DISABLED` : descripteurs non lus), [`fs_mgr_avb.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr_avb.cpp)
-  (seuls `OK` et `ERROR_VERIFICATION` acceptés)
+  (seuls `OK` et `ERROR_VERIFICATION` acceptés, le second seulement si l'unité est vue déverrouillée),
+  [`fs_mgr_is_device_unlocked`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/fs_mgr/fs_mgr.cpp#L503-L509)
+  (déverrouillée seulement en `orange`), [`avb_vbmeta_image.c`](https://android.googlesource.com/platform/external/avb/+/refs/heads/pie-release/libavb/avb_vbmeta_image.c)
+  (l'empreinte couvre l'en-tête, donc ses drapeaux), [`init.cpp`](https://github.com/LineageOS/android_system_core/blob/lineage-16.0/init/init.cpp#L616-L617)
+  (`Failed to mount required partitions early`, fatal)
 - Permissions privilégiées : [`common.mk`](https://github.com/LineageOS/android_vendor_lineage/blob/lineage-16.0/config/common.mk)
   (`enforce`), [`PermissionManagerService`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/services/core/java/com/android/server/pm/permission/PermissionManagerService.java)
   (`systemReady` lève `IllegalStateException` en `enforce`), [`RoSystemProperties`](https://github.com/LineageOS/android_frameworks_base/blob/lineage-16.0/core/java/com/android/internal/os/RoSystemProperties.java) ;

@@ -92,9 +92,11 @@ jobs:
           # "zip END header not found" (run of 12/11). Only arm64 is used (its APK holds the 32-bit library too).
           (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
           unzip -tq external/chromium-webview/prebuilt/arm64/webview.apk >/dev/null && echo "webview.apk: zip OK"
-          # LineageOS's genfscon fuseblk conflicts with the Jancar vendor policy: init could not compile SELinux at
-          # boot and rebooted to the bootloader (first try of the 12/11 build). BoardConfig.mk stops the build if
-          # this was not done.
+          # Two LineageOS fixes, else init reboots to the bootloader right after the boot menu (tries of 12/11):
+          # fs_mgr also reads vbmeta.device_state (the Jancar LK reports verifiedbootstate=green even unlocked, so
+          # fs_mgr refused the vbmeta changed by fastboot and vendor was not mounted), and LineageOS's genfscon
+          # fuseblk goes (it conflicts with the Jancar vendor policy: init could not compile SELinux). BoardConfig.mk
+          # stops the build if this was not done.
           device/alps/ac8257_demo/tools/patch_lineage_sources.sh
           # The Git objects of the checkout go: room for the output (run 43227394988 stopped at 94 %, 94181/99724, on
           # "No space left on device"). The build reads no Git metadata: prebuilt kernel (TARGET_NO_KERNEL), no OTA
