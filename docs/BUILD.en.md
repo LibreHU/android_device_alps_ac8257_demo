@@ -6,8 +6,8 @@ From scratch to the **`system`, `boot` and `vendor` images** to flash, on a **Pr
 dedicated LXC container (example: 2 × Xeon E5-2699 v3, 72 threads, 256 GB of RAM, 1 TB NVMe). On a PC already
 running Ubuntu 20.04, skip step 1.
 
-> **Status**: the tree has never been built yet. Errors on the first build are likely: send the log (step 6), the
-> tree will be fixed.
+> **Status**: the tree builds (first full build by the CI on 12/11/2026, section 0). This build has not been booted
+> on the unit yet. Build error on your machine: send the log (step 6), the tree will be fixed.
 
 | Step | Where | Time (estimate, not a measurement) |
 |---|---|---|

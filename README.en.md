@@ -5,7 +5,9 @@
 **LineageOS 16.0 (Android 9)** device tree for the Jancar UJC201 head unit (`ac8257_demo`, Autochips AC8257 SoC,
 MediaTek MT6761 family). A real ROM built from the LineageOS sources, not a GSI.
 
-**Status: starting tree, not built nor tested on the unit yet.**
+**Status: built by GitHub's CI (first full build on 12/11/2026, TWRP zip: see
+[BUILD.en.md](docs/BUILD.en.md#0-without-a-build-pc-githubs-ci)); this build has not been tried on the unit yet
+(try of 08/11: [Known risks](#known-risks)).**
 
 ## Branches
 
@@ -162,8 +164,9 @@ ROM, the service starts it).
 
 ## Roadmap
 
-1. **Starting tree** — ✅ this branch (20/10/2026), not built.
-2. **First build** (`system`, `boot`, `vendor` images) and **first boot** on stock vendor + LibreHU kernel: screen, touch, adb, Wi-Fi, Bluetooth,
+1. **Starting tree** — ✅ this branch (20/10/2026).
+2. **First build** — ✅ 12/11/2026, by the CI (`system`, `boot`; the vendor stays the unit's). **First boot** on stock
+   vendor + LibreHU kernel, to be tried: screen, touch, adb, Wi-Fi, Bluetooth,
    GPS (LibreHU kernel modules in vendor), audio (vendor ATC HAL), MCU (`mcu_ready` then LibreHU-service).
 3. **Head unit features** with the LibreHU apps: MCU / CAN, steering wheel keys, FM radio, rear camera and AVM, AV-in,
    phone (MediaTek RIL `c6m_1rild` with AOSP telephony), Android Auto / CarPlay.
@@ -172,9 +175,10 @@ ROM, the service starts it).
 5. **LibreHU kernel** instead of the stock kernel, root (KernelSU Next) — in the tree since 01/11/2026; since
    09/11/2026, `boot.img` is the kernel CI image (stock AVB footer), connectivity modules in vendor, to be tested.
 6. **Proprietary `/system` files** in a vendor repository — ✅ 09/11/2026: Autochips HIDL interfaces, deodexed
-   `autochips.jar` (`PRODUCT_BOOT_JARS`) and its JNI libraries ([android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)), not built.
-7. **Published builds** (images) updated by the OTA app. Flashable zip: not possible as it is (LineageOS 16.0 makes no
-   zip for a non-A/B device without a recovery); it would need an installer of LibreHU's own.
+   `autochips.jar` (`PRODUCT_BOOT_JARS`) and its JNI libraries ([android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)), built (12/11/2026).
+7. **Published builds** (images) updated by the OTA app. Flashable zip: ✅ TWRP installer of LibreHU's own
+   (`tools/make_flashable_zip.py`, zip made by the CI; LineageOS 16.0 makes none for a non-A/B device without a
+   recovery). Publishing and updates by the OTA app: to do.
 
 ## Known risks
 
@@ -229,8 +233,8 @@ Still open:
   [android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo) repository
   (`lineage-16.0` branch, local manifest above), pinned in `proprietary-files.txt`, `PRODUCT_BOOT_JARS += autochips`
   (`device.mk`), with its JNI libraries (`lib{,64}/lib{atcavm,atcvobsub,dvr,logo,metazone}_jni.so`) and `libusbdvr.so`
-  (needed by `libdvr_jni.so`), in `proprietary-files.txt` and the vendor repository like the HIDL interfaces. **Not
-  built nor tried yet** (expected: `echo $BOOTCLASSPATH` contains `autochips.jar`, LibreHU-service finds
+  (needed by `libdvr_jni.so`), in `proprietary-files.txt` and the vendor repository like the HIDL interfaces. **Built
+  (12/11/2026), not tried yet** (expected: `echo $BOOTCLASSPATH` contains `autochips.jar`, LibreHU-service finds
   `AtcMetazone`, `AtcLogo`, `BackCar`, with no `ClassNotFoundException` nor `UnsatisfiedLinkError`).
 - **Other `persist` values of an empty `/data`**: taken from the `getprop` of a stock unit (LibreHU Helper report of
   04/11/2026, 415 `persist` properties, 331 of which come from the stock vendor `build.prop`, kept here). Taken over:
@@ -249,7 +253,7 @@ Still open:
 - **Jancar apps missing** (`com.jancar.*`, `com.autochips.*`): their features go through the LibreHU apps; what no
   LibreHU app covers yet will be missing.
 - **Rotation and display**: the screen is 1280 x 720 landscape on the stock; to be checked at first boot.
-- Nothing is built yet: build errors are likely on the first try, to be fixed here.
+- The build passes (CI, 12/11/2026); booting it on the unit is still to be tried.
 
 ## Rules
 

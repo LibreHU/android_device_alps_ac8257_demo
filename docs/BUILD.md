@@ -6,8 +6,8 @@ De zéro jusqu'aux **images `system`, `boot` et `vendor`** à flasher, sur un se
 conteneur LXC dédié (exemple : 2 × Xeon E5-2699 v3, 72 threads, 256 Go de RAM, NVMe 1 To). Sur un PC déjà sous
 Ubuntu 20.04, sauter l'étape 1.
 
-> **État** : l'arbre n'a encore jamais été compilé. Des erreurs au premier build sont probables : envoyer le log
-> (étape 6), l'arbre sera corrigé.
+> **État** : l'arbre compile (premier build complet par la CI le 12/11/2026, section 0). Ce build n'a pas encore été
+> démarré sur l'unité. Erreur de build sur votre machine : envoyer le log (étape 6), l'arbre sera corrigé.
 
 | Étape | Où | Durée (estimation, pas une mesure) |
 |---|---|---|

@@ -5,7 +5,9 @@
 Arbre de device **LineageOS 16.0 (Android 9)** de l'autoradio Jancar UJC201 (`ac8257_demo`, SoC Autochips AC8257,
 famille MediaTek MT6761). Une vraie ROM construite depuis les sources LineageOS, pas une GSI.
 
-**Etat : arbre de depart, pas encore compile ni teste sur l'unite.**
+**Etat : compile par la CI de GitHub (premier build complet le 12/11/2026, zip TWRP : voir
+[BUILD.md](docs/BUILD.md#0-sans-pc-de-build--la-ci-de-github)) ; ce build n'a pas encore ete essaye sur l'unite
+(essai du 08/11 : [Risques connus](#risques-connus)).**
 
 ## Branches du depot
 
@@ -163,8 +165,9 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
 
 ## Roadmap
 
-1. **Arbre de depart** — ✅ cette branche (20/10/2026), non compile.
-2. **Premier build** (images `system`, `boot`, `vendor`) et **premier demarrage** sur vendor stock + noyau LibreHU : ecran, tactile, adb, Wi-Fi,
+1. **Arbre de depart** — ✅ cette branche (20/10/2026).
+2. **Premier build** — ✅ 12/11/2026, par la CI (`system`, `boot` ; le vendor reste celui de l'unite). **Premier
+   demarrage** sur vendor stock + noyau LibreHU, a essayer : ecran, tactile, adb, Wi-Fi,
    Bluetooth, GPS (modules du noyau LibreHU dans vendor), audio (HAL ATC du vendor), MCU (`mcu_ready` puis LibreHU-service).
 3. **Fonctions autoradio** avec les applis LibreHU : MCU / CAN, touches au volant, radio FM, camera de recul et AVM,
    AV-in, telephone (RIL MediaTek `c6m_1rild` avec la telephonie AOSP), Android Auto / CarPlay.
@@ -173,9 +176,10 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
 5. **Noyau LibreHU** a la place du noyau stock, root (KernelSU Next) — dans l'arbre depuis le 01/11/2026 ; depuis le
    09/11/2026, `boot.img` est l'image de la CI du noyau (pied AVB stock), modules de connectivite dans vendor, a tester.
 6. **Fichiers proprietaires de `/system`** dans un depot vendor — ✅ 09/11/2026 : interfaces HIDL Autochips,
-   `autochips.jar` desodexe (`PRODUCT_BOOT_JARS`) et ses JNI ([android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)), non compile.
-7. **Builds publies** (images) et mis a jour par l'appli OTA. Zip flashable : impossible tel quel (LineageOS 16.0 ne fait
-   pas de zip pour un appareil non A/B sans recovery) ; il faudrait un installateur propre a LibreHU.
+   `autochips.jar` desodexe (`PRODUCT_BOOT_JARS`) et ses JNI ([android_vendor_jancar_ac8257_demo](https://github.com/LibreHU/android_vendor_jancar_ac8257_demo)), compile (12/11/2026).
+7. **Builds publies** (images) et mis a jour par l'appli OTA. Zip flashable : ✅ installateur TWRP propre a LibreHU
+   (`tools/make_flashable_zip.py`, zip fait par la CI ; LineageOS 16.0 n'en fait pas pour un appareil non A/B sans
+   recovery). Publication et mise a jour par l'appli OTA : a faire.
 
 ## Risques connus
 
@@ -234,7 +238,7 @@ Toujours ouverts :
   (branche `lineage-16.0`, manifest local ci-dessus), epingle dans `proprietary-files.txt`, `PRODUCT_BOOT_JARS +=
   autochips` (`device.mk`), avec ses bibliotheques JNI (`lib{,64}/lib{atcavm,atcvobsub,dvr,logo,metazone}_jni.so`)
   et `libusbdvr.so` (dependance de `libdvr_jni.so`), dans `proprietary-files.txt` et le depot vendor comme les
-  interfaces HIDL. **Pas encore compile ni essaye** (attendu : `echo $BOOTCLASSPATH` contient `autochips.jar`,
+  interfaces HIDL. **Compile (12/11/2026), pas encore essaye** (attendu : `echo $BOOTCLASSPATH` contient `autochips.jar`,
   LibreHU-service trouve `AtcMetazone`, `AtcLogo`, `BackCar`, sans `ClassNotFoundException` ni
   `UnsatisfiedLinkError`).
 - **Autres valeurs `persist` d'un `/data` vide** : tirees du `getprop` d'un stock (rapport LibreHU Helper du
@@ -255,7 +259,7 @@ Toujours ouverts :
 - **Applis Jancar absentes** (`com.jancar.*`, `com.autochips.*`) : leurs fonctions passent par les applis LibreHU ;
   ce qu'aucune appli LibreHU ne couvre encore manquera.
 - **Rotation et affichage** : l'ecran est en 1280 x 720 paysage sur le stock ; a verifier au premier demarrage.
-- Rien n'est encore compile : erreurs de build probables au premier essai, a corriger ici.
+- Le build passe (CI, 12/11/2026) ; son demarrage sur l'unite reste a essayer.
 
 ## Regles
 
