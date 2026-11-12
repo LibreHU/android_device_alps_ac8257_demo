@@ -145,11 +145,12 @@ BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(DEVICE_PATH)/sepolicy/private
 ifneq ($(filter-out 0,$(shell grep -s -c '^genfscon fuseblk ' device/lineage/sepolicy/common/private/genfs_contexts)),)
 $(error genfscon fuseblk de LineageOS en conflit avec le vendor Jancar : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
-# Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (avec vbmeta.device_state=unlocked) :
-# fs_mgr de LineageOS croit alors l'unite verrouillee, refuse le vbmeta modifie par fastboot --disable-verification, vendor
-# ne se monte pas et l'init redemarre en bootloader avant meme SELinux (deuxieme essai, 12/11/2026).
-# tools/patch_lineage_sources.sh fait lire aussi vbmeta.device_state a fs_mgr_is_device_unlocked().
-ifeq ($(shell grep -s -c 'librehu_device_state' system/core/fs_mgr/fs_mgr.cpp),0)
+# Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (et, vbmeta en VERIFICATION_DISABLED, aucun
+# androidboot.vbmeta.*) : fs_mgr de LineageOS croit alors l'unite verrouillee, refuse le vbmeta modifie par fastboot,
+# vendor ne se monte pas et l'init redemarre en bootloader avant meme SELinux (essais du 12/11/2026, console-ramoops :
+# "ERROR_VERIFICATION isn't allowed when the device is LOCKED"). tools/patch_lineage_sources.sh : unite deverrouillee
+# sauf vbmeta.device_state=locked explicite.
+ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/fs_mgr.cpp),0)
 $(error fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 

@@ -147,9 +147,10 @@ device/alps/ac8257_demo/tools/patch_lineage_sources.sh
 - `tools/patch_lineage_sources.sh` (**after every `repo sync`**, which puts the original files back) fixes two
   LineageOS files. Without it, init stops and the unit reboots to fastboot right after the boot menu (tries of
   12/11/2026):
-  - `system/core/fs_mgr/fs_mgr.cpp`: `fs_mgr_is_device_unlocked()` also reads `androidboot.vbmeta.device_state`. The
-    Jancar LK reports `verifiedbootstate=green` even unlocked; fs_mgr believed the unit was locked and refused the
-    vbmeta changed by `fastboot --disable-verification`: `/vendor` was not mounted.
+  - `system/core/fs_mgr/fs_mgr.cpp`: `fs_mgr_is_device_unlocked()` sees the unit unlocked, unless
+    `androidboot.vbmeta.device_state=locked` is passed. The Jancar LK reports `verifiedbootstate=green` even unlocked
+    (and no `androidboot.vbmeta.*` with `--disable-verification`); fs_mgr believed the unit was locked and refused the
+    vbmeta changed by fastboot: `/vendor` was not mounted.
   - `device/lineage/sepolicy/common/private/genfs_contexts`: removes `genfscon fuseblk / u:object_r:vfat:s0`. The
     Jancar vendor's SELinux policy already labels `fuseblk` as `sdcardfs`; at boot, init compiles the system + vendor
     policy with `secilc`, which refuses two different `genfscon` for the same path.

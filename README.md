@@ -54,7 +54,7 @@ correspondent au vendor stock, sans couche de compatibilite.
 | `tools/get_vendor_img.sh` | lit la partition vendor de l'unite (lecture seule) |
 | `tools/vendor_add_viper.sh` | ajoute a l'image vendor locale (debugfs, copie `vendor.img.orig` gardee) le pilote [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 (module officiel, SHA-256 verifie) : `libv4a_re.so` dans `/lib[64]/soundfx` et l'effet `v4a_standard_re` dans `/etc/audio_effects.xml`, comme le zip `viper4android-re` de LibreHU-flashablesZips. Dans vendor car sous Android 9 Treble les effets sont charges par le HAL audio du vendor, qui ne peut pas charger de bibliotheque de `/system` |
 | `tools/fetch_kernel.sh` | noyau LibreHU `stable-4.9.337` (`Image.gz-dtb`) et ses modules Wi-Fi / BT / GPS / FM depuis la release `latest-stable-4.9.337` (empreintes de GitHub verifiees, noyau de l'image = celui des modules) ; non versionnes. Ajoute **`androidboot.selinux=permissive`** a la ligne de commande de l'en-tete des images de boot (seul champ modifie, pied AVB garde) : sans lui l'init de LineageOS passe en enforcing (`BOARD_KERNEL_CMDLINE` ne sert pas avec une image prebuilt, le LK n'ajoute rien) ; `LIBREHU_SELINUX=enforcing tools/fetch_kernel.sh` pour ne pas l'ajouter |
-| `tools/patch_lineage_sources.sh` | corrige les sources LineageOS apres chaque `repo sync` (sans lui, l'init redemarrait en fastboot) : `fs_mgr_is_device_unlocked()` lit aussi `vbmeta.device_state` (le LK Jancar annonce `green` meme deverrouille, fs_mgr refusait alors de monter `vendor`) ; retire `genfscon fuseblk` de `device/lineage/sepolicy` (conflit avec la politique SELinux du vendor Jancar) ; `--check` dit seulement s'il reste a faire |
+| `tools/patch_lineage_sources.sh` | corrige les sources LineageOS apres chaque `repo sync` (sans lui, l'init redemarrait en fastboot) : `fs_mgr_is_device_unlocked()` voit l'unite deverrouillee sauf `vbmeta.device_state=locked` (le LK Jancar annonce `green` meme deverrouille, fs_mgr refusait alors de monter `vendor`) ; retire `genfscon fuseblk` de `device/lineage/sepolicy` (conflit avec la politique SELinux du vendor Jancar) ; `--check` dit seulement s'il reste a faire |
 | `tools/vendor_add_conn_modules.sh` | met ces modules dans `/lib/modules` de l'image vendor locale (debugfs, droits et contexte SELinux de l'original, marqueur `.librehu_conn`, copie `vendor.img.orig` gardee) : le noyau LibreHU refuse ceux du vendor stock (CRC des symboles differents), comme le font les zips `kernel-stable` sur l'unite |
 | `sepolicy/private/` | domaine SELinux de `mcu_ready` (cote system, `BOARD_PLAT_PRIVATE_SEPOLICY_DIR`) : sans lui, l'init d'Android 9 **refuse de lancer le service, meme en permissif** (« has incorrect label or no domain transition », `init/service.cpp`), PC_READY ne part pas et le MCU coupe le SoC une dizaine de secondes apres le demarrage ; meme chose pour `librehu_ksunext`. Les deux domaines sont **permissifs** a eux seuls (`permissive`, refuse en build user) : PC_READY part meme si SELinux passait en enforcing (`/dev/ttyS1` est un type de la politique vendor, que la politique system ne peut pas nommer) |
 | `config.fs`, `BOARD_ROOT_EXTRA_FOLDERS` | points de montage du stock a la racine de `system` : `/jancar` (0755 root:root, partition `jancar` du fstab du vendor) et `/avm` (0775 root:system). Sans `/jancar`, `fs_mgr` ne peut pas monter la partition (racine en lecture seule), `mount_all` echoue et init ne lance pas la classe `main` (zygote) : Android ne demarre pas. Reperes par Reo Au In. `/vendor` est cree par le build |
@@ -190,15 +190,18 @@ redemarre en fastboot, deux fois. L'init de LineageOS rencontrait deux erreurs f
 les sources ; son `LOG(FATAL)` redemarre en bootloader (`system/core/init/log.cpp`).
 
 1. **Montage de `vendor` (premiere etape de l'init, avant SELinux).** Le LK de Jancar annonce
-`androidboot.verifiedbootstate=green` meme deverrouille, avec `androidboot.vbmeta.device_state=unlocked` (getprop de
-l'unite). fs_mgr de LineageOS ne croit l'unite deverrouillee qu'en `orange` (`fs_mgr_is_device_unlocked`,
+`androidboot.verifiedbootstate=green` meme deverrouille (getprop de l'unite sous le stock) ; avec le drapeau
+`VERIFICATION_DISABLED` de vbmeta, il ne passe meme aucun `androidboot.vbmeta.*` (libavb saute `avb_append_options`). fs_mgr de LineageOS ne croit l'unite deverrouillee qu'en `orange` (`fs_mgr_is_device_unlocked`,
 `system/core/fs_mgr/fs_mgr.cpp`). Or `fastboot --disable-verity --disable-verification` modifie les drapeaux de
 l'en-tete de vbmeta, couverts par son empreinte (`external/avb/libavb/avb_vbmeta_image.c`) : libavb rend
 `ERROR_VERIFICATION`, que fs_mgr refuse sur une unite qu'il croit verrouillee (`fs_mgr_avb.cpp`). `vendor` (fstab du
 DT, `wait,avb`) ne se monte pas et l'init s'arrete sur `Failed to mount required partitions early`
-(`system/core/init/init.cpp`). Le system stock demarre avec ce meme vbmeta : son init ne fait pas ce refus. Corrige le
-12/11 (soir) : `tools/patch_lineage_sources.sh` fait lire aussi `vbmeta.device_state` a `fs_mgr_is_device_unlocked()`
-(le LK ne le met a `unlocked` que si l'unite est deverrouillee) ; `BoardConfig.mk` arrete le build sans ce correctif.
+(`system/core/init/init.cpp`) ; confirme par la console de l'essai (`console-ramoops` : `ERROR_VERIFICATION isn't
+allowed when the device is LOCKED`, puis `Failed to mount required partitions early`). Le system stock demarre avec
+ce meme vbmeta : son init ne fait pas ce refus. Corrige le 12/11 (nuit) : `tools/patch_lineage_sources.sh` fait voir
+l'unite deverrouillee a `fs_mgr_is_device_unlocked()`, sauf `vbmeta.device_state=locked` explicite du LK (un vbmeta
+qui ne se verifie pas n'arrive a l'init que si le LK l'a accepte) ; `BoardConfig.mk` arrete le build sans ce
+correctif.
 
 2. **Politique SELinux (juste apres).** LineageOS
 etiquette `fuseblk` en `vfat` (`device/lineage/sepolicy/common/private/genfs_contexts`), la politique du vendor Jancar

@@ -93,8 +93,9 @@ jobs:
           (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
           unzip -tq external/chromium-webview/prebuilt/arm64/webview.apk >/dev/null && echo "webview.apk: zip OK"
           # Two LineageOS fixes, else init reboots to the bootloader right after the boot menu (tries of 12/11):
-          # fs_mgr also reads vbmeta.device_state (the Jancar LK reports verifiedbootstate=green even unlocked, so
-          # fs_mgr refused the vbmeta changed by fastboot and vendor was not mounted), and LineageOS's genfscon
+          # fs_mgr sees the unit unlocked unless vbmeta.device_state=locked (the Jancar LK reports
+          # verifiedbootstate=green even unlocked and no vbmeta.* with VERIFICATION_DISABLED, so fs_mgr refused the
+          # vbmeta changed by fastboot and vendor was not mounted), and LineageOS's genfscon
           # fuseblk goes (it conflicts with the Jancar vendor policy: init could not compile SELinux). BoardConfig.mk
           # stops the build if this was not done.
           device/alps/ac8257_demo/tools/patch_lineage_sources.sh
