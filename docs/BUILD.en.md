@@ -38,7 +38,8 @@ public repositories: 4 CPUs, 16 GB of RAM, 6 h per job) on every push to the `li
 `[build]`. Same steps as this guide (sections 4 to 6), `systemimage` only: the vendor stays the unit's own (never
 published). Two differences with no effect on the images: `SKIP_ABI_CHECKS=true` (no ABI check of the VNDK
 libraries, about 1 h less on the runner) and the build in a 13 GiB memory cgroup (short of memory, a build process is
-killed and the log says so, instead of losing the runner and the log with it). In the repository's **Actions** tab →
+killed and the log says so, instead of losing the runner and the log with it). The runner's disk (146 GB) is tight:
+the Git objects of the sources are deleted after the sync (the build reads no Git) and the swap is 8 GB. In the repository's **Actions** tab →
 the run → **Artifacts** (a GitHub account is needed):
 - `lineage-images`: **`LibreHU-LineageOS-16.0-ac8257_demo-<date>.zip`** (to flash in TWRP, section 8),
   `system.img.zst` (`zstd -d` then `fastboot flash system`), `boot-librehu.img` and `boot-librehu-bootmenu.img`

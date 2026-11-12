@@ -39,7 +39,8 @@ contient `[build]`. Mêmes étapes que ce guide (sections 4 à 6), `systemimage`
 l'unité (jamais publié). Deux différences sans effet sur les images : `SKIP_ABI_CHECKS=true` (pas de vérification
 d'ABI des bibliothèques VNDK, environ 1 h de moins sur le runner) et le build dans un cgroup mémoire de 13 Gio (s'il
 manque de mémoire, c'est un processus du build qui est tué et le journal le dit, au lieu de perdre le runner et le
-journal avec lui). Dans l'onglet **Actions** du dépôt → le run → **Artifacts** (compte GitHub nécessaire) :
+journal avec lui). Le disque du runner (146 Go) est juste : les objets Git des sources sont supprimés après la
+synchronisation (le build ne lit pas Git) et le swap fait 8 Go. Dans l'onglet **Actions** du dépôt → le run → **Artifacts** (compte GitHub nécessaire) :
 - `lineage-images` : **`LibreHU-LineageOS-16.0-ac8257_demo-<date>.zip`** (à flasher dans TWRP, section 8),
   `system.img.zst` (`zstd -d` puis `fastboot flash system`), `boot-librehu.img` et `boot-librehu-bootmenu.img`
   (noyau LibreHU avec `androidboot.selinux=permissive`), `SHA256SUMS` ;

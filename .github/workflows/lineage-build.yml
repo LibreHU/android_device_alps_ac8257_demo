@@ -3,7 +3,8 @@ name: LineageOS 16.0 build (lineage_ac8257_demo)
 # The ROM's /system built by GitHub Actions, to find the build errors before a build at home (docs/BUILD.md does
 # the same steps). Only `systemimage`: the vendor image is the user's own (never published) and the boot image is
 # the LibreHU kernel's CI image. Runs on a push to lineage-16.0 whose message holds "[build]", or by hand.
-# Disk: the runner's toolchains are removed, the sources go to /mnt (temporary disk), the output and ccache to /.
+# Disk (146 GB, /mnt on the same disk): the runner's toolchains are removed, and the Git objects of the checkout
+# after the sync; sources in /mnt, output and ccache in /.
 # Outputs: the build log always; when it builds: a TWRP zip (tools/make_flashable_zip.py), system.img (sparse,
 # zstd) and the LibreHU boot images for fastboot.
 on:
@@ -37,7 +38,10 @@ jobs:
           df -h / /mnt
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost \
             /usr/share/swift /usr/local/.ghcup /usr/local/share/powershell /usr/local/share/chromium \
-            /usr/local/lib/node_modules /opt/microsoft /opt/google /usr/lib/jvm /usr/local/julia* /opt/az
+            /usr/local/lib/node_modules /opt/microsoft /opt/google /usr/lib/jvm /usr/local/julia* /opt/az \
+            /usr/local/share/vcpkg /usr/share/miniconda /usr/local/aws-cli /usr/local/aws-sam-cli /usr/lib/google-cloud-sdk \
+            /usr/share/kotlinc /opt/pipx /usr/local/n /usr/share/sbt /usr/share/gradle-* /usr/share/apache-maven-* \
+            "$HOME/.rustup" "$HOME/.cargo"
           sudo docker image prune -a -f >/dev/null 2>&1 || true
           sudo apt-get remove -y --purge '^llvm-.*' '^clang-.*' '^php.*' '^mysql-.*' '^mongodb-.*' '^dotnet-.*' \
             azure-cli google-cloud-cli google-chrome-stable firefox powershell mono-devel >/dev/null 2>&1 || true
@@ -45,9 +49,10 @@ jobs:
           sudo mkdir -p "$SRC" && sudo chown "$USER" "$SRC"
           df -h / /mnt
 
-      - name: Swap (12 GiB)
+      # 8 GiB: the build in its 13 GiB cgroup used 1.1 GiB of swap at most (run 43227394988), and the disk is short.
+      - name: Swap (8 GiB)
         run: |
-          sudo fallocate -l 12G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile
+          sudo fallocate -l 8G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile
           free -g
 
       - name: Build packages (LineageOS wiki, Pie)
@@ -85,6 +90,10 @@ jobs:
           # "zip END header not found" (run of 12/11). Only arm64 is used (its APK holds the 32-bit library too).
           (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
           unzip -tq external/chromium-webview/prebuilt/arm64/webview.apk >/dev/null && echo "webview.apk: zip OK"
+          # The Git objects of the checkout go: room for the output (run 43227394988 stopped at 94 %, 94181/99724, on
+          # "No space left on device"). The build reads no Git metadata: prebuilt kernel (TARGET_NO_KERNEL), no OTA
+          # package, and repo is not run again; .repo/manifests and .repo/repo stay.
+          du -sh .repo; rm -rf .repo/project-objects .repo/projects
           du -sh /mnt/lineage; df -h / /mnt
 
       - name: LibreHU apps (librehu/fetch_apks.sh) and boot images (tools/fetch_kernel.sh)
@@ -108,13 +117,13 @@ jobs:
         timeout-minutes: 290
         run: |
           ccache -M 8G >/dev/null; ccache -o compression=true >/dev/null 2>&1 || true
-          # The build in a memory cgroup of its own (13 GiB of RAM, 12 GiB of swap): short of memory, the kernel swaps
+          # The build in a memory cgroup of its own (13 GiB of RAM, 8 GiB of swap): short of memory, the kernel swaps
           # or kills a build process inside it, never the runner. A runner starved of memory loses its link to GitHub,
           # and the whole log with it ("The hosted runner lost communication with the server", run 43184707906).
           CG=/sys/fs/cgroup/lineage-build
           if [ -f /sys/fs/cgroup/cgroup.controllers ] && sudo mkdir -p $CG \
               && echo 13G | sudo tee $CG/memory.max >/dev/null \
-              && { [ ! -f $CG/memory.swap.max ] || echo 12G | sudo tee $CG/memory.swap.max >/dev/null; } \
+              && { [ ! -f $CG/memory.swap.max ] || echo 8G | sudo tee $CG/memory.swap.max >/dev/null; } \
               && echo $$ | sudo tee $CG/cgroup.procs >/dev/null; then
             echo "build cgroup: memory.max $(cat $CG/memory.max), memory.swap.max $(cat $CG/memory.swap.max 2>/dev/null)"
           else
@@ -122,9 +131,9 @@ jobs:
           fi
           source build/envsetup.sh
           lunch lineage_ac8257_demo-userdebug
-          # Progress and memory every 5 minutes; the whole log is an artifact.
+          # Progress, memory and free disk every 5 minutes; the whole log is an artifact.
           ( while sleep 300; do
-              echo "$(tail -n 1 /home/runner/build.log | cut -c1-160) | $(free -m | awk '/^Mem/{r=$3} /^Swap/{s=$3} END{print "RAM " r " MiB, swap " s " MiB"}')"
+              echo "$(tail -n 1 /home/runner/build.log | cut -c1-160) | $(free -m | awk '/^Mem/{r=$3} /^Swap/{s=$3} END{print "RAM " r " MiB, swap " s " MiB"}'), disk $(df -h / | awk 'NR==2{print $4}') free"
             done ) &
           m -j"$(nproc)" systemimage > /home/runner/build.log 2>&1
         continue-on-error: true
@@ -137,13 +146,6 @@ jobs:
           df -h / /mnt; ccache -s | head -20 || true
           # oom_kill > 0: a build process was killed for memory (the FAILED line above names it)
           grep -H . /sys/fs/cgroup/lineage-build/memory.events /sys/fs/cgroup/lineage-build/memory.peak 2>/dev/null || true
-
-      - name: Save ccache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: /home/runner/.ccache
-          key: lineage-ccache-${{ github.sha }}
 
       - name: Images to flash (system.img zstd, boot images)
         if: steps.build.outcome == 'success'
@@ -161,6 +163,19 @@ jobs:
             /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/flash/LibreHU-LineageOS-16.0-ac8257_demo-$D.zip \
             --build "lineage-16.0 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)"
           (cd /home/runner/flash && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+
+      # The images are out: the output goes, room for the ccache archive (its save failed on a full disk, run
+      # 43227394988).
+      - name: Room for the ccache archive
+        if: always()
+        run: rm -rf "$OUT_DIR"; df -h /
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /home/runner/.ccache
+          key: lineage-ccache-${{ github.sha }}
 
       - uses: actions/upload-artifact@v4
         if: always()
