@@ -7,8 +7,8 @@ famille MediaTek MT6761). Une vraie ROM construite depuis les sources LineageOS,
 
 **Etat : compile par la CI de GitHub (premier build complet le 12/11/2026, zip TWRP : voir
 [BUILD.md](docs/BUILD.md#0-sans-pc-de-build--la-ci-de-github)). Essai du build du 12/11 sur l'unite : menu de
-demarrage puis redemarrage en fastboot (politique SELinux, cause trouvee et corrigee : [Risques connus](#risques-connus)),
-build suivant a essayer.**
+demarrage puis redemarrage en fastboot (politique SELinux, cause trouvee et corrigee : [Risques connus](#risques-connus)).
+Build corrige ([CI du 12/11](https://github.com/LibreHU/android_device_alps_ac8257_demo/actions/runs/43296986221), arbre `8a3241e`) a essayer.**
 
 ## Branches du depot
 
@@ -193,7 +193,9 @@ en `sdcardfs` ; `secilc`, lance par l'init pour compiler la politique system + v
 `Unable to load SELinux policy` et son `LOG(FATAL)` redemarre en bootloader (`system/core/init/log.cpp`). Corrige le
 12/11 : `tools/patch_lineage_sources.sh` retire la ligne LineageOS apres `repo sync` (la politique compile alors avec
 le vendor stock), `BoardConfig.mk` arrete le build si elle est encore la. Les autres fichiers fusionnes au demarrage
-(`property_contexts`, `hwservice_contexts`, `seapp_contexts`) n'ont aucun doublon avec le vendor stock.
+(`property_contexts`, `hwservice_contexts`, `seapp_contexts`) n'ont aucun doublon avec le vendor stock. Build corrige
+([CI du 12/11](https://github.com/LibreHU/android_device_alps_ac8257_demo/actions/runs/43296986221), arbre `8a3241e`) : sa politique, relue dans l'image `system` du zip, compile avec celle du vendor
+stock (`secilc`, memes options que l'init) ; seule difference avec le build precedent, la ligne `fuseblk`. A essayer.
 
 Premier essai d'un testeur (Reo Au In, 08/11/2026, build de la branche du 07/11) : Android demarre puis l'unite
 redemarre au bout d'une dizaine de secondes ; pas de journal. Cause la plus probable : l'identifiant de puce Wi-Fi
@@ -271,7 +273,7 @@ Toujours ouverts :
 - **Applis Jancar absentes** (`com.jancar.*`, `com.autochips.*`) : leurs fonctions passent par les applis LibreHU ;
   ce qu'aucune appli LibreHU ne couvre encore manquera.
 - **Rotation et affichage** : l'ecran est en 1280 x 720 paysage sur le stock ; a verifier au premier demarrage.
-- Le build passe (CI, 12/11/2026) ; son demarrage sur l'unite reste a essayer.
+- Le build passe (CI, 12/11/2026) ; premier essai arrete par la politique SELinux (corrige), le build corrige reste a essayer.
 
 ## Regles
 

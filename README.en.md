@@ -7,7 +7,8 @@ MediaTek MT6761 family). A real ROM built from the LineageOS sources, not a GSI.
 
 **Status: built by GitHub's CI (first full build on 12/11/2026, TWRP zip: see
 [BUILD.en.md](docs/BUILD.en.md#0-without-a-build-pc-githubs-ci)). Try of the 12/11 build on the unit: boot menu, then
-reboot to fastboot (SELinux policy, cause found and fixed: [Known risks](#known-risks)), next build to be tried.**
+reboot to fastboot (SELinux policy, cause found and fixed: [Known risks](#known-risks)). Fixed build
+([CI of 12/11](https://github.com/LibreHU/android_device_alps_ac8257_demo/actions/runs/43296986221), tree `8a3241e`) to be tried.**
 
 ## Branches
 
@@ -191,7 +192,9 @@ init to compile the system + vendor policy, refuses these two `genfscon` (`Found
 bootloader (`system/core/init/log.cpp`). Fixed on 12/11: `tools/patch_lineage_sources.sh` removes the LineageOS line
 after `repo sync` (the policy then compiles with the stock vendor), `BoardConfig.mk` stops the build if it is still
 there. The other files merged at boot (`property_contexts`, `hwservice_contexts`, `seapp_contexts`) have no duplicate
-with the stock vendor.
+with the stock vendor. Fixed build ([CI of 12/11](https://github.com/LibreHU/android_device_alps_ac8257_demo/actions/runs/43296986221), tree `8a3241e`): its policy, read back from the `system` image
+of the zip, compiles with the stock vendor's (`secilc`, same options as init); the only difference with the previous
+build is the `fuseblk` line. To be tried.
 
 First try by a tester (Reo Au In, 08/11/2026, build of the 07/11 branch): Android started, then the unit restarted
 after about ten seconds; no log. Most likely cause: the Wi-Fi chip id `0x0000` of an empty `/data` (below). Fixed here
@@ -264,7 +267,7 @@ Still open:
 - **Jancar apps missing** (`com.jancar.*`, `com.autochips.*`): their features go through the LibreHU apps; what no
   LibreHU app covers yet will be missing.
 - **Rotation and display**: the screen is 1280 x 720 landscape on the stock; to be checked at first boot.
-- The build passes (CI, 12/11/2026); booting it on the unit is still to be tried.
+- The build passes (CI, 12/11/2026); first try stopped by the SELinux policy (fixed), the fixed build is still to be tried.
 
 ## Rules
 
