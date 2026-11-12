@@ -92,6 +92,10 @@ jobs:
           # "zip END header not found" (run of 12/11). Only arm64 is used (its APK holds the 32-bit library too).
           (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
           unzip -tq external/chromium-webview/prebuilt/arm64/webview.apk >/dev/null && echo "webview.apk: zip OK"
+          # LineageOS's genfscon fuseblk conflicts with the Jancar vendor policy: init could not compile SELinux at
+          # boot and rebooted to the bootloader (first try of the 12/11 build). BoardConfig.mk stops the build if
+          # this was not done.
+          device/alps/ac8257_demo/tools/patch_lineage_sources.sh
           # The Git objects of the checkout go: room for the output (run 43227394988 stopped at 94 %, 94181/99724, on
           # "No space left on device"). The build reads no Git metadata: prebuilt kernel (TARGET_NO_KERNEL), no OTA
           # package, and repo is not run again; .repo/manifests and .repo/repo stay.
@@ -154,6 +158,11 @@ jobs:
         run: |
           P=$OUT_DIR/target/product/ac8257_demo
           ls -la $P | head -40
+          # The platform policy must leave fuseblk to the Jancar vendor policy (tools/patch_lineage_sources.sh).
+          if grep -q '(genfscon fuseblk ' $P/system/etc/selinux/plat_sepolicy.cil; then
+            echo "::error::plat_sepolicy.cil labels fuseblk: conflict with the Jancar vendor policy, the unit would not boot"
+            exit 1
+          fi
           mkdir -p /home/runner/flash
           zstd -T0 -10 $P/system.img -o /home/runner/flash/system.img.zst
           cp /mnt/lineage/device/alps/ac8257_demo/prebuilt/boot-librehu-bootmenu.img \

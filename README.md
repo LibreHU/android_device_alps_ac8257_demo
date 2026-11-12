@@ -6,8 +6,9 @@ Arbre de device **LineageOS 16.0 (Android 9)** de l'autoradio Jancar UJC201 (`ac
 famille MediaTek MT6761). Une vraie ROM construite depuis les sources LineageOS, pas une GSI.
 
 **Etat : compile par la CI de GitHub (premier build complet le 12/11/2026, zip TWRP : voir
-[BUILD.md](docs/BUILD.md#0-sans-pc-de-build--la-ci-de-github)) ; ce build n'a pas encore ete essaye sur l'unite
-(essai du 08/11 : [Risques connus](#risques-connus)).**
+[BUILD.md](docs/BUILD.md#0-sans-pc-de-build--la-ci-de-github)). Essai du build du 12/11 sur l'unite : menu de
+demarrage puis redemarrage en fastboot (politique SELinux, cause trouvee et corrigee : [Risques connus](#risques-connus)),
+build suivant a essayer.**
 
 ## Branches du depot
 
@@ -53,6 +54,7 @@ correspondent au vendor stock, sans couche de compatibilite.
 | `tools/get_vendor_img.sh` | lit la partition vendor de l'unite (lecture seule) |
 | `tools/vendor_add_viper.sh` | ajoute a l'image vendor locale (debugfs, copie `vendor.img.orig` gardee) le pilote [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 (module officiel, SHA-256 verifie) : `libv4a_re.so` dans `/lib[64]/soundfx` et l'effet `v4a_standard_re` dans `/etc/audio_effects.xml`, comme le zip `viper4android-re` de LibreHU-flashablesZips. Dans vendor car sous Android 9 Treble les effets sont charges par le HAL audio du vendor, qui ne peut pas charger de bibliotheque de `/system` |
 | `tools/fetch_kernel.sh` | noyau LibreHU `stable-4.9.337` (`Image.gz-dtb`) et ses modules Wi-Fi / BT / GPS / FM depuis la release `latest-stable-4.9.337` (empreintes de GitHub verifiees, noyau de l'image = celui des modules) ; non versionnes. Ajoute **`androidboot.selinux=permissive`** a la ligne de commande de l'en-tete des images de boot (seul champ modifie, pied AVB garde) : sans lui l'init de LineageOS passe en enforcing (`BOARD_KERNEL_CMDLINE` ne sert pas avec une image prebuilt, le LK n'ajoute rien) ; `LIBREHU_SELINUX=enforcing tools/fetch_kernel.sh` pour ne pas l'ajouter |
+| `tools/patch_lineage_sources.sh` | corrige les sources LineageOS apres chaque `repo sync` : retire `genfscon fuseblk` de `device/lineage/sepolicy` (conflit avec la politique SELinux du vendor Jancar, l'init redemarrait en fastboot) ; `--check` dit seulement s'il reste a faire |
 | `tools/vendor_add_conn_modules.sh` | met ces modules dans `/lib/modules` de l'image vendor locale (debugfs, droits et contexte SELinux de l'original, marqueur `.librehu_conn`, copie `vendor.img.orig` gardee) : le noyau LibreHU refuse ceux du vendor stock (CRC des symboles differents), comme le font les zips `kernel-stable` sur l'unite |
 | `sepolicy/private/` | domaine SELinux de `mcu_ready` (cote system, `BOARD_PLAT_PRIVATE_SEPOLICY_DIR`) : sans lui, l'init d'Android 9 **refuse de lancer le service, meme en permissif** (« has incorrect label or no domain transition », `init/service.cpp`), PC_READY ne part pas et le MCU coupe le SoC une dizaine de secondes apres le demarrage ; meme chose pour `librehu_ksunext`. Les deux domaines sont **permissifs** a eux seuls (`permissive`, refuse en build user) : PC_READY part meme si SELinux passait en enforcing (`/dev/ttyS1` est un type de la politique vendor, que la politique system ne peut pas nommer) |
 | `config.fs`, `BOARD_ROOT_EXTRA_FOLDERS` | points de montage du stock a la racine de `system` : `/jancar` (0755 root:root, partition `jancar` du fstab du vendor) et `/avm` (0775 root:system). Sans `/jancar`, `fs_mgr` ne peut pas monter la partition (racine en lecture seule), `mount_all` echoue et init ne lance pas la classe `main` (zygote) : Android ne demarre pas. Reperes par Reo Au In. `/vendor` est cree par le build |
@@ -182,6 +184,16 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
    recovery). Publication et mise a jour par l'appli OTA : a faire.
 
 ## Risques connus
+
+Essai du build de la CI du 12/11/2026 (zip TWRP, vbmeta avec les deux options) : menu de demarrage, puis l'unite
+redemarre en fastboot. Cause, verifiee hors de l'unite sur les fichiers du build et du vendor stock : LineageOS
+etiquette `fuseblk` en `vfat` (`device/lineage/sepolicy/common/private/genfs_contexts`), la politique du vendor Jancar
+en `sdcardfs` ; `secilc`, lance par l'init pour compiler la politique system + vendor, refuse ces deux `genfscon`
+(`Found conflicting genfscon rules`, `libsepol/cil/src/cil_post.c` d'Android 9), l'init s'arrete sur
+`Unable to load SELinux policy` et son `LOG(FATAL)` redemarre en bootloader (`system/core/init/log.cpp`). Corrige le
+12/11 : `tools/patch_lineage_sources.sh` retire la ligne LineageOS apres `repo sync` (la politique compile alors avec
+le vendor stock), `BoardConfig.mk` arrete le build si elle est encore la. Les autres fichiers fusionnes au demarrage
+(`property_contexts`, `hwservice_contexts`, `seapp_contexts`) n'ont aucun doublon avec le vendor stock.
 
 Premier essai d'un testeur (Reo Au In, 08/11/2026, build de la branche du 07/11) : Android demarre puis l'unite
 redemarre au bout d'une dizaine de secondes ; pas de journal. Cause la plus probable : l'identifiant de puce Wi-Fi

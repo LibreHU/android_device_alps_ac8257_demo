@@ -138,6 +138,14 @@ BOARD_AVB_ENABLE := false
 # de mcu_ready (sans domaine, l'init d'Android 9 refuse de lancer le service, meme en permissif).
 BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(DEVICE_PATH)/sepolicy/private
 
+# LineageOS etiquette fuseblk en vfat (device/lineage/sepolicy/common/private/genfs_contexts), le vendor Jancar en
+# sdcardfs : au demarrage, secilc refuse ces deux genfscon et l'init, sans politique, redemarre en bootloader (premier
+# essai du build de la CI, 12/11/2026). tools/patch_lineage_sources.sh retire la ligne LineageOS apres repo sync ;
+# sans lui, le build s'arrete ici plutot que de produire un system qui ne demarre pas.
+ifneq ($(filter-out 0,$(shell grep -s -c '^genfscon fuseblk ' device/lineage/sepolicy/common/private/genfs_contexts)),)
+$(error genfscon fuseblk de LineageOS en conflit avec le vendor Jancar : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+endif
+
 # Security patch (vendor stock)
 VENDOR_SECURITY_PATCH := 2021-10-05
 

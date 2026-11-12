@@ -6,8 +6,8 @@
 MediaTek MT6761 family). A real ROM built from the LineageOS sources, not a GSI.
 
 **Status: built by GitHub's CI (first full build on 12/11/2026, TWRP zip: see
-[BUILD.en.md](docs/BUILD.en.md#0-without-a-build-pc-githubs-ci)); this build has not been tried on the unit yet
-(try of 08/11: [Known risks](#known-risks)).**
+[BUILD.en.md](docs/BUILD.en.md#0-without-a-build-pc-githubs-ci)). Try of the 12/11 build on the unit: boot menu, then
+reboot to fastboot (SELinux policy, cause found and fixed: [Known risks](#known-risks)), next build to be tried.**
 
 ## Branches
 
@@ -52,6 +52,7 @@ the stock vendor, with no compatibility layer.
 | `tools/get_vendor_img.sh` | reads the vendor partition of the unit (read only) |
 | `tools/vendor_add_viper.sh` | adds to the local vendor image (debugfs, copy `vendor.img.orig` kept) the [ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE) v2.1.1 driver (official module, SHA-256 checked): `libv4a_re.so` in `/lib[64]/soundfx` and the `v4a_standard_re` effect in `/etc/audio_effects.xml`, like the `viper4android-re` zip of LibreHU-flashablesZips. In vendor because under Android 9 Treble effects are loaded by the vendor audio HAL, which cannot load a library from `/system` |
 | `tools/fetch_kernel.sh` | LibreHU kernel `stable-4.9.337` (`Image.gz-dtb`) and its Wi-Fi / BT / GPS / FM modules from the `latest-stable-4.9.337` release (GitHub checksums checked, image kernel = modules kernel); not versioned. Adds **`androidboot.selinux=permissive`** to the header command line of the boot images (only field changed, AVB footer kept): without it LineageOS's init goes enforcing (`BOARD_KERNEL_CMDLINE` is not used with a prebuilt image, the LK adds nothing); `LIBREHU_SELINUX=enforcing tools/fetch_kernel.sh` not to add it |
+| `tools/patch_lineage_sources.sh` | fixes the LineageOS sources after every `repo sync`: removes `genfscon fuseblk` from `device/lineage/sepolicy` (conflict with the Jancar vendor SELinux policy, init rebooted to fastboot); `--check` only tells whether something is left to do |
 | `tools/vendor_add_conn_modules.sh` | puts these modules in `/lib/modules` of the local vendor image (debugfs, rights and SELinux context of the original, `.librehu_conn` marker, copy `vendor.img.orig` kept): the LibreHU kernel refuses those of the stock vendor (different symbol CRCs), as the `kernel-stable` zips do on the unit |
 | `sepolicy/private/` | SELinux domain of `mcu_ready` (system side, `BOARD_PLAT_PRIVATE_SEPOLICY_DIR`): without it, Android 9's init **refuses to start the service, even in permissive** ("has incorrect label or no domain transition", `init/service.cpp`), PC_READY is not sent and the MCU cuts the SoC about ten seconds after boot; same for `librehu_ksunext`. Both domains are **permissive** on their own (`permissive`, refused in user builds): PC_READY goes out even if SELinux were enforcing (`/dev/ttyS1` is a vendor policy type, which the system policy cannot name) |
 | `config.fs`, `BOARD_ROOT_EXTRA_FOLDERS` | stock mount points at the root of `system`: `/jancar` (0755 root:root, `jancar` partition of the vendor fstab) and `/avm` (0775 root:system). Without `/jancar`, `fs_mgr` cannot mount the partition (read-only root), `mount_all` fails and init does not start the `main` class (zygote): Android does not start. Found by Reo Au In. `/vendor` is created by the build |
@@ -181,6 +182,16 @@ ROM, the service starts it).
    recovery). Publishing and updates by the OTA app: to do.
 
 ## Known risks
+
+Try of the CI build of 12/11/2026 (TWRP zip, vbmeta with both options): boot menu, then the unit reboots to fastboot.
+Cause, checked off the unit on the files of the build and of the stock vendor: LineageOS labels `fuseblk` as `vfat`
+(`device/lineage/sepolicy/common/private/genfs_contexts`), the Jancar vendor policy as `sdcardfs`; `secilc`, run by
+init to compile the system + vendor policy, refuses these two `genfscon` (`Found conflicting genfscon rules`, Android
+9's `libsepol/cil/src/cil_post.c`), init stops on `Unable to load SELinux policy` and its `LOG(FATAL)` reboots to the
+bootloader (`system/core/init/log.cpp`). Fixed on 12/11: `tools/patch_lineage_sources.sh` removes the LineageOS line
+after `repo sync` (the policy then compiles with the stock vendor), `BoardConfig.mk` stops the build if it is still
+there. The other files merged at boot (`property_contexts`, `hwservice_contexts`, `seapp_contexts`) have no duplicate
+with the stock vendor.
 
 First try by a tester (Reo Au In, 08/11/2026, build of the 07/11 branch): Android started, then the unit restarted
 after about ten seconds; no log. Most likely cause: the Wi-Fi chip id `0x0000` of an empty `/data` (below). Fixed here

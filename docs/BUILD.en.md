@@ -142,7 +142,14 @@ cat > .repo/local_manifests/ujc201.xml <<'EOF'
 EOF
 repo sync -c -j16 --no-tags --no-clone-bundle
 (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
+device/alps/ac8257_demo/tools/patch_lineage_sources.sh
 ```
+- `tools/patch_lineage_sources.sh` (**after every `repo sync`**, which puts the original files back): removes the line
+  `genfscon fuseblk / u:object_r:vfat:s0` from `device/lineage/sepolicy/common/private/genfs_contexts`. The Jancar
+  vendor's SELinux policy already labels `fuseblk` as `sdcardfs`; at boot, init compiles the system + vendor policy
+  with `secilc`, which refuses two different `genfscon` for the same path, and init without a policy reboots to
+  fastboot (first try on 12/11/2026). Without this script the build stops at `lunch` on
+  `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar`.
 - WebView: its prebuilt APK (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 MB) is a Git LFS file;
   `repo sync` only lays its pointer, hence the `git lfs pull` command (package `git-lfs`).
 - `--depth=1`: without the history, much less to download.
@@ -264,13 +271,14 @@ From the Proxmox host, `pct pull 160 <file> <destination>` does the same.
    skip the chain. Going back to the stock ROM works with this vbmeta as it is.
 
 **Install with the CI's zip (TWRP)**: after the backup and the vbmeta above:
-1. Copy the zip to a USB stick or the microSD card, TWRP: *Install* → the zip. It writes `system` (checked by reading
-   the whole partition back), `boot` (LibreHU kernel, SELinux permissive; put `bootmenu` in the zip's name for the image
-   with the boot menu) and that kernel's Wi-Fi / BT / GPS / FM modules into `/vendor/lib/modules` (originals saved in
-   `/sdcard/LibreHU/backup/conn-modules-orig`). It stops **without writing anything** when vbmeta's verification is not
-   disabled, and never touches vbmeta nor `/data`.
-2. **First install**: *Wipe > Format Data*, type `yes`, **before** rebooting (the zip reminds it when `/data` comes from
-   another ROM).
+1. **First install**: *Wipe > Format Data*, type `yes` (LineageOS does not start on the stock ROM's data). **Before**
+   the zip: it backs up `boot` and the modules to internal storage, which *Format Data* erases.
+2. Copy the zip to a USB stick or the microSD card (not internal storage: *Format Data* erases it too), TWRP:
+   *Install* → the zip. It writes `system` (checked by reading the whole partition back), `boot` (LibreHU kernel,
+   SELinux permissive; put `bootmenu` in the zip's name for the image with the boot menu) and that kernel's Wi-Fi / BT /
+   GPS / FM modules into `/vendor/lib/modules` (originals saved in `/sdcard/LibreHU/backup/conn-modules-orig`). It
+   stops **without writing anything** when vbmeta's verification is not disabled, and never touches vbmeta nor `/data`
+   (it reminds *Format Data* when `/data` comes from another ROM).
 3. *Reboot > System*. On the first boot Android asks for the home screen: **LibreHU Launcher**, *Always* (Trebuchet
    stays as a fallback if LibreHU Launcher did not start).
 
@@ -307,6 +315,7 @@ installed by itself (allow LibreHU-service in it); details, root, MTP: [README](
 ```bash
 cd ~/android/lineage
 repo sync -c -j16 --no-tags --no-clone-bundle
+device/alps/ac8257_demo/tools/patch_lineage_sources.sh
 device/alps/ac8257_demo/librehu/fetch_apks.sh
 device/alps/ac8257_demo/tools/fetch_kernel.sh
 device/alps/ac8257_demo/tools/vendor_add_conn_modules.sh
@@ -323,6 +332,7 @@ cd ~/android/lineage
 mv vendor/jancar/ac8257_demo/vendor.img* ~/
 rm -rf vendor/jancar/ac8257_demo
 repo sync -c -j16 --no-tags --no-clone-bundle
+device/alps/ac8257_demo/tools/patch_lineage_sources.sh
 mv ~/vendor.img* vendor/jancar/ac8257_demo/
 ```
 
@@ -335,6 +345,9 @@ the same build as the `boot` kernel. Step 5 does not need to be done again (`ven
 | Symptom | Fix |
 |---|---|
 | `repo sync`: download errors, 429, `RESOURCE_EXHAUSTED` | run the same command again, with `-j4` if it comes back |
+| At `lunch`: `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` from the top of the sources (again after every `repo sync`) |
+| Boot menu, then the unit **reboots to fastboot** | Android's init hit a fatal error (its `LOG(FATAL)` reboots to the bootloader), before the LineageOS logo: SELinux policy that does not compile (the case on 12/11/2026, fixed by `tools/patch_lineage_sources.sh`), or `/vendor` mount. To go back: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, then TWRP from the menu |
+| No boot menu any more, the unit **stays on the maker's logo** | stock vbmeta **with** verification and LineageOS's `system` (no AVB footer): the LK refuses to boot (section 8). If `fastboot devices` answers: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`. Otherwise: SP Flash Tool, *Download* tab, **Download Only**, only `vbmeta`, with a copy of `vbmeta.img` whose byte 123 is 3 (never *Format All + Download*) |
 | `python` not found, or `SyntaxError` in a build script | `python --version` must give 2.7: `sudo apt install python-is-python2` |
 | `flex` or `bison`: `Assertion ... loadlocale.c` | `export LC_ALL=C` before `source build/envsetup.sh` |
 | `libncurses.so.5: cannot open shared object file` | `sudo apt install libncurses5` |
