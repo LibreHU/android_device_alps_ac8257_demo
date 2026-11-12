@@ -53,7 +53,7 @@ jobs:
           sudo apt-get install -y -qq bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg \
             gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev \
             libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip \
-            zlib1g-dev python2 zstd >/dev/null
+            zlib1g-dev python2 zstd git-lfs >/dev/null
           # Pie's build scripts are Python 2.
           sudo ln -sf /usr/bin/python2 /usr/local/bin/python
           mkdir -p ~/bin && curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo && chmod a+x ~/bin/repo
@@ -78,6 +78,10 @@ jobs:
             repo sync -c -j8 --no-tags --no-clone-bundle --optimized-fetch --force-sync && break
             echo "repo sync failed ($i), again"; sleep 60
           done
+          # The WebView prebuilt is a Git LFS file (243 MB); repo sync leaves its pointer, and the build stops on
+          # "zip END header not found" (run of 12/11). Only arm64 is used (its APK holds the 32-bit library too).
+          (cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
+          unzip -tq external/chromium-webview/prebuilt/arm64/webview.apk >/dev/null && echo "webview.apk: zip OK"
           du -sh /mnt/lineage; df -h / /mnt
 
       - name: LibreHU apps (librehu/fetch_apks.sh) and boot images (tools/fetch_kernel.sh)

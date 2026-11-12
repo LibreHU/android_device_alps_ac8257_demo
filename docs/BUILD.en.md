@@ -137,7 +137,10 @@ cat > .repo/local_manifests/ujc201.xml <<'EOF'
 </manifest>
 EOF
 repo sync -c -j16 --no-tags --no-clone-bundle
+(cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
 ```
+- WebView: its prebuilt APK (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 MB) is a Git LFS file;
+  `repo sync` only lays its pointer, hence the `git lfs pull` command (package `git-lfs`).
 - `--depth=1`: without the history, much less to download.
 - `-j16`: 16 repositories at once (LineageOS uses 4 by default). Google's AOSP servers limit each IP address
   ([source.android.com](https://source.android.com/docs/setup/download/troubleshoot-sync), which also advises to just
@@ -350,6 +353,7 @@ the same build as the `boot` kernel. Step 5 does not need to be done again (`ven
 | `fetch_apks.sh`: `sha256sum: WARNING: 1 computed checksum did NOT match` on `KernelSUNext.apk` | damaged download: run again; if it comes back, the KernelSU Next v3.4.2 release changed, do not bypass |
 | KernelSU Next manager missing after the first boot | `adb logcat -d -s LibreHU-KSU` (reason `pm install` refused); `ksunext/KernelSUNext.apk` missing at build time: run `fetch_apks.sh` again |
 | `FAILED: bacon` | expected with this tree: `TARGET_NO_KERNEL := true` (LibreHU kernel's boot image) sets `build_ota_package := false` (LineageOS 16.0 `core/Makefile`), so the `bacon` rule has no zip to copy (`ln -f` without a source). Build the images (`mka systemimage bootimage vendorimage`, section 6) or take the CI's TWRP zip (section 0); everything before `bacon` in the log is fine |
+| `FAILED: .../webview_intermediates/package.apk`, `java.util.zip.ZipException: zip END header not found` | the WebView prebuilt is still a Git LFS pointer: `cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull` (package `git-lfs`), then build again |
 | `Killed` or out of memory | more RAM for the container (`pct set 160 --memory 196608` on the host) or fewer jobs: `m -j36 systemimage bootimage vendorimage` |
 | `No space left on device` | `df -h ~`, then on the host `pct resize 160 rootfs +100G` |
 

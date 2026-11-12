@@ -137,7 +137,10 @@ cat > .repo/local_manifests/ujc201.xml <<'EOF'
 </manifest>
 EOF
 repo sync -c -j16 --no-tags --no-clone-bundle
+(cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull)
 ```
+- WebView : son APK précompilé (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 Mo) est un fichier
+  Git LFS ; `repo sync` n'en pose que le pointeur, d'où la commande `git lfs pull` (paquet `git-lfs`).
 - `--depth=1` : sans l'historique, beaucoup moins à télécharger.
 - `-j16` : 16 dépôts à la fois (LineageOS met 4 par défaut). Les serveurs AOSP de Google limitent chaque adresse IP
   ([source.android.com](https://source.android.com/docs/setup/download/troubleshoot-sync), qui conseille aussi de
@@ -353,6 +356,7 @@ modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pa
 | `fetch_apks.sh` : `sha256sum: WARNING: 1 computed checksum did NOT match` sur `KernelSUNext.apk` | téléchargement abîmé : relancer ; si ça revient, la release v3.4.2 de KernelSU Next a changé, ne pas contourner |
 | Gestionnaire KernelSU Next absent après le premier démarrage | `adb logcat -d -s LibreHU-KSU` (raison du refus de `pm install`) ; `ksunext/KernelSUNext.apk` absent au build : relancer `fetch_apks.sh` |
 | `FAILED: bacon` | normal avec cet arbre : `TARGET_NO_KERNEL := true` (image de boot du noyau LibreHU) met `build_ota_package := false` (`core/Makefile` de LineageOS 16.0), la règle `bacon` n'a donc aucun zip à copier (`ln -f` sans source). Construire les images (`mka systemimage bootimage vendorimage`, section 6) ou prendre le zip TWRP de la CI (section 0) ; tout ce qui précède `bacon` dans le journal est bon |
+| `FAILED: .../webview_intermediates/package.apk`, `java.util.zip.ZipException: zip END header not found` | le WebView précompilé est resté un pointeur Git LFS : `cd external/chromium-webview/prebuilt/arm64 && git lfs install --local && git lfs pull` (paquet `git-lfs`), puis relancer le build |
 | `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 systemimage bootimage vendorimage` |
 | `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
 
