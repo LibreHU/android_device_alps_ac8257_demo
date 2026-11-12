@@ -352,7 +352,8 @@ modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pa
 | Boucle de redémarrages dès que le Wi-Fi s'allume (Android Auto l'allume tout seul) | `persist.vendor.connsys.chipid` vaut `0x0000` : `su -c 'getprop persist.vendor.connsys.chipid'` ; builds d'avant le 09/11/2026 (sans `rootdir/etc/init/librehu.rc`) : Wi-Fi coupé, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` puis redémarrer ; correctif du noyau à essayer : `tools/fetch_kernel.sh test-wifi-chipid` |
 | `fetch_apks.sh` : `sha256sum: WARNING: 1 computed checksum did NOT match` sur `KernelSUNext.apk` | téléchargement abîmé : relancer ; si ça revient, la release v3.4.2 de KernelSU Next a changé, ne pas contourner |
 | Gestionnaire KernelSU Next absent après le premier démarrage | `adb logcat -d -s LibreHU-KSU` (raison du refus de `pm install`) ; `ksunext/KernelSUNext.apk` absent au build : relancer `fetch_apks.sh` |
-| `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 bacon` |
+| `FAILED: bacon` | normal avec cet arbre : `TARGET_NO_KERNEL := true` (image de boot du noyau LibreHU) met `build_ota_package := false` (`core/Makefile` de LineageOS 16.0), la règle `bacon` n'a donc aucun zip à copier (`ln -f` sans source). Construire les images (`mka systemimage bootimage vendorimage`, section 6) ou prendre le zip TWRP de la CI (section 0) ; tout ce qui précède `bacon` dans le journal est bon |
+| `Killed` ou manque de mémoire | plus de RAM au conteneur (`pct set 160 --memory 196608` sur l'hôte) ou moins de tâches : `m -j36 systemimage bootimage vendorimage` |
 | `No space left on device` | `df -h ~`, puis sur l'hôte `pct resize 160 rootfs +100G` |
 
 **Journal d'un démarrage raté** : le noyau LibreHU garde la fin (256 Kio) du journal du démarrage précédent dans

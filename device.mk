@@ -11,6 +11,10 @@ LOCAL_PATH := device/alps/ac8257_demo
 PRODUCT_SHIPPING_API_LEVEL := 28
 
 # Ecran 1280 x 720 (wm size du stock), 160 dpi
+# Animation de demarrage de LineageOS a la taille de l'ecran (sans ces valeurs : 1080 x 1920, portrait,
+# vendor/lineage/bootanimation/Android.mk).
+TARGET_SCREEN_WIDTH := 1280
+TARGET_SCREEN_HEIGHT := 720
 PRODUCT_AAPT_CONFIG := normal
 PRODUCT_AAPT_PREF_CONFIG := mdpi
 PRODUCT_CHARACTERISTICS := tablet

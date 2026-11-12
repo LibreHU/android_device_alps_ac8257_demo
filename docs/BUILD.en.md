@@ -349,7 +349,8 @@ the same build as the `boot` kernel. Step 5 does not need to be done again (`ven
 | Reboot loop as soon as Wi-Fi turns on (Android Auto turns it on by itself) | `persist.vendor.connsys.chipid` is `0x0000`: `su -c 'getprop persist.vendor.connsys.chipid'`; builds before 09/11/2026 (without `rootdir/etc/init/librehu.rc`): Wi-Fi off, `su -c 'setprop persist.vendor.connsys.chipid 0x8257'` then reboot; kernel fix to try: `tools/fetch_kernel.sh test-wifi-chipid` |
 | `fetch_apks.sh`: `sha256sum: WARNING: 1 computed checksum did NOT match` on `KernelSUNext.apk` | damaged download: run again; if it comes back, the KernelSU Next v3.4.2 release changed, do not bypass |
 | KernelSU Next manager missing after the first boot | `adb logcat -d -s LibreHU-KSU` (reason `pm install` refused); `ksunext/KernelSUNext.apk` missing at build time: run `fetch_apks.sh` again |
-| `Killed` or out of memory | more RAM for the container (`pct set 160 --memory 196608` on the host) or fewer jobs: `m -j36 bacon` |
+| `FAILED: bacon` | expected with this tree: `TARGET_NO_KERNEL := true` (LibreHU kernel's boot image) sets `build_ota_package := false` (LineageOS 16.0 `core/Makefile`), so the `bacon` rule has no zip to copy (`ln -f` without a source). Build the images (`mka systemimage bootimage vendorimage`, section 6) or take the CI's TWRP zip (section 0); everything before `bacon` in the log is fine |
+| `Killed` or out of memory | more RAM for the container (`pct set 160 --memory 196608` on the host) or fewer jobs: `m -j36 systemimage bootimage vendorimage` |
 | `No space left on device` | `df -h ~`, then on the host `pct resize 160 rootfs +100G` |
 
 **Log of a failed boot**: the LibreHU kernel keeps the end (256 KiB) of the log of the previous boot in pstore

@@ -18,7 +18,9 @@ TARGET_CPU_ABI2 :=
 TARGET_CPU_VARIANT := cortex-a53
 
 TARGET_2ND_ARCH := arm
-TARGET_2ND_ARCH_VARIANT := armv7-a-neon
+# armv8-a : le build l'impose de toute facon pour un Cortex-A53 (core/combo/TARGET_linux-arm.mk, « cortex-a53 is
+# armv8-a » / « armv7-a-neon, ignored! Use armv8-a instead »).
+TARGET_2ND_ARCH_VARIANT := armv8-a
 TARGET_2ND_CPU_ABI := armeabi-v7a
 TARGET_2ND_CPU_ABI2 := armeabi
 TARGET_2ND_CPU_VARIANT := cortex-a53
