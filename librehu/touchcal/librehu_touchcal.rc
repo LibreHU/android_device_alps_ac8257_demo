@@ -1,0 +1,14 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Calibration d'usine de la dalle tactile Goodix au demarrage (voir librehu_touchcal.sh) : apres mount_all (/jancar
+# monte) et la sonde du pilote (mtk-tpd vers 2 s), avant l'interface.
+on boot
+    start librehu_touchcal
+
+service librehu_touchcal /system/bin/librehu_touchcal
+    class core
+    user root
+    group root
+    oneshot
+    disabled

@@ -155,6 +155,13 @@ device/alps/ac8257_demo/tools/patch_lineage_sources.sh
     politique SELinux du vendor Jancar étiquette déjà `fuseblk` en `sdcardfs` ; au démarrage, l'init compile la
     politique system + vendor avec `secilc`, qui refuse deux `genfscon` différents pour le même chemin.
 
+  - `frameworks/native` (`tools/lineage-patches`) : la dalle est en portrait (720 × 1280) montée en paysage ; le stock
+    la tourne avec `persist.sf.hwrotation=90` (SurfaceFlinger de MediaTek), que LineageOS ignore. SurfaceFlinger et
+    l'InputReader lisent `persist.librehu.display_rotation`, sinon `ro.librehu.display_rotation` (90, `device.mk`) :
+    image et tactile tournent ensemble.
+  - `frameworks/base` (`tools/lineage-patches`) : rétroéclairage Jancar inversé (`lcd-backlight` 0 = maximum, 179 =
+    minimum) ; `LightsService` convertit la luminosité d'Android (`ro.librehu.backlight_inverted`).
+
   Sans ce script, le build s'arrête dès `lunch` (messages dans le [dépannage](#dépannage)).
 - WebView : son APK précompilé (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 Mo) est un fichier
   Git LFS ; `repo sync` n'en pose que le pointeur, d'où la commande `git lfs pull` (paquet `git-lfs`).
@@ -356,6 +363,8 @@ modules doivent venir du même build que le noyau de `boot`. L'étape 5 n'est pa
 | `repo sync` : erreurs de téléchargement, 429, `RESOURCE_EXHAUSTED` | relancer la même commande, avec `-j4` si ça revient |
 | Dès `lunch` : `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` ou `fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green)` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` depuis la racine des sources (à refaire après chaque `repo sync`) |
 | Menu de démarrage, puis l'unité **redémarre en fastboot** | l'init d'Android a rencontré une erreur fatale (son `LOG(FATAL)` redémarre en bootloader), avant le logo LineageOS : `/vendor` refusé par fs_mgr (LK Jancar en `green`) puis politique SELinux qui ne compile pas (essais du 12/11/2026, corrigés par `tools/patch_lineage_sources.sh`), ou autre montage de la première étape. Pour revenir : `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, puis TWRP par le menu |
+| Image et tactile **à l'envers** (tournés de 180°) | `adb root`, puis `adb shell setprop persist.librehu.display_rotation 270` et `adb reboot` (90 par défaut, 0 pour revenir au portrait) |
+| Tactile hors de l'écran | calibration de la dalle absente : `adb logcat -s LibreHU-Touch` (service `librehu_touchcal` au démarrage), identifiant de la dalle `adb shell head -c 19 /proc/gt9xx_config` à chercher dans `/jancar/config/pointercal*.xml` |
 | Plus de menu de démarrage, l'unité **reste sur le logo** du constructeur | vbmeta du stock **avec** vérification et `system` de LineageOS (sans pied AVB) : le LK refuse de démarrer (section 8). Si `fastboot devices` répond : `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`. Sinon : SP Flash Tool, onglet *Download*, **Download Only**, uniquement `vbmeta`, avec une copie de `vbmeta.img` dont l'octet 123 vaut 3 (jamais *Format All + Download*) |
 | `python` introuvable, ou `SyntaxError` dans un script du build | `python --version` doit donner 2.7 : `sudo apt install python-is-python2` |
 | `flex` ou `bison` : `Assertion ... loadlocale.c` | `export LC_ALL=C` avant `source build/envsetup.sh` |

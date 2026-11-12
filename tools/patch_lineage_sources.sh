@@ -34,9 +34,20 @@
 #    (system/core/init/log.cpp, InitAborter). La ligne LineageOS est retiree : fuseblk garde l'etiquette du vendor,
 #    comme sous le stock. Verifie hors de l'unite : secilc sur le plat_sepolicy.cil du build + mapping 28.0 +
 #    plat_pub_versioned.cil et vendor_sepolicy.cil du vendor stock : echec avec la ligne, compile sans.
+#
+# 3. frameworks/native (lineage-patches/frameworks_native) : la dalle est en portrait (720 x 1280, fb0 « U:720x1280p »)
+#    et montee en paysage ; le stock la tourne avec persist.sf.hwrotation=90, propriete du SurfaceFlinger de MediaTek
+#    que celui d'AOSP ignore (il ne lit que primaryDisplayOrientation du configstore, a 0 dans le vendor stock).
+#    SurfaceFlinger prend persist.librehu.display_rotation (sinon ro.librehu.display_rotation, 90 dans device.mk) ;
+#    l'InputReader tourne le tactile interne d'autant (premier demarrage du 12/11 : image et tactile en portrait).
+#
+# 4. frameworks/base (lineage-patches/frameworks_base) : retroeclairage Jancar inverse (lcd-backlight 0 = maximum,
+#    179 = minimum ; le system stock compense, TWRP aussi dans touchfix) : LightsService convertit la luminosite
+#    d'Android quand ro.librehu.backlight_inverted vaut true (device.mk).
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
+PATCHES=$(cd "$(dirname "$0")" && pwd)/lineage-patches
 FSMGR=$TOP/system/core/fs_mgr/fs_mgr.cpp
 GENFS=$TOP/device/lineage/sepolicy/common/private/genfs_contexts
 CHECK=0
@@ -87,5 +98,26 @@ else
     sed -i '/^genfscon fuseblk /d' "$GENFS"
     echo "patch_lineage_sources: genfscon fuseblk retire de device/lineage/sepolicy/common/private/genfs_contexts"
 fi
+
+# 3, 4. frameworks : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
+apply_patch() {
+    local proj=$1 witness=$2 mark=$3 p=$4 what=$5
+    [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
+    if grep -q "$mark" "$TOP/$proj/$witness"; then
+        echo "patch_lineage_sources: $proj deja corrige ($what)"
+    elif [ $CHECK = 1 ]; then
+        echo "patch_lineage_sources: $proj sans correctif ($what)"
+        TODO=1
+    else
+        patch -p1 -N -s --dry-run -d "$TOP/$proj" < "$p" >/dev/null \
+            || { echo "patch_lineage_sources: $p ne s'applique pas sur $proj (sources changees ?)" >&2; exit 3; }
+        patch -p1 -N -s -d "$TOP/$proj" < "$p"
+        echo "patch_lineage_sources: $proj corrige ($what)"
+    fi
+}
+apply_patch frameworks/native services/surfaceflinger/SurfaceFlinger.cpp librehuRotation \
+    "$PATCHES/frameworks_native/0001-librehu-display-rotation.patch" "rotation de la dalle et du tactile"
+apply_patch frameworks/base services/core/java/com/android/server/lights/LightsService.java librehu.backlight_inverted \
+    "$PATCHES/frameworks_base/0001-librehu-backlight-inverted.patch" "retroeclairage inverse"
 
 exit $TODO

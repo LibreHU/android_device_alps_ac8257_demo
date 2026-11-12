@@ -68,6 +68,19 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # son logcatd.rc) n'est mis par AOSP que dans PRODUCT_PACKAGES_DEBUG : ajoute ici pour toutes les variantes.
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.logd.logpersistd=logcatd
+
+# Dalle 720 x 1280 (portrait) montee en paysage : le stock la tourne avec persist.sf.hwrotation=90 (SurfaceFlinger de
+# MediaTek). Ici SurfaceFlinger et l'InputReader de LineageOS, corriges par tools/patch_lineage_sources.sh, lisent
+# persist.librehu.display_rotation (a regler sans recompiler si l'image est a l'envers : 270), sinon cette valeur.
+# Retroeclairage Jancar inverse (lcd-backlight 0 = maximum, 179 = minimum) : LightsService corrige le convertit.
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.librehu.display_rotation=90 \
+    ro.librehu.backlight_inverted=true \
+    ro.librehu.backlight_min=179
+
+# Calibration d'usine de la dalle tactile au demarrage (librehu/touchcal), avant que LibreHU-service ait le root.
+PRODUCT_PACKAGES += \
+    librehu_touchcal
 PRODUCT_PACKAGES += \
     logpersist.start
 

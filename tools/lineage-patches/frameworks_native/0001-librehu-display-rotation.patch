@@ -1,0 +1,86 @@
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -315,6 +315,33 @@
+             SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientationDefault;
+             break;
+     }
++    // LibreHU (UJC201) : dalle 720 x 1280 montee en paysage. Le stock la tourne avec persist.sf.hwrotation=90 (propriete
++    // du SurfaceFlinger de MediaTek, ignoree ici) et le configstore du vendor stock rend 0. Rotation lue dans
++    // persist.librehu.display_rotation, sinon ro.librehu.display_rotation : 0, 90, 180 ou 270 ; l'InputReader tourne
++    // le tactile d'autant (services/inputflinger/InputReader.cpp).
++    {
++        char librehuRotation[PROPERTY_VALUE_MAX];
++        property_get("persist.librehu.display_rotation", librehuRotation, "");
++        if (librehuRotation[0] == '\0') {
++            property_get("ro.librehu.display_rotation", librehuRotation, "");
++        }
++        if (librehuRotation[0] != '\0') {
++            switch (atoi(librehuRotation)) {
++                case 90:
++                    SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientation90;
++                    break;
++                case 180:
++                    SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientation180;
++                    break;
++                case 270:
++                    SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientation270;
++                    break;
++                default:
++                    SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientationDefault;
++                    break;
++            }
++        }
++    }
+     ALOGV("Primary Display Orientation is set to %2d.", SurfaceFlinger::primaryDisplayOrientation);
+ 
+     mPrimaryDispSync.init(SurfaceFlinger::hasSyncFramework, SurfaceFlinger::dispSyncPresentTimeOffset);
+--- a/services/inputflinger/InputReader.cpp
++++ b/services/inputflinger/InputReader.cpp
+@@ -55,6 +55,7 @@
+ #include <log/log.h>
+ 
+ #include <android-base/stringprintf.h>
++#include <cutils/properties.h>
+ #include <input/Keyboard.h>
+ #include <input/VirtualKeyMap.h>
+ 
+@@ -3100,6 +3101,26 @@
+     mRotaryEncoderScrollAccumulator.finishSync();
+ }
+ 
++// LibreHU (UJC201) : rotation de la dalle appliquee par SurfaceFlinger (services/surfaceflinger/SurfaceFlinger.cpp),
++// en orientation d'affichage (quarts de tour).
++static int32_t librehuDisplayRotation() {
++    char value[PROPERTY_VALUE_MAX];
++    property_get("persist.librehu.display_rotation", value, "");
++    if (value[0] == '\0') {
++        property_get("ro.librehu.display_rotation", value, "0");
++    }
++    switch (atoi(value)) {
++        case 90:
++            return DISPLAY_ORIENTATION_90;
++        case 180:
++            return DISPLAY_ORIENTATION_180;
++        case 270:
++            return DISPLAY_ORIENTATION_270;
++        default:
++            return DISPLAY_ORIENTATION_0;
++    }
++}
++
+ // --- TouchInputMapper ---
+ 
+ TouchInputMapper::TouchInputMapper(InputDevice* device) :
+@@ -3557,6 +3578,12 @@
+             mDeviceMode = DEVICE_MODE_DISABLED;
+             return;
+         }
++        // LibreHU (UJC201) : SurfaceFlinger tourne la dalle de persist.librehu.display_rotation (sinon
++        // ro.librehu.display_rotation) ; le tactile, qui rapporte dans le repere de la dalle (720 x 1280 apres la
++        // calibration gt9xx_props), tourne d'autant, comme pour une rotation de l'ecran par le gestionnaire de fenetres.
++        if (viewportTypeToUse == ViewportType::VIEWPORT_INTERNAL) {
++            newViewport.orientation = (newViewport.orientation + librehuDisplayRotation()) % 4;
++        }
+     } else {
+         newViewport.setNonDisplayViewport(rawWidth, rawHeight);
+     }

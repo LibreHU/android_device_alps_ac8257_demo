@@ -1,0 +1,25 @@
+--- a/services/core/java/com/android/server/lights/LightsService.java
++++ b/services/core/java/com/android/server/lights/LightsService.java
+@@ -23,6 +23,7 @@
+ import android.content.pm.PackageManager;
+ import android.os.Handler;
+ import android.os.Message;
++import android.os.SystemProperties;
+ import android.os.Trace;
+ import android.provider.Settings;
+ import android.util.Slog;
+@@ -54,6 +55,14 @@
+                     return;
+                 }
+ 
++                // LibreHU (UJC201) : retroeclairage Jancar inverse, lcd-backlight 0 = maximum, 179 = minimum (le
++                // system stock compense ; TWRP fait de meme dans touchfix). ro.librehu.backlight_inverted active la
++                // conversion, ro.librehu.backlight_min donne la valeur du minimum ; 0 (ecran eteint) donne 255.
++                if (mId == LightsManager.LIGHT_ID_BACKLIGHT
++                        && SystemProperties.getBoolean("ro.librehu.backlight_inverted", false)) {
++                    int low = SystemProperties.getInt("ro.librehu.backlight_min", 179);
++                    brightness = brightness <= 0 ? 255 : low - Math.min(brightness, 255) * low / 255;
++                }
+                 int color = brightness & 0x000000ff;
+                 color = 0xff000000 | (color << 16) | (color << 8) | color;
+                 setLightLocked(color, LIGHT_FLASH_NONE, 0, 0, brightnessMode);

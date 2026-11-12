@@ -153,6 +153,14 @@ endif
 ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/fs_mgr.cpp),0)
 $(error fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
+# Dalle en portrait montee en paysage et retroeclairage inverse (tools/lineage-patches, appliques par le meme script) :
+# sans eux, image et tactile en portrait (premier demarrage du 12/11/2026) et luminosite a l'envers.
+ifeq ($(shell grep -s -c 'librehuDisplayRotation' frameworks/native/services/inputflinger/InputReader.cpp),0)
+$(error frameworks/native sans la rotation de la dalle : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+endif
+ifeq ($(shell grep -s -c 'librehu.backlight_inverted' frameworks/base/services/core/java/com/android/server/lights/LightsService.java),0)
+$(error frameworks/base sans le retroeclairage inverse : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+endif
 
 # Security patch (vendor stock)
 VENDOR_SECURITY_PATCH := 2021-10-05

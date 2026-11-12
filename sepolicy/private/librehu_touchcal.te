@@ -1,0 +1,12 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# librehu_touchcal (librehu/touchcal/) : calibration d'usine de la dalle tactile au demarrage (lit /proc/gt9xx_config
+# et /jancar/config, ecrit gt9xx_props). Domaine propre pour la meme raison que mcu_ready (l'init d'Android 9 refuse
+# un service sans transition de domaine, meme en permissif) ; permissif a lui seul en attendant le passage en
+# enforcing (userdebug seulement).
+type librehu_touchcal, domain, coredomain;
+type librehu_touchcal_exec, exec_type, file_type;
+
+init_daemon_domain(librehu_touchcal)
+permissive librehu_touchcal;

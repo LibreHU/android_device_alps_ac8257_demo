@@ -155,6 +155,13 @@ device/alps/ac8257_demo/tools/patch_lineage_sources.sh
     Jancar vendor's SELinux policy already labels `fuseblk` as `sdcardfs`; at boot, init compiles the system + vendor
     policy with `secilc`, which refuses two different `genfscon` for the same path.
 
+  - `frameworks/native` (`tools/lineage-patches`): the panel is portrait (720 × 1280) mounted landscape; the stock
+    rotates it with `persist.sf.hwrotation=90` (MediaTek's SurfaceFlinger), which LineageOS ignores. SurfaceFlinger
+    and the InputReader read `persist.librehu.display_rotation`, else `ro.librehu.display_rotation` (90,
+    `device.mk`): picture and touch turn together.
+  - `frameworks/base` (`tools/lineage-patches`): Jancar backlight inverted (`lcd-backlight` 0 = maximum, 179 =
+    minimum); `LightsService` converts Android's brightness (`ro.librehu.backlight_inverted`).
+
   Without this script the build stops at `lunch` (messages in [troubleshooting](#troubleshooting)).
 - WebView: its prebuilt APK (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 MB) is a Git LFS file;
   `repo sync` only lays its pointer, hence the `git lfs pull` command (package `git-lfs`).
@@ -353,6 +360,8 @@ the same build as the `boot` kernel. Step 5 does not need to be done again (`ven
 | `repo sync`: download errors, 429, `RESOURCE_EXHAUSTED` | run the same command again, with `-j4` if it comes back |
 | At `lunch`: `genfscon fuseblk de LineageOS en conflit avec le vendor Jancar` or `fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green)` | `device/alps/ac8257_demo/tools/patch_lineage_sources.sh` from the top of the sources (again after every `repo sync`) |
 | Boot menu, then the unit **reboots to fastboot** | Android's init hit a fatal error (its `LOG(FATAL)` reboots to the bootloader), before the LineageOS logo: `/vendor` refused by fs_mgr (Jancar LK in `green`) then SELinux policy that does not compile (tries of 12/11/2026, fixed by `tools/patch_lineage_sources.sh`), or another first-stage mount. To go back: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`, then TWRP from the menu |
+| Picture and touch **upside down** (turned 180°) | `adb root`, then `adb shell setprop persist.librehu.display_rotation 270` and `adb reboot` (90 by default, 0 to go back to portrait) |
+| Touch outside the screen | panel calibration missing: `adb logcat -s LibreHU-Touch` (`librehu_touchcal` service at boot), panel id `adb shell head -c 19 /proc/gt9xx_config` to look up in `/jancar/config/pointercal*.xml` |
 | No boot menu any more, the unit **stays on the maker's logo** | stock vbmeta **with** verification and LineageOS's `system` (no AVB footer): the LK refuses to boot (section 8). If `fastboot devices` answers: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`. Otherwise: SP Flash Tool, *Download* tab, **Download Only**, only `vbmeta`, with a copy of `vbmeta.img` whose byte 123 is 3 (never *Format All + Download*) |
 | `python` not found, or `SyntaxError` in a build script | `python --version` must give 2.7: `sudo apt install python-is-python2` |
 | `flex` or `bison`: `Assertion ... loadlocale.c` | `export LC_ALL=C` before `source build/envsetup.sh` |

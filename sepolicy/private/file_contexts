@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 /system/bin/mcu_ready    u:object_r:mcu_ready_exec:s0
 /system/bin/librehu_ksunext u:object_r:librehu_ksunext_exec:s0
+/system/bin/librehu_touchcal u:object_r:librehu_touchcal_exec:s0
 # Points de montage de la racine de system (BOARD_ROOT_EXTRA_FOLDERS) : type de la politique system, les types du
 # stock (avm_file, jancar_file) sont ceux de la politique vendor, inconnus ici ; le systeme de fichiers monte garde
 # ses propres labels.

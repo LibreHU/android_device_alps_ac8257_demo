@@ -85,3 +85,13 @@ LOCAL_INIT_RC := ksunext/librehu_ksunext.rc
 LOCAL_REQUIRED_MODULES := KernelSUNext.apk
 include $(BUILD_PREBUILT)
 endif
+
+# Calibration d'usine de la dalle tactile au demarrage (touchcal/) : LibreHU-service ne l'ecrit qu'avec le root de
+# KernelSU, pas encore accorde au premier demarrage ; sans elle le tactile tombe hors de l'ecran.
+include $(CLEAR_VARS)
+LOCAL_MODULE := librehu_touchcal
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
+LOCAL_SRC_FILES := touchcal/librehu_touchcal.sh
+LOCAL_INIT_RC := touchcal/librehu_touchcal.rc
+include $(BUILD_PREBUILT)
