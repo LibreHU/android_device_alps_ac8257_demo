@@ -84,7 +84,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
     librehu_touchcal
 
-# Root de KernelSU Next accorde a LibreHU-service des le premier demarrage (librehu/ksugrant) : tactile, boutons,
+# Root de KernelSU Next accorde d'office aux applis LibreHU qui s'en servent (librehu/ksugrant, liste dans son .rc) :
+# KernelSU n'affiche pas de demande, une appli sans profil est refusee en silence. LibreHU-service : tactile, boutons,
 # passage de main de l'ARM2 (video verte) et reglages du service sans passer par le gestionnaire. Un choix de
 # l'utilisateur dans le gestionnaire (refus compris) n'est jamais modifie.
 PRODUCT_PACKAGES += \

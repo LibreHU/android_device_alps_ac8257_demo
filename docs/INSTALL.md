@@ -88,7 +88,8 @@ $b[123] = $b[123] -bor 3
 
 - Choisir **LibreHU Launcher** comme ecran d'accueil, *Toujours*.
 - Installes tout seuls : gestionnaire KernelSU Next, Aurora Store, LibreHU Helper (applis ordinaires).
-- **LibreHU service recoit le root** de KernelSU sans le demander ; un choix fait ensuite dans le gestionnaire, refus
+- **Les applis LibreHU qui s'en servent recoivent le root** de KernelSU sans le demander (service, LibreHU Apps, Launcher,
+  FM, Disc, Android Auto, Bridge, Helper, ViPER4Android) ; un choix fait ensuite dans le gestionnaire, refus
   compris, est garde.
 - Calibration du tactile appliquee a chaque demarrage (`/jancar/config/pointercal*.xml`).
 - Pays du Wi-Fi d'apres la langue choisie a l'installation (au demarrage suivant ; `CN` jusque-la).

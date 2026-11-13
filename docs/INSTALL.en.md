@@ -85,7 +85,8 @@ $b[123] = $b[123] -bor 3
 
 - Choose **LibreHU Launcher** as the home screen, *Always*.
 - Installed by themselves: KernelSU Next manager, Aurora Store, LibreHU Helper (normal apps).
-- **LibreHU service gets root** from KernelSU without asking; a choice made later in the manager, refusal included,
+- **The LibreHU apps that use it get root** from KernelSU without asking (service, LibreHU Apps, Launcher, FM, Disc,
+  Android Auto, Bridge, Helper, ViPER4Android); a choice made later in the manager, refusal included,
   is kept.
 - Touch calibration applied at every boot (`/jancar/config/pointercal*.xml`).
 - Wi-Fi country from the language chosen in the setup (from the next boot; `CN` until then).

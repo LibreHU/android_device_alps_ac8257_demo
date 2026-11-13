@@ -83,23 +83,15 @@ struct app_profile {
     };
 };
 
-int main(int argc, char **argv) {
-    const char *pkg = argc > 1 ? argv[1] : "org.librehu.service";
+/* Root par defaut pour [pkg] s'il est installe et n'a encore aucun profil ; 1 en cas d'echec du noyau. */
+static int grant(int fd, const char *pkg) {
     char dir[KSU_MAX_PACKAGE_NAME + 16];
     struct stat st;
     struct app_profile p;
-    int fd = -1;
 
     snprintf(dir, sizeof(dir), "/data/data/%s", pkg);
     if (stat(dir, &st) != 0) {
         LOG(INFO, "%s not installed, nothing to grant", pkg);
-        return 0;
-    }
-
-    /* Le noyau ecrit le numero du descripteur dans fd au retour de l'appel (task_work) ; reboot rend -EINVAL. */
-    syscall(__NR_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, &fd);
-    if (fd < 0) {
-        LOG(WARN, "KernelSU driver not available (kernel without KernelSU?)");
         return 0;
     }
 
@@ -130,4 +122,23 @@ int main(int argc, char **argv) {
     }
     LOG(INFO, "root granted to %s (uid %d)", pkg, (int)st.st_uid);
     return 0;
+}
+
+/* Paquets en arguments (librehu_ksugrant.rc : les applis LibreHU qui se servent du root) ; LibreHU-service sans argument. */
+int main(int argc, char **argv) {
+    int fd = -1, failed = 0;
+
+    /* Le noyau ecrit le numero du descripteur dans fd au retour de l'appel (task_work) ; reboot rend -EINVAL. */
+    syscall(__NR_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, &fd);
+    if (fd < 0) {
+        LOG(WARN, "KernelSU driver not available (kernel without KernelSU?)");
+        return 0;
+    }
+    if (argc < 2) {
+        return grant(fd, "org.librehu.service");
+    }
+    for (int i = 1; i < argc; i++) {
+        failed |= grant(fd, argv[i]);
+    }
+    return failed;
 }

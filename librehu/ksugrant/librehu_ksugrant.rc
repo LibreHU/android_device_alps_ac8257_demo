@@ -1,11 +1,14 @@
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Root de KernelSU Next accorde a LibreHU-service des le premier demarrage (voir librehu_ksugrant.c)
+# Root de KernelSU Next accorde d'office aux applis LibreHU qui s'en servent (voir librehu_ksugrant.c) : service, LibreHU
+# Apps (zips), Launcher, FM, Disc, Android Auto (Open Headunit), Bridge, Helper, ViPER4Android. KernelSU n'affiche pas
+# de demande : sans profil, une appli est refusee en silence. Un choix fait dans le gestionnaire (refus compris) est
+# garde ; une appli installee plus tard l'est au demarrage suivant.
 on property:sys.boot_completed=1
     start librehu_ksugrant
 
-service librehu_ksugrant /system/bin/librehu_ksugrant org.librehu.service
+service librehu_ksugrant /system/bin/librehu_ksugrant org.librehu.service org.librehu.ota org.librehu.launcher org.librehu.fm org.librehu.disc org.librehu.headunit org.librehu.bridge org.librehu.helper com.llsl.viper4android
     class late_start
     user root
     group root
