@@ -1,0 +1,13 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: Apache-2.0
+#
+# Droits de noeuds de peripheriques que le system stock (system-as-root, remplace par celui de LineageOS) donnait aux
+# services du vendor, et que ni le /ueventd.rc de LineageOS ni le /vendor/ueventd.rc stock ne couvrent. ueventd lit ce
+# fichier apres eux (/ueventd.<ro.hardware>.rc, ro.hardware=ac8257 : system/core/init/ueventd.cpp) ; un noeud sans
+# regle est cree en 0600 root root (devices.cpp, GetDevicePermissions).
+
+# Pilote backcar (drivers/misc/autochips/backcar du noyau) : le HAL vendor.autochips.hardware.backcar@1.0
+# (backcar_daemon, user system) l'ouvre a son demarrage. Sans acces (journal du 13/11/2026 : « open /dev/backcardrv
+# fail. Permission denied »), sendReadyToArm2() rend 1 sans rien faire : l'ARM2 garde ses deux couches d'affichage et
+# la video decodee par le materiel reste verte jusqu'a la premiere veille.
+/dev/backcardrv           0660   system     system

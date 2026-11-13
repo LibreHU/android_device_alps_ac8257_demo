@@ -110,7 +110,7 @@ la release `lineage-16.0-ota`), telecharge le suivant, redemarre dans TWRP et l'
 | Le zip s'arrete sur « vbmeta : verification active » | pareil, puis le zip a nouveau (rien n'a ete ecrit) |
 | Menu de demarrage, puis fastboot | l'init s'est arrete ; sans couper le courant : `fastboot oem reboot-recovery`, puis dans TWRP `adb pull /sys/fs/pstore` et envoyer le journal |
 | Tactile hors de l'ecran | `adb logcat -s LibreHU-Touch` et `adb shell head -c 19 /proc/gt9xx_config` (identifiant de la dalle), a envoyer |
-| Video verte (Android Auto, lecteurs) | probleme connu (passation de l'ARM2) : une veille (contact coupe puis remis) ramene l'image |
+| Video verte (Android Auto, lecteurs) | corrige dans les builds d'apres le 13/11 (`1ec65bc` et avant : une veille, contact coupe puis remis, ramene l'image ; ou `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, puis redemarrer LibreHU-service) |
 | Ecran noir retroeclaire | apres une extinction de l'ecran : probleme connu (reveil du tactile), une souris USB en sort ; installee avant le 13/11 : `adb shell locksettings set-disabled true` |
 | Reseau Wi-Fi introuvable | choisir sa langue et sa region dans les Parametres, redemarrer |
 
@@ -123,8 +123,9 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 
 ## Problemes connus
 
-- Video decodee par le materiel verte jusqu'a la premiere veille : l'ARM2 garde deux couches de l'affichage, le HAL
-  `backcar` du vendor refuse la passation sous LineageOS (en cours d'analyse).
+- Video decodee par le materiel verte jusqu'a la premiere veille (`1ec65bc` et avant) : l'ARM2 garde deux couches de
+  l'affichage, le HAL `backcar` du vendor n'avait pas acces a `/dev/backcardrv` ; corrige dans le build suivant (a
+  confirmer).
 - YouTube 1080p saccade ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
   l'ecran ; service watermark d'Autochips absent (bruit dans les journaux).
 

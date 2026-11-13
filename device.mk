@@ -117,6 +117,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/init/librehu.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/librehu.rc
 
+# Droits des noeuds Autochips que le system stock posait (rootdir/ueventd.ac8257.rc : /dev/backcardrv du HAL backcar,
+# sans lequel la video materielle reste verte). Racine du system (system-as-root : build_image.py y copie root/).
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/ueventd.ac8257.rc:root/ueventd.ac8257.rc
+
 # MCU Jancar : PC_READY des le demarrage (sans lui le MCU coupe le SoC), voir mcu_ready/
 PRODUCT_PACKAGES += \
     mcu_ready

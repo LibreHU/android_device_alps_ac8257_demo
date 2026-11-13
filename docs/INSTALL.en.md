@@ -107,7 +107,7 @@ $b[123] = $b[123] -bor 3
 | The zip stops on "vbmeta : verification active" | same, then the zip again (nothing was written) |
 | Boot menu, then fastboot | init stopped; without cutting the power: `fastboot oem reboot-recovery`, then in TWRP `adb pull /sys/fs/pstore` and send the log |
 | Touch outside the screen | `adb logcat -s LibreHU-Touch` and `adb shell head -c 19 /proc/gt9xx_config` (panel id), to send |
-| Green video (Android Auto, players) | known issue (ARM2 hand-over): a standby (ignition off, then on) brings the picture back |
+| Green video (Android Auto, players) | fixed in the builds after 13/11 (`1ec65bc` and older: a standby, ignition off then on, brings the picture back; or `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, then restart LibreHU-service) |
 | Black screen with the backlight on | after the screen turned off: known issue (touch wake-up), a USB mouse gets out of it; installed before 13/11: `adb shell locksettings set-disabled true` |
 | Wi-Fi network not found | choose your language and region in Settings, reboot |
 
@@ -120,8 +120,8 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 
 ## Known issues
 
-- Hardware-decoded video green until the first standby: the ARM2 keeps two display layers, the vendor `backcar` HAL
-  refuses the hand-over under LineageOS (being investigated).
+- Hardware-decoded video green until the first standby (`1ec65bc` and older): the ARM2 keeps two display layers, the
+  vendor `backcar` HAL had no access to `/dev/backcardrv`; fixed in the next build (to be confirmed).
 - YouTube 1080p stutters; car standby unreliable; touch may not wake up after the screen turns off; Autochips
   watermark service missing (log noise).
 
