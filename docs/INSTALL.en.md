@@ -121,7 +121,7 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 ## Known issues
 
 - Hardware-decoded video green until the first standby (`1ec65bc` and older): the ARM2 keeps two display layers, the
-  vendor `backcar` HAL had no access to `/dev/backcardrv`; fixed in the next build (to be confirmed).
+  vendor `backcar` HAL had no access to `/dev/backcardrv`; fixed in the next build (confirmed on the unit on 13/11).
 - YouTube 1080p stutters; car standby unreliable; touch may not wake up after the screen turns off; Autochips
   watermark service missing (log noise).
 

@@ -18,7 +18,7 @@ Build `befe5a3` (13/11) : pays du Wi-Fi d'apres la langue, fonctionnalite Ethern
 d'office a LibreHU-service, pas d'ecran de verrouillage, barres plus grandes, Aurora Store et LibreHU Helper (MCU Toolkit
 retire). Video verte : cause trouvee le 13/11, le HAL `backcar` du vendor ne peut pas ouvrir `/dev/backcardrv` (cree
 en 0600 root par ueventd, le system stock posait la regle) ; regle dans `rootdir/ueventd.ac8257.rc` (build suivant `1ec65bc`,
-a confirmer sur l'unite). Chaque build est publie en [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
+confirme sur l'unite le 13/11 : plus de video verte). Chaque build est publie en [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
 (zip signe) et l'appli Mises a jour de LineageOS s'y met a jour. **Installer : [docs/INSTALL.md](docs/INSTALL.md)**
 (vbmeta, flash, mises a jour, depannage) ou la [page du site](https://librehu.github.io/lineageos.html).**
 

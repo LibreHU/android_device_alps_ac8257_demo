@@ -16,8 +16,8 @@ point not seen, Ethernet not taken by Android, hardware video green until a stan
 root), black lock screen, status bar too small. Build `befe5a3` (13/11): Wi-Fi country from the language, Ethernet feature,
 KernelSU Next root granted to LibreHU-service out of the box, no lock screen, bigger bars, Aurora Store and LibreHU Helper
 (MCU Toolkit removed). Green video: cause found on 13/11, the vendor `backcar` HAL cannot open `/dev/backcardrv` (made
-0600 root by ueventd, the stock system held the rule); rule in `rootdir/ueventd.ac8257.rc` (build after `1ec65bc`, to be
-confirmed on the unit). Every build is published as a [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
+0600 root by ueventd, the stock system held the rule); rule in `rootdir/ueventd.ac8257.rc` (build after `1ec65bc`,
+confirmed on the unit on 13/11: no more green video). Every build is published as a [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
 (signed zip) and LineageOS's Updates app updates from them. **Install: [docs/INSTALL.en.md](docs/INSTALL.en.md)**
 (vbmeta, flashing, updates, troubleshooting) or the [website page](https://librehu.github.io/lineageos.html).**
 

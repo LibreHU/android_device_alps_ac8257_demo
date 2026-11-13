@@ -124,8 +124,8 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 ## Problemes connus
 
 - Video decodee par le materiel verte jusqu'a la premiere veille (`1ec65bc` et avant) : l'ARM2 garde deux couches de
-  l'affichage, le HAL `backcar` du vendor n'avait pas acces a `/dev/backcardrv` ; corrige dans le build suivant (a
-  confirmer).
+  l'affichage, le HAL `backcar` du vendor n'avait pas acces a `/dev/backcardrv` ; corrige dans le build suivant
+  (confirme sur l'unite le 13/11).
 - YouTube 1080p saccade ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
   l'ecran ; service watermark d'Autochips absent (bruit dans les journaux).
 
