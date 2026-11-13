@@ -16,8 +16,8 @@
 #     de commande de l'en-tete (voir plus bas ; LIBREHU_SELINUX=enforcing pour ne pas l'ajouter).
 # Empreintes verifiees (celles que GitHub donne pour les fichiers de la release), et le noyau de chaque image doit
 # etre celui des modules.
-# Branche de test du correctif de l'identifiant de puce Wi-Fi (persist.vendor.connsys.chipid 0x0000 sur un /data
-# vide, boucle de redemarrages des que le Wi-Fi s'allume) : tools/fetch_kernel.sh test-wifi-chipid
+# Le correctif de l'identifiant de puce Wi-Fi (persist.vendor.connsys.chipid 0x0000 sur un /data vide, boucle de
+# redemarrages des que le Wi-Fi s'allume) est dans stable-4.9.337 depuis le 13/11/2026 (branche de test fusionnee).
 # Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
 #   tools/fetch_kernel.sh [branche]
 #

@@ -37,7 +37,7 @@ TARGET_BOARD_PLATFORM := ac8257
 TARGET_SCREEN_DENSITY := 160
 
 # Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche stable-4.9.337 : linux-stable 4.9.337,
-# KernelSU Next ; tools/fetch_kernel.sh test-wifi-chipid pour la branche de test) : image de boot de sa CI
+# KernelSU Next, correctif de l'identifiant de puce Wi-Fi) : image de boot de sa CI
 # (BOARD_PREBUILT_BOOTIMAGE ci-dessous), avec ses modules Wi-Fi / BT / GPS / FM a mettre dans l'image vendor
 # (tools/vendor_add_conn_modules.sh : il refuse ceux du stock). Voir prebuilt/README.md.
 BOARD_BOOTIMG_HEADER_VERSION := 1

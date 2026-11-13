@@ -113,7 +113,7 @@ Data.
 | Menu de demarrage, puis fastboot | l'init s'est arrete ; sans couper le courant : `fastboot oem reboot-recovery`, puis dans TWRP `adb pull /sys/fs/pstore` et envoyer le journal |
 | Tactile hors de l'ecran | `adb logcat -s LibreHU-Touch` et `adb shell head -c 19 /proc/gt9xx_config` (identifiant de la dalle), a envoyer |
 | Video verte (Android Auto, lecteurs) | corrige dans les builds d'apres le 13/11 (`1ec65bc` et avant : une veille, contact coupe puis remis, ramene l'image ; ou `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, puis redemarrer LibreHU-service) |
-| Ecran noir retroeclaire | apres une extinction de l'ecran : probleme connu (reveil du tactile), une souris USB en sort ; installee avant le 13/11 : `adb shell locksettings set-disabled true` |
+| Ecran noir retroeclaire | apres une extinction de l'ecran : touche power de facade (noyau du 13/11/2026 et plus recent, tactile garde actif), sinon une souris USB en sort ; installee avant le 13/11 : `adb shell locksettings set-disabled true` |
 | Reseau Wi-Fi introuvable | choisir sa langue et sa region dans les Parametres, redemarrer |
 
 Rapports : LibreHU Helper (installe avec la ROM). Il contient le numero de serie de l'autoradio : le partager en prive.
@@ -131,7 +131,9 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 - Corriges dans le build qui suit `96472d7` (noyau compris) : batterie vue a 0-1 % (le noyau donne une batterie pleine
   sur secteur), clavier virtuel masque (decodeur IR « clavier MCE » du noyau pris pour un clavier physique ; sur un
   build plus ancien : *Parametres -> Systeme -> Langues et saisie -> Clavier physique -> Afficher le clavier virtuel*),
-  egaliseur AudioFX de LineageOS retire (en conflit avec ViPER4Android).
+  egaliseur AudioFX de LineageOS retire (en conflit avec ViPER4Android), tactile garde actif ecran eteint : la touche
+  power de facade (muet / power) est la seule a rallumer l'unite, et son appui long peut ouvrir le menu power
+  d'Android (LibreHU-service, onglet Dalle, action « Bouton power maintenu »).
 - En cours d'analyse (13/11) : lenteur (CPU bloque a 987 MHz sous charge), streaming audio Bluetooth, Parametres
   Bluetooth qui plantent, AV IN 1 et 2, routage audio, Wi-Fi 5 GHz.
 - YouTube 1080p saccade ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de

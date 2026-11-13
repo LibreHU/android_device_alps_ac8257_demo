@@ -18,7 +18,10 @@ Build `befe5a3` (13/11) : pays du Wi-Fi d'apres la langue, fonctionnalite Ethern
 d'office a LibreHU-service, pas d'ecran de verrouillage, barres plus grandes, Aurora Store et LibreHU Helper (MCU Toolkit
 retire). Video verte : cause trouvee le 13/11, le HAL `backcar` du vendor ne peut pas ouvrir `/dev/backcardrv` (cree
 en 0600 root par ueventd, le system stock posait la regle) ; regle dans `rootdir/ueventd.ac8257.rc` (build suivant `1ec65bc`,
-confirme sur l'unite le 13/11 : plus de video verte). Chaque build est publie en [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
+confirme sur l'unite le 13/11 : plus de video verte). Build suivant `96472d7` (13/11) : AudioFX retire (ViPER4Android
+le remplace), mise a jour par l'appli installable dans TWRP (block map d'uncrypt), noyau avec batterie pleine sur
+secteur (Android voyait 0-1 %) et sans decodeur IR « clavier MCE » (faux clavier physique) ; en analyse : CPU bloque
+a 987 MHz sous charge, streaming et Parametres Bluetooth, AV IN, routage audio, Wi-Fi 5 GHz. Chaque build est publie en [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
 (zip signe) et l'appli Mises a jour de LineageOS s'y met a jour. **Installer : [docs/INSTALL.md](docs/INSTALL.md)**
 (vbmeta, flash, mises a jour, depannage) ou la [page du site](https://librehu.github.io/lineageos.html).**
 
@@ -120,7 +123,6 @@ L'unite sous TWRP (adb root) ou sous la ROM stock avec root, branchee en USB :
 device/alps/ac8257_demo/tools/get_vendor_img.sh      # -> vendor/jancar/ac8257_demo/vendor.img (2 Go, reste local)
 device/alps/ac8257_demo/tools/vendor_add_viper.sh    # pilote ViPERFX_RE dans cette image (sudo apt install e2fsprogs)
 device/alps/ac8257_demo/tools/fetch_kernel.sh        # noyau LibreHU stable-4.9.337 : images de boot + modules (prebuilt/)
-# (tools/fetch_kernel.sh test-wifi-chipid : branche de test, correctif de l'identifiant de puce Wi-Fi)
 device/alps/ac8257_demo/tools/vendor_add_conn_modules.sh  # ces modules dans l'image vendor (Wi-Fi, BT, GPS, FM)
 cd device/alps/ac8257_demo
 # fichiers proprietaires de /system : deja dans le depot vendor (manifest local) ; autre firmware que V1.151R6 :
@@ -274,8 +276,8 @@ Toujours ouverts :
   demarre alors avec une puce 0 et l'unite redemarre en boucle des que le Wi-Fi s'allume (constate par Reo Au In,
   repare chez lui par `setprop persist.vendor.connsys.chipid 0x8257`). Depuis le 09/11, `rootdir/etc/init/librehu.rc`
   pose `0x8257` a `early-boot` (avant `wmt_loader`, quel que soit le noyau) et remplace un `0x0000` deja enregistre ;
-  correctif du noyau aussi dans la branche de test `test-wifi-chipid` (`tools/fetch_kernel.sh test-wifi-chipid`).
-  Les deux sont a essayer.
+  correctif du noyau (la demande d'identifiant sonde d'abord le consys, sinon 0x8257) dans `stable-4.9.337` depuis le
+  13/11/2026 (branche de test `test-wifi-chipid` fusionnee).
 - **`autochips.jar`** (09/11) : sur le stock, les classes Autochips sont dans `/system/framework/autochips.jar` (dans
   le `BOOTCLASSPATH`) ; sans lui, LibreHU-service ne peut pas rendre l'affichage a Android apres l'ARM2 (video
   materielle verte : cameras, AV-in) ni lire les reglages Autochips. Desodexe de `boot-autochips.vdex` (stock
