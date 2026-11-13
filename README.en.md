@@ -19,7 +19,8 @@ KernelSU Next root granted to LibreHU-service out of the box, no lock screen, bi
 0600 root by ueventd, the stock system held the rule); rule in `rootdir/ueventd.ac8257.rc` (build after `1ec65bc`,
 confirmed on the unit on 13/11: no more green video). Build after `96472d7` (13/11): AudioFX removed (ViPER4Android
 replaces it), update from the app installable in TWRP (uncrypt block map), kernel with a full battery on mains (Android
-saw 0-1 %) and without the "MCE keyboard" IR decoder (fake physical keyboard); being investigated: Bluetooth
+saw 0-1 %) and without the "MCE keyboard" IR decoder (fake physical keyboard); build `845e87b`: the front panel power
+key wakes the locked unit (touch kept awake while the screen is off, reset when it comes back; being tested); being investigated: Bluetooth
 streaming and settings, AV IN, audio routing, 5 GHz Wi-Fi. Every build is published as a [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
 (signed zip) and LineageOS's Updates app updates from them. **Install: [docs/INSTALL.en.md](docs/INSTALL.en.md)**
 (vbmeta, flashing, updates, troubleshooting) or the [website page](https://librehu.github.io/lineageos.html).**
