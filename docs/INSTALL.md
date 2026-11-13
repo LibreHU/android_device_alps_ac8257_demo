@@ -132,9 +132,9 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   sur secteur), clavier virtuel masque (decodeur IR « clavier MCE » du noyau pris pour un clavier physique ; sur un
   build plus ancien : *Parametres -> Systeme -> Langues et saisie -> Clavier physique -> Afficher le clavier virtuel*),
   egaliseur AudioFX de LineageOS retire (en conflit avec ViPER4Android) ; appui long de la touche power de facade possible
-  sur le menu power d'Android (LibreHU-service, onglet Dalle, action « Bouton power maintenu »). Rallumer l'ecran par
-  cette touche : en essai (`mtk_tpd.sleep_on_blank=0`) ; garde par defaut dans le build `171f952`, il laissait le
-  tactile mort au rallumage : corrige dans le build suivant (sommeil du tactile comme le stock).
+  sur le menu power d'Android (LibreHU-service, onglet Dalle, action « Bouton power maintenu »). Rallumer l'unite
+  verrouillee par cette touche : la dalle reste active ecran eteint ; le build `171f952` ne la resettait pas au
+  rallumage (tactile mort) : corrige dans le build suivant.
 - En cours d'analyse (13/11) : lenteur (CPU bloque a 987 MHz sous charge), streaming audio Bluetooth, Parametres
   Bluetooth qui plantent, AV IN 1 et 2, routage audio, Wi-Fi 5 GHz.
 - YouTube 1080p saccade ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de

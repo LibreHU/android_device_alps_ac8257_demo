@@ -127,9 +127,9 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   mains), soft keyboard hidden (the kernel's "MCE keyboard" IR decoder taken for a physical keyboard; on an older
   build: *Settings -> System -> Languages & input -> Physical keyboard -> Show virtual keyboard*), LineageOS's AudioFX
   equalizer removed (it clashed with ViPER4Android); the front panel power key's long press can open Android's power
-  menu (LibreHU-service, Touch tab, action "Power button held"). Waking the screen with that key: being tested
-  (`mtk_tpd.sleep_on_blank=0`); on by default in build `171f952`, it left the touch dead once the screen came back:
-  fixed in the next build (touch sleeps as on the stock).
+  menu (LibreHU-service, Touch tab, action "Power button held"). Waking the locked unit with that key: the touch
+  panel stays awake while the screen is off; build `171f952` did not reset it when the screen came back (touch dead):
+  fixed in the next build.
 - Being investigated (13/11): slowness (CPU stuck at 987 MHz under load), Bluetooth audio streaming, Bluetooth
   settings crashing, AV IN 1 and 2, audio routing, 5 GHz Wi-Fi.
 - YouTube 1080p stutters; car standby unreliable; touch may not wake up after the screen turns off; Autochips
