@@ -137,9 +137,10 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   rallumage (tactile mort) : corrige dans le build suivant.
 - En cours d'analyse (13/11) : streaming audio Bluetooth, Parametres Bluetooth qui plantent, AV IN 1 et 2, routage
   audio, Wi-Fi 5 GHz.
-- YouTube en VP9 1080p60 saccade : pareil sous le stock et dans Chrome, limite du decodeur materiel (VP9 jusqu'a
-  1920 x 1088, sans debit d'images annonce) ; le CPU monte bien (1,4-2,2 GHz). Lire en 720p (definition de l'ecran)
-  ou en 1080p30, ou en H.264 (extension enhanced-h264ify de Firefox) ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
+- YouTube en VP9 1080p60 saccade : pareil sous le stock et dans Chrome, limite du decodeur materiel : mesure sur
+  l'unite (codecbench, 13/11/2026), le VP9 materiel decode le 1080p a ~60 fps au plus (MediaTek annonce 23-79 fps),
+  le VP9 logiciel a 61 fps, le H.264 materiel a 126 fps. Lire en 720p (definition de l'ecran), en 1080p30, ou en
+  H.264 : extension enhanced-h264ify de Firefox, avec le 60 i/s autorise dans ses reglages ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
   l'ecran ; service watermark d'Autochips absent (bruit dans les journaux).
 
 La compiler soi-meme : [BUILD.md](BUILD.md).

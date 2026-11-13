@@ -132,9 +132,10 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   fixed in the next build.
 - Being investigated (13/11): Bluetooth audio streaming, Bluetooth settings crashing, AV IN 1 and 2, audio routing,
   5 GHz Wi-Fi.
-- YouTube in VP9 1080p60 stutters: the same on the stock and in Chrome, a limit of the hardware decoder (VP9 up to
-  1920 x 1088, no frame rate announced); the CPU does scale (1.4-2.2 GHz). Watch in 720p (the screen's definition) or
-  1080p30, or in H.264 (Firefox add-on enhanced-h264ify); car standby unreliable; touch may not wake up after the screen turns off; Autochips
+- YouTube in VP9 1080p60 stutters: the same on the stock and in Chrome, a limit of the hardware decoder: measured on
+  the unit (codecbench, 13/11/2026), the hardware VP9 decodes 1080p at ~60 fps at most (MediaTek announces 23-79 fps),
+  software VP9 at 61 fps, hardware H.264 at 126 fps. Watch in 720p (the screen's definition), 1080p30, or H.264:
+  Firefox add-on enhanced-h264ify, with 60 fps allowed in its settings; car standby unreliable; touch may not wake up after the screen turns off; Autochips
   watermark service missing (log noise).
 
 Build it yourself: [BUILD.en.md](BUILD.en.md).
