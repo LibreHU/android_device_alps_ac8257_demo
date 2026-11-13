@@ -14,8 +14,11 @@ dans le build `17daf55` (rotation, retroeclairage, calibration au demarrage). Re
 adb, MTP, USB hote / peripherique, micro, MCU, applis LibreHU, Geekbench OK ; plantages du noyau (Wi-Fi sans pays :
 zero canal scanne, remise a zero du connsys), borne Wi-Fi non vue, Ethernet non pris par Android, video materielle
 verte jusqu'a une veille (ARM2 sans le root de LibreHU-service), ecran de verrouillage noir, barre d'etat trop petite.
-Build suivant : pays du Wi-Fi d'apres la langue, fonctionnalite Ethernet, root de KernelSU Next accorde d'office a
-LibreHU-service, pas d'ecran de verrouillage, barres plus grandes, Aurora Store et LibreHU Helper (MCU Toolkit retire).**
+Build `befe5a3` (13/11) : pays du Wi-Fi d'apres la langue, fonctionnalite Ethernet, root de KernelSU Next accorde
+d'office a LibreHU-service, pas d'ecran de verrouillage, barres plus grandes, Aurora Store et LibreHU Helper (MCU Toolkit
+retire). Chaque build est publie en [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
+(zip signe) et l'appli Mises a jour de LineageOS s'y met a jour. **Installer : [docs/INSTALL.md](docs/INSTALL.md)**
+(vbmeta, flash, mises a jour, depannage) ou la [page du site](https://librehu.github.io/lineageos.html).**
 
 ## Branches du depot
 

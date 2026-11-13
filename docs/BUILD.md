@@ -268,6 +268,9 @@ Depuis l'hôte Proxmox, `pct pull 160 <fichier> <destination>` fait la même cho
 
 ## 8. Installer
 
+> Builds publies (releases GitHub) et guide d'installation pour l'utilisateur, avec vbmeta, flash, mises a jour et
+> depannage : [INSTALL.md](INSTALL.md). Cette section reste celle des images construites soi-meme.
+
 **Avant la première installation** :
 1. **Sauvegarde TWRP complète** sur une clé USB ou une microSD : System Image, Vendor, Boot, Data et les partitions
    propres à l'unité. Garder aussi `vendor.img` et `system-stock.img` de l'étape 5.

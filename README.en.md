@@ -13,9 +13,11 @@ in portrait, brightness inverted, touch outside the screen without calibration; 
 backlight, calibration at boot). Feedback of 13/11 (previous build): fast, adb, MTP, USB host / device, mic, MCU,
 LibreHU apps, Geekbench OK; kernel crashes (Wi-Fi without a country: zero channel scanned, connsys reset), Wi-Fi access
 point not seen, Ethernet not taken by Android, hardware video green until a standby (ARM2 without LibreHU-service's
-root), black lock screen, status bar too small. Next build: Wi-Fi country from the language, Ethernet feature, KernelSU
-Next root granted to LibreHU-service out of the box, no lock screen, bigger bars, Aurora Store and LibreHU Helper (MCU
-Toolkit removed).**
+root), black lock screen, status bar too small. Build `befe5a3` (13/11): Wi-Fi country from the language, Ethernet feature,
+KernelSU Next root granted to LibreHU-service out of the box, no lock screen, bigger bars, Aurora Store and LibreHU Helper
+(MCU Toolkit removed). Every build is published as a [release](https://github.com/LibreHU/android_device_alps_ac8257_demo/releases)
+(signed zip) and LineageOS's Updates app updates from them. **Install: [docs/INSTALL.en.md](docs/INSTALL.en.md)**
+(vbmeta, flashing, updates, troubleshooting) or the [website page](https://librehu.github.io/lineageos.html).**
 
 ## Branches
 

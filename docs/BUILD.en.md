@@ -266,6 +266,9 @@ From the Proxmox host, `pct pull 160 <file> <destination>` does the same.
 
 ## 8. Install
 
+> Published builds (GitHub releases) and the user's installation guide, with vbmeta, flashing, updates and
+> troubleshooting: [INSTALL.en.md](INSTALL.en.md). This section stays the one for images built yourself.
+
 **Before the first install**:
 1. **Full TWRP backup** on a USB stick or a microSD card: System Image, Vendor, Boot, Data and the partitions specific
    to the unit. Keep `vendor.img` and `system-stock.img` from step 5 too.
