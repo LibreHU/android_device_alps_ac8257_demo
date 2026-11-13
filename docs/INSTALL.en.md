@@ -97,7 +97,8 @@ $b[123] = $b[123] -bor 3
 
 *Settings -> System -> Updates* (LineageOS app): it reads the feed of the published builds (`updater.json` of the
 `lineage-16.0-ota` release), downloads the next one, reboots into TWRP and installs it (since the build of
-13/11/2026; first tries in progress). By hand: the new zip from TWRP, **without** Format Data.
+13/11/2026). Up to build `96472d7`, the install in TWRP failed ("extraction du zip impossible": the zip misread
+uncrypt's block map); fixed afterwards. By hand: the new zip from TWRP, **without** Format Data.
 
 ## 7. Troubleshooting
 
@@ -122,6 +123,12 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 
 - Hardware-decoded video green until the first standby (`1ec65bc` and older): the ARM2 keeps two display layers, the
   vendor `backcar` HAL had no access to `/dev/backcardrv`; fixed in the next build (confirmed on the unit on 13/11).
+- Fixed in the build after `96472d7` (kernel included): battery seen at 0-1 % (the kernel gives a full battery on
+  mains), soft keyboard hidden (the kernel's "MCE keyboard" IR decoder taken for a physical keyboard; on an older
+  build: *Settings -> System -> Languages & input -> Physical keyboard -> Show virtual keyboard*), LineageOS's AudioFX
+  equalizer removed (it clashed with ViPER4Android).
+- Being investigated (13/11): slowness (CPU stuck at 987 MHz under load), Bluetooth audio streaming, Bluetooth
+  settings crashing, AV IN 1 and 2, audio routing, 5 GHz Wi-Fi.
 - YouTube 1080p stutters; car standby unreliable; touch may not wake up after the screen turns off; Autochips
   watermark service missing (log noise).
 

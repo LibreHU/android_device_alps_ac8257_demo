@@ -56,7 +56,10 @@ endef
 # au demarrage, sans autre ecran d'accueil l'animation de demarrage ne finirait jamais (elle s'arrete quand un ecran
 # d'accueil s'affiche). Au premier demarrage Android demande lequel garder : choisir LibreHU Launcher, « Toujours ».
 $(eval $(call librehu-priv-app,LibreHULauncher,Launcher3 Launcher3QuickStep))
-$(foreach app,$(filter-out LibreHULauncher,$(LIBREHU_APPS)),$(eval $(call librehu-priv-app,$(app),)))
+# ViPER4Android : egaliseur et effets de la ROM ; remplace AudioFX (egaliseur de LineageOS, applique en plus de ViPER :
+# effets en double, conflit signale le 13/11/2026) et MusicFX (celui d'AOSP). Sans l'APK de ViPER, AudioFX reste.
+$(eval $(call librehu-priv-app,LibreHUViPER,AudioFX MusicFX))
+$(foreach app,$(filter-out LibreHULauncher LibreHUViPER,$(LIBREHU_APPS)),$(eval $(call librehu-priv-app,$(app),)))
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := privapp-permissions-librehu.xml

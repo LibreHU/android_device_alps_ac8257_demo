@@ -100,7 +100,9 @@ $b[123] = $b[123] -bor 3
 
 *Parametres -> Systeme -> Mises a jour* (appli de LineageOS) : elle lit le flux des builds publies (`updater.json` de
 la release `lineage-16.0-ota`), telecharge le suivant, redemarre dans TWRP et l'installe (depuis le build du
-13/11/2026 ; premiers essais en cours). A la main : le nouveau zip depuis TWRP, **sans** Format Data.
+13/11/2026). Jusqu'au build `96472d7` compris, l'installation dans TWRP echouait (« extraction du zip impossible » :
+le zip lisait mal le block map d'uncrypt) ; corrige ensuite. A la main : le nouveau zip depuis TWRP, **sans** Format
+Data.
 
 ## 7. Depannage
 
@@ -126,6 +128,12 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 - Video decodee par le materiel verte jusqu'a la premiere veille (`1ec65bc` et avant) : l'ARM2 garde deux couches de
   l'affichage, le HAL `backcar` du vendor n'avait pas acces a `/dev/backcardrv` ; corrige dans le build suivant
   (confirme sur l'unite le 13/11).
+- Corriges dans le build qui suit `96472d7` (noyau compris) : batterie vue a 0-1 % (le noyau donne une batterie pleine
+  sur secteur), clavier virtuel masque (decodeur IR « clavier MCE » du noyau pris pour un clavier physique ; sur un
+  build plus ancien : *Parametres -> Systeme -> Langues et saisie -> Clavier physique -> Afficher le clavier virtuel*),
+  egaliseur AudioFX de LineageOS retire (en conflit avec ViPER4Android).
+- En cours d'analyse (13/11) : lenteur (CPU bloque a 987 MHz sous charge), streaming audio Bluetooth, Parametres
+  Bluetooth qui plantent, AV IN 1 et 2, routage audio, Wi-Fi 5 GHz.
 - YouTube 1080p saccade ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
   l'ecran ; service watermark d'Autochips absent (bruit dans les journaux).
 

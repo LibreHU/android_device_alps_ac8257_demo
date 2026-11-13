@@ -6,15 +6,6 @@
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
-# Mise a jour par l'appli Mises a jour de LineageOS (RecoverySystem.installPackage) : TWRP passe
-# « @/cache/recovery/block.map », dont la premiere ligne est le chemin du zip dans /data (non chiffree, montee par TWRP).
-case "$ZIPFILE" in
-	@*)
-		REAL=$(head -n 1 "${ZIPFILE#@}" 2>/dev/null)
-		[ -f "$REAL" ] && ZIPFILE=$REAL
-		;;
-esac
-
 ui_print() { if [ -n "$OUTFD" ] && [ -e /proc/self/fd/$OUTFD ] && [ -z "$UJC_TEST" ]; then echo "ui_print $1" > /proc/self/fd/$OUTFD; echo "ui_print" > /proc/self/fd/$OUTFD; else echo "$1"; fi; }
 abort() { ui_print "ERREUR : $1"; cleanup; exit 1; }
 
@@ -22,14 +13,53 @@ BYNAME=${UJC_BYNAME:-/dev/block/platform/bootdevice/by-name}
 VENMNT=${UJC_VENMNT:-/vendor}
 SDCARD=${UJC_SDCARD:-/data/media/0}
 TMPD=${UJC_TMP:-/tmp}/librehu_lineage
+OTAZIP=${UJC_TMP:-/tmp}/librehu_lineage_ota.zip
 MOUNTED_VEN=0
 
 cleanup() {
+	rm -f $OTAZIP
 	[ -n "$UJC_TEST" ] && return
 	sync
 	[ $MOUNTED_VEN = 1 ] && umount $VENMNT 2>/dev/null
 	rm -rf $TMPD
 }
+
+# Mise a jour par l'appli Mises a jour de LineageOS (RecoverySystem.installPackage) : le zip est dans /data, TWRP passe
+# « @/cache/recovery/block.map », ecrit par uncrypt : 1re ligne le peripherique bloc de /data, 2e la taille du zip et
+# celle d'un bloc, 3e le nombre de plages, puis une plage « debut fin » par ligne, en blocs, fin exclue
+# (bootable/recovery : uncrypt/uncrypt.cpp, otautil/SysUtil.cpp). Le zip est relu plage par plage sur la partition,
+# comme le fait le recovery d'AOSP (il marche aussi sur un /data chiffre : uncrypt y a remis le zip en clair), dans
+# un fichier temporaire de /tmp (en memoire).
+blockmap_zip() {
+	{
+		read -r DEV || return 1
+		read -r FSIZE BSIZE || return 1
+		read -r NRANGES || return 1
+		[ -b "$DEV" ] || [ -f "$DEV" ] || return 1
+		case "$FSIZE$BSIZE$NRANGES" in ''|*[!0-9]*) return 1;; esac
+		[ "$BSIZE" -gt 0 ] && [ "$NRANGES" -gt 0 ] || return 1
+		: > "$2" || return 1
+		POS=0
+		I=0
+		while [ $I -lt "$NRANGES" ]; do
+			read -r START END || return 1
+			[ "$END" -gt "$START" ] || return 1
+			dd if="$DEV" of="$2" bs="$BSIZE" skip="$START" seek="$POS" count=$((END - START)) conv=notrunc 2>/dev/null || return 1
+			POS=$((POS + END - START))
+			I=$((I + 1))
+		done
+	} < "$1"
+	# dernier bloc rempli au-dela de la taille du zip : coupe a sa taille
+	dd if=/dev/null of="$2" bs=1 seek="$FSIZE" 2>/dev/null
+	[ "$(stat -c %s "$2")" = "$FSIZE" ]
+}
+case "$ZIPFILE" in
+	@*)
+		ui_print "Zip de l'appli Mises a jour : relecture depuis /data (block map)..."
+		blockmap_zip "${ZIPFILE#@}" $OTAZIP || abort "zip de la mise a jour illisible (${ZIPFILE#@})"
+		ZIPFILE=$OTAZIP
+		;;
+esac
 
 part() { [ -n "$UJC_TEST" ] && echo "$BYNAME/$1" && return; [ -e $BYNAME/$1 ] && echo $BYNAME/$1 && return; echo /dev/block/by-name/$1; }
 info() { unzip -p "$ZIPFILE" info/$1 2>/dev/null; }
