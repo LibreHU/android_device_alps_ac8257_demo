@@ -130,9 +130,11 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   menu (LibreHU-service, Touch tab, action "Power button held"). Waking the locked unit with that key: the touch
   panel stays awake while the screen is off; build `171f952` did not reset it when the screen came back (touch dead):
   fixed in the next build.
-- Being investigated (13/11): slowness (CPU stuck at 987 MHz under load), Bluetooth audio streaming, Bluetooth
-  settings crashing, AV IN 1 and 2, audio routing, 5 GHz Wi-Fi.
-- YouTube 1080p stutters; car standby unreliable; touch may not wake up after the screen turns off; Autochips
+- Being investigated (13/11): Bluetooth audio streaming, Bluetooth settings crashing, AV IN 1 and 2, audio routing,
+  5 GHz Wi-Fi.
+- YouTube in VP9 1080p60 stutters: the same on the stock and in Chrome, a limit of the hardware decoder (VP9 up to
+  1920 x 1088, no frame rate announced); the CPU does scale (1.4-2.2 GHz). Watch in 720p (the screen's definition) or
+  1080p30, or in H.264 (Firefox add-on enhanced-h264ify); car standby unreliable; touch may not wake up after the screen turns off; Autochips
   watermark service missing (log noise).
 
 Build it yourself: [BUILD.en.md](BUILD.en.md).

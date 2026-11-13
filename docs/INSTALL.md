@@ -135,9 +135,11 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   sur le menu power d'Android (LibreHU-service, onglet Dalle, action « Bouton power maintenu »). Rallumer l'unite
   verrouillee par cette touche : la dalle reste active ecran eteint ; le build `171f952` ne la resettait pas au
   rallumage (tactile mort) : corrige dans le build suivant.
-- En cours d'analyse (13/11) : lenteur (CPU bloque a 987 MHz sous charge), streaming audio Bluetooth, Parametres
-  Bluetooth qui plantent, AV IN 1 et 2, routage audio, Wi-Fi 5 GHz.
-- YouTube 1080p saccade ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
+- En cours d'analyse (13/11) : streaming audio Bluetooth, Parametres Bluetooth qui plantent, AV IN 1 et 2, routage
+  audio, Wi-Fi 5 GHz.
+- YouTube en VP9 1080p60 saccade : pareil sous le stock et dans Chrome, limite du decodeur materiel (VP9 jusqu'a
+  1920 x 1088, sans debit d'images annonce) ; le CPU monte bien (1,4-2,2 GHz). Lire en 720p (definition de l'ecran)
+  ou en 1080p30, ou en H.264 (extension enhanced-h264ify de Firefox) ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
   l'ecran ; service watermark d'Autochips absent (bruit dans les journaux).
 
 La compiler soi-meme : [BUILD.md](BUILD.md).
