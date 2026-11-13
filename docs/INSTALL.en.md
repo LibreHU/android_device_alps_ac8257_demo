@@ -109,7 +109,7 @@ uncrypt's block map); fixed afterwards. By hand: the new zip from TWRP, **withou
 | Boot menu, then fastboot | init stopped; without cutting the power: `fastboot oem reboot-recovery`, then in TWRP `adb pull /sys/fs/pstore` and send the log |
 | Touch outside the screen | `adb logcat -s LibreHU-Touch` and `adb shell head -c 19 /proc/gt9xx_config` (panel id), to send |
 | Green video (Android Auto, players) | fixed in the builds after 13/11 (`1ec65bc` and older: a standby, ignition off then on, brings the picture back; or `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, then restart LibreHU-service) |
-| Black screen with the backlight on | after the screen turned off: the front panel power key (kernel of 13/11/2026 or later, touch kept awake), else a USB mouse gets out of it; installed before 13/11: `adb shell locksettings set-disabled true` |
+| Black screen with the backlight on, or touch dead after the screen turned off | a USB mouse or `adb shell input keyevent 26` turns the screen on; build `171f952`: `adb root`, `adb shell "echo 1 > /sys/module/mtk_tpd/parameters/sleep_on_blank"`, then turn the screen off and on (at every boot, fixed in the next build); installed before 13/11: `adb shell locksettings set-disabled true` |
 | Wi-Fi network not found | choose your language and region in Settings, reboot |
 
 Reports: LibreHU Helper (installed with the ROM). It contains the unit's serial number: share it privately.
@@ -126,9 +126,10 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 - Fixed in the build after `96472d7` (kernel included): battery seen at 0-1 % (the kernel gives a full battery on
   mains), soft keyboard hidden (the kernel's "MCE keyboard" IR decoder taken for a physical keyboard; on an older
   build: *Settings -> System -> Languages & input -> Physical keyboard -> Show virtual keyboard*), LineageOS's AudioFX
-  equalizer removed (it clashed with ViPER4Android), touch kept awake while the screen is off: the front panel power
-  key (mute / power) is the only one that wakes the unit, and its long press can open Android's power menu
-  (LibreHU-service, Touch tab, action "Power button held").
+  equalizer removed (it clashed with ViPER4Android); the front panel power key's long press can open Android's power
+  menu (LibreHU-service, Touch tab, action "Power button held"). Waking the screen with that key: being tested
+  (`mtk_tpd.sleep_on_blank=0`); on by default in build `171f952`, it left the touch dead once the screen came back:
+  fixed in the next build (touch sleeps as on the stock).
 - Being investigated (13/11): slowness (CPU stuck at 987 MHz under load), Bluetooth audio streaming, Bluetooth
   settings crashing, AV IN 1 and 2, audio routing, 5 GHz Wi-Fi.
 - YouTube 1080p stutters; car standby unreliable; touch may not wake up after the screen turns off; Autochips
