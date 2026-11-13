@@ -23,6 +23,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <dirent.h>
 #include <unistd.h>
 
 #ifdef __ANDROID__
@@ -124,7 +125,8 @@ static int grant(int fd, const char *pkg) {
     return 0;
 }
 
-/* Paquets en arguments (librehu_ksugrant.rc : les applis LibreHU qui se servent du root) ; LibreHU-service sans argument. */
+/* Paquets en arguments (librehu_ksugrant.rc) ; « prefixe* » = tous les paquets installes dont le nom commence par
+ * prefixe (dossiers de /data/data) ; LibreHU-service sans argument. */
 int main(int argc, char **argv) {
     int fd = -1, failed = 0;
 
@@ -138,7 +140,24 @@ int main(int argc, char **argv) {
         return grant(fd, "org.librehu.service");
     }
     for (int i = 1; i < argc; i++) {
-        failed |= grant(fd, argv[i]);
+        size_t n = strlen(argv[i]);
+        if (n > 1 && argv[i][n - 1] == '*') {
+            DIR *d = opendir("/data/data");
+            struct dirent *e;
+            if (d == NULL) {
+                LOG(WARN, "/data/data unreadable: %s", strerror(errno));
+                failed = 1;
+                continue;
+            }
+            while ((e = readdir(d)) != NULL) {
+                if (strncmp(e->d_name, argv[i], n - 1) == 0) {
+                    failed |= grant(fd, e->d_name);
+                }
+            }
+            closedir(d);
+        } else {
+            failed |= grant(fd, argv[i]);
+        }
     }
     return failed;
 }
