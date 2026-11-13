@@ -16,7 +16,7 @@
 LOCAL_PATH := $(call my-dir)
 
 LIBREHU_APPS := LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
-    LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay
+    LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUAndroidAuto LibreHUCarPlay
 
 # $(1) : nom du module (= nom de l'APK), $(2) : paquets remplaces
 # Bibliotheques natives (native_libs.py, lance par fetch_apks.sh) :
@@ -76,13 +76,26 @@ LOCAL_MODULE_RELATIVE_PATH := librehu
 LOCAL_SRC_FILES := ksunext/KernelSUNext.apk
 include $(BUILD_PREBUILT)
 
+# Applis ordinaires installees dans /data/app au premier demarrage (userapps/ : LibreHU Helper, Aurora Store), par le
+# meme script que le gestionnaire KernelSU Next
+LIBREHU_USERAPPS := $(foreach a,LibreHUHelper AuroraStore,$(if $(wildcard $(LOCAL_PATH)/userapps/$(a).apk),$(a).apk))
+define librehu-user-apk
+include $$(CLEAR_VARS)
+LOCAL_MODULE := $(1)
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_RELATIVE_PATH := librehu
+LOCAL_SRC_FILES := userapps/$(1)
+include $$(BUILD_PREBUILT)
+endef
+$(foreach a,$(LIBREHU_USERAPPS),$(eval $(call librehu-user-apk,$(a))))
+
 include $(CLEAR_VARS)
 LOCAL_MODULE := librehu_ksunext
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
 LOCAL_SRC_FILES := ksunext/librehu_ksunext.sh
 LOCAL_INIT_RC := ksunext/librehu_ksunext.rc
-LOCAL_REQUIRED_MODULES := KernelSUNext.apk
+LOCAL_REQUIRED_MODULES := KernelSUNext.apk $(LIBREHU_USERAPPS)
 include $(BUILD_PREBUILT)
 endif
 
@@ -94,4 +107,22 @@ LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
 LOCAL_SRC_FILES := touchcal/librehu_touchcal.sh
 LOCAL_INIT_RC := touchcal/librehu_touchcal.rc
+include $(BUILD_PREBUILT)
+
+# Root de KernelSU Next accorde a LibreHU-service au premier demarrage (ksugrant/), sans passer par le gestionnaire
+include $(CLEAR_VARS)
+LOCAL_MODULE := librehu_ksugrant
+LOCAL_SRC_FILES := ksugrant/librehu_ksugrant.c
+LOCAL_SHARED_LIBRARIES := liblog
+LOCAL_CFLAGS := -Wall -Werror
+LOCAL_INIT_RC := ksugrant/librehu_ksugrant.rc
+include $(BUILD_EXECUTABLE)
+
+# Pays du Wi-Fi d'apres la langue choisie a l'installation de LineageOS (boot/)
+include $(CLEAR_VARS)
+LOCAL_MODULE := librehu_wificountry
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
+LOCAL_SRC_FILES := boot/librehu_wificountry.sh
+LOCAL_INIT_RC := boot/librehu_wificountry.rc
 include $(BUILD_PREBUILT)

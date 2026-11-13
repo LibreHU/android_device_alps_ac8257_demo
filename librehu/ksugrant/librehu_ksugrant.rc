@@ -1,0 +1,13 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Root de KernelSU Next accorde a LibreHU-service des le premier demarrage (voir librehu_ksugrant.c)
+on property:sys.boot_completed=1
+    start librehu_ksugrant
+
+service librehu_ksugrant /system/bin/librehu_ksugrant org.librehu.service
+    class late_start
+    user root
+    group root
+    oneshot
+    disabled

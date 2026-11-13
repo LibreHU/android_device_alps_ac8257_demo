@@ -1,0 +1,14 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Pays du Wi-Fi d'apres la langue (voir librehu_wificountry.sh) : apres load_persist_props (persist.sys.locale lu),
+# avant que system_server ne cree son WifiCountryCode. Cet action passe apres celle d'init.rc (fichiers de
+# /system/etc/init lus apres init.rc).
+on load_persist_props_action
+    exec_start librehu_wificountry
+
+service librehu_wificountry /system/bin/librehu_wificountry
+    user root
+    group root
+    oneshot
+    disabled

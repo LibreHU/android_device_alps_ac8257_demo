@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<!-- Appli Mises a jour de LineageOS (packages/apps/Updater, Utils.getServerURL) : flux de mises a jour publie par la CI
+     du depot a chaque build (release « lineage-16.0-ota », updater.json) au lieu de download.lineageos.org, qui ne
+     connait pas cet appareil. Une ressource et non lineage.updater.uri : une propriete non ro.* est limitee a 91
+     caracteres. Le zip est signe avec la cle de la ROM (RecoverySystem.verifyPackage) et installe par TWRP. -->
+<resources>
+    <string name="updater_server_url" translatable="false">https://github.com/LibreHU/android_device_alps_ac8257_demo/releases/download/lineage-16.0-ota/updater.json</string>
+</resources>

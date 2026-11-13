@@ -11,6 +11,7 @@ prebuilt/modules/
 prebuilt/modules.new/
 librehu/ksunext/*.apk
 librehu/ksunext/*.apk.part
+librehu/userapps/
 librehu/*.raw
 librehu/*.abi32
 librehu/*-lib/

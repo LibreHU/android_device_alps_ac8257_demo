@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<!-- Barres d'Android plus grandes sur l'ecran de 1280 x 720 a 160 dpi (densite du stock, gardee pour les applis) :
+     a la taille d'un telephone (24 dp / 48 dp), la barre d'etat etait trop petite pour la voiture (essai du 13/11/2026,
+     l'utilisateur devait agrandir tout l'affichage). Environ x 1,5 ; la densite et donc la taille des applis ne changent
+     pas. Taille des icones et de l'heure : overlay de SystemUI. -->
+<resources>
+    <dimen name="status_bar_height_portrait">36dp</dimen>
+    <dimen name="status_bar_icon_size">32dip</dimen>
+    <dimen name="navigation_bar_height">64dp</dimen>
+    <dimen name="navigation_bar_height_landscape">64dp</dimen>
+    <dimen name="navigation_bar_width">64dp</dimen>
+</resources>

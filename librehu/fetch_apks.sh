@@ -27,7 +27,6 @@ APPS=(
     "LibreHU-BtnRemap-app latest-librehu-service  LibreHU-BtnRemap-librehu-service.apk    LibreHUBtnRemap.apk"
     "LibreHU-EasySource-app latest-main           LibreHU-EasySource-main.apk             LibreHUEasySource.apk"
     "LibreHU-disc-app     latest-main             LibreHU-Disc-main.apk                   LibreHUDisc.apk"
-    "MCU-tools-app        latest-main             MCU-Toolkit-main.apk                    LibreHUMcuTools.apk"
     "LibreHU-open-headunit-app latest-main        OpenHeadunit-LibreHU-main.apk           LibreHUAndroidAuto.apk"
     "LibreHU-xcertplay-app latest-master          CarPlay-LibreHU-master.apk              LibreHUCarPlay.apk"
 )
@@ -55,3 +54,21 @@ echo "ksunext/KernelSUNext.apk <- $KSUN_URL"
 curl -fL --retry 3 -o ksunext/KernelSUNext.apk.part "$KSUN_URL"
 echo "$KSUN_SHA256  ksunext/KernelSUNext.apk.part" | sha256sum -c -
 mv ksunext/KernelSUNext.apk.part ksunext/KernelSUNext.apk
+
+# Applis installees dans /data/app au premier demarrage (userapps/, librehu_ksunext.sh), comme des applis ordinaires :
+# elles se mettent a jour seules et l'utilisateur peut les desinstaller (elles ne reviennent pas).
+#  - LibreHU Helper (diagnostics, rapports) : derniere release, signee avec la cle commune des applis LibreHU ;
+#  - Aurora Store (GPL-3.0, https://gitlab.com/AuroraOSS/AuroraStore) : version figee, build de F-Droid verifie par son
+#    empreinte.
+mkdir -p userapps
+HELPER_URL=https://github.com/LibreHU/LibreHU-helper-app/releases/download/latest-main/LibreHU-Helper-main.apk
+echo "userapps/LibreHUHelper.apk <- $HELPER_URL"
+curl -fL --retry 3 -o userapps/LibreHUHelper.apk.part "$HELPER_URL"
+unzip -tq userapps/LibreHUHelper.apk.part >/dev/null
+mv userapps/LibreHUHelper.apk.part userapps/LibreHUHelper.apk
+AURORA_URL=https://f-droid.org/repo/com.aurora.store_76.apk
+AURORA_SHA256=fd9c75d90d0f4a7c132b9b4a5a2cf1992a45e03b8d8ff988b7dcfbc0db2c4d11
+echo "userapps/AuroraStore.apk <- $AURORA_URL (4.8.4)"
+curl -fL --retry 3 -o userapps/AuroraStore.apk.part "$AURORA_URL"
+echo "$AURORA_SHA256  userapps/AuroraStore.apk.part" | sha256sum -c -
+mv userapps/AuroraStore.apk.part userapps/AuroraStore.apk

@@ -19,6 +19,9 @@ jobs:
     concurrency:
       group: lineage-build
       cancel-in-progress: true
+    # Releases (zip signe et images) et flux de mises a jour de l'appli Updater de LineageOS.
+    permissions:
+      contents: write
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
@@ -144,7 +147,8 @@ jobs:
           ( while sleep 300; do
               echo "$(tail -n 1 /home/runner/build.log | cut -c1-160) | $(free -m | awk '/^Mem/{r=$3} /^Swap/{s=$3} END{print "RAM " r " MiB, swap " s " MiB"}'), disk $(df -h / | awk 'NR==2{print $4}') free"
             done ) &
-          m -j"$(nproc)" systemimage > /home/runner/build.log 2>&1
+          # signapk : signature du zip (OTA de l'appli Updater, verifiee par RecoverySystem.verifyPackage).
+          m -j"$(nproc)" systemimage signapk > /home/runner/build.log 2>&1
         continue-on-error: true
 
       - name: What failed
@@ -174,9 +178,45 @@ jobs:
           # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), modules of the same kernel
           D=$(date -u +%Y%m%d)
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
-            /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/flash/LibreHU-LineageOS-16.0-ac8257_demo-$D.zip \
+            /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/unsigned.zip \
             --build "lineage-16.0 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)"
+          # Signature du paquet entier (signapk -w) avec la cle de la ROM (test-keys : celle de otacerts.zip) : l'appli
+          # Updater de LineageOS refuse un paquet que RecoverySystem.verifyPackage ne verifie pas. TWRP l'installe
+          # comme avant. Le nom n'impose plus d'image de boot : le zip garde celle qui est installee (update-binary).
+          K=/mnt/lineage/build/make/target/product/security
+          /mnt/lineage/prebuilts/jdk/jdk9/linux-x86/bin/java -Xmx2g -Djava.library.path=$OUT_DIR/host/linux-x86/lib64 \
+            -jar $OUT_DIR/host/linux-x86/framework/signapk.jar -w $K/testkey.x509.pem $K/testkey.pk8 \
+            /home/runner/unsigned.zip /home/runner/flash/LibreHU-LineageOS-16.0-ac8257_demo-$D-${GITHUB_SHA::7}.zip
+          rm -f /home/runner/unsigned.zip
           (cd /home/runner/flash && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+
+      # Release GitHub de chaque build de la branche (zip signe, images, empreintes) et flux de l'appli Updater de
+      # LineageOS : updater.json de la release « lineage-16.0-ota », remplace a chaque build (format de
+      # packages/apps/Updater, Utils.parseJsonUpdate : datetime = ro.build.date.utc, romtype, version).
+      - name: GitHub release and LineageOS updater feed
+        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/lineage-16.0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: /home/runner/flash
+        run: |
+          Z=$(ls LibreHU-LineageOS-16.0-*.zip)
+          TAG=lineage-16.0-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}
+          DT=$(sed -n 's/^ro.build.date.utc=//p' build.prop)
+          TYPE=$(sed -n 's/^ro.lineage.releasetype=//p' build.prop)
+          VER=$(sed -n 's/^ro.lineage.build.version=//p' build.prop)
+          gh release create "$TAG" "$Z" boot-librehu-bootmenu.img boot-librehu.img system.img.zst build.prop SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "LineageOS 16.0, $(date -u +%d/%m/%Y) (${GITHUB_SHA::7})" \
+            --notes "LineageOS 16.0 pour l'UJC201, arbre ${GITHUB_SHA::7}. Installation et mises a jour : docs/BUILD.md (section 8). Zip signe (test-keys) : TWRP ou l'appli Mises a jour de LineageOS. Le vendor reste celui de l'unite."
+          printf '{"response":[{"datetime":%s,"filename":"%s","id":"%s","romtype":"%s","size":%s,"url":"%s","version":"%s"}]}\n' \
+            "$DT" "$Z" "$(sha256sum "$Z" | cut -d' ' -f1)" "${TYPE:-UNOFFICIAL}" "$(stat -c %s "$Z")" \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$Z" "${VER:-16.0}" > updater.json
+          cat updater.json
+          gh release view lineage-16.0-ota --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create lineage-16.0-ota --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+              --title "LineageOS 16.0 : flux de mises a jour" \
+              --notes "updater.json lu par l'appli Mises a jour de LineageOS (overlay de packages/apps/Updater) ; remplace a chaque build."
+          gh release upload lineage-16.0-ota updater.json --clobber --repo "$GITHUB_REPOSITORY"
 
       # The images are out: the output goes, room for the ccache archive (its save failed on a full disk, run
       # 43227394988).

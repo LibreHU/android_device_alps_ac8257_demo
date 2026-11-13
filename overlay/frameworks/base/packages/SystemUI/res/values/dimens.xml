@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<!-- Barre d'etat et barre de navigation agrandies (voir l'overlay de framework-res, dimens.xml) : icones, heure, marges
+     et boutons a la meme echelle (environ x 1,5). -->
+<resources>
+    <dimen name="status_bar_clock_size">20sp</dimen>
+    <dimen name="status_bar_icon_drawing_size">22dp</dimen>
+    <dimen name="status_bar_padding_start">10dp</dimen>
+    <dimen name="status_bar_padding_end">10dp</dimen>
+    <dimen name="status_bar_clock_starting_padding">10dp</dimen>
+    <dimen name="status_bar_left_clock_end_padding">10dp</dimen>
+    <dimen name="status_bar_battery_icon_height">19dp</dimen>
+    <dimen name="status_bar_battery_icon_width">12.5dp</dimen>
+    <dimen name="navigation_key_width">90dp</dimen>
+</resources>

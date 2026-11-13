@@ -1,11 +1,19 @@
 #!/sbin/sh
 # LibreHU - LineageOS 16.0 pour l'UJC201 (ac8257_demo) : installateur TWRP fait par tools/make_flashable_zip.py.
 # Ecrit system (image brute en morceaux de 1 Gio, empreinte relue sur toute la partition), boot (image du noyau LibreHU
-# avec androidboot.selinux=permissive ; « bootmenu » dans le nom du zip = celle avec le menu de demarrage) et les
+# avec androidboot.selinux=permissive ; « bootmenu » ou « plain » dans le nom du zip, sinon le type deja installe) et les
 # modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois). Ne touche jamais
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
+# Mise a jour par l'appli Mises a jour de LineageOS (RecoverySystem.installPackage) : TWRP passe
+# « @/cache/recovery/block.map », dont la premiere ligne est le chemin du zip dans /data (non chiffree, montee par TWRP).
+case "$ZIPFILE" in
+	@*)
+		REAL=$(head -n 1 "${ZIPFILE#@}" 2>/dev/null)
+		[ -f "$REAL" ] && ZIPFILE=$REAL
+		;;
+esac
 
 ui_print() { if [ -n "$OUTFD" ] && [ -e /proc/self/fd/$OUTFD ] && [ -z "$UJC_TEST" ]; then echo "ui_print $1" > /proc/self/fd/$OUTFD; echo "ui_print" > /proc/self/fd/$OUTFD; else echo "$1"; fi; }
 abort() { ui_print "ERREUR : $1"; cleanup; exit 1; }
@@ -83,9 +91,18 @@ ui_print "system : verification (toute l'image, une minute environ)"
 [ "$(head -c $SIZE $SYS | sha256sum | cut -d' ' -f1)" = "$(cat $TMPD/info/system.sha256)" ] || abort "system relu different : reflasher le zip (ou restaurer la sauvegarde TWRP)"
 ui_print "system ecrit et verifie ($SIZE octets)"
 
-# --- boot
-case "$(basename "$ZIPFILE")" in *bootmenu*) IMG=boot-bootmenu.img;; *) IMG=boot.img;; esac
+# --- boot : « bootmenu » ou « plain » dans le nom du zip impose l'image ; sinon (zip de la release, mise a jour par
+# l'appli Mises a jour) celle qui est installee est gardee : l'image du menu a un ramdisk (taille a l'octet 16 de
+# l'en-tete), l'autre non.
 BOOT=$(part boot)
+case "$(basename "$ZIPFILE")" in
+	*bootmenu*) IMG=boot-bootmenu.img ;;
+	*plain*) IMG=boot.img ;;
+	*)
+		RD=$(dd if=$BOOT bs=1 skip=16 count=4 2>/dev/null | od -An -tu4 | tr -d ' ')
+		if [ "${RD:-0}" -gt 0 ] 2>/dev/null; then IMG=boot-bootmenu.img; else IMG=boot.img; fi
+		;;
+esac
 E=$(grep " $IMG\$" $TMPD/info/SHA256SUMS | cut -d' ' -f1)
 [ "$(sha256sum $TMPD/$IMG | cut -d' ' -f1)" = "$E" ] || abort "$IMG abimee (empreinte)"
 ISZ=$(stat -c %s $TMPD/$IMG)
@@ -152,6 +169,19 @@ done
 chmod 0644 $MD/.librehu_conn
 [ -z "$UJC_TEST" ] && chcon u:object_r:vendor_file:s0 $MD/.librehu_conn
 ui_print "modules du noyau LibreHU installes dans $MD"
+
+# --- restes du zip usbnet (fait pour le noyau stock) : son init.librehu_usbnet.rc charge un r8152.ko d'un autre noyau,
+# refuse par le noyau LibreHU (« Exec format error » ; pilotes Ethernet USB integres). Sauvegardes puis retires.
+if [ -n "$VENMNT" ] && { [ -f "$VENMNT/etc/init/init.librehu_usbnet.rc" ] || [ -d "$VENMNT/lib/modules/librehu-usbnet" ]; }; then
+	if [ -n "$BK" ]; then
+		mkdir -p "$BK/usbnet-old"
+		cp -a "$VENMNT/etc/init/init.librehu_usbnet.rc" "$VENMNT/lib/modules/librehu-usbnet" "$BK/usbnet-old/" 2>/dev/null
+	fi
+	rm -f "$VENMNT/etc/init/init.librehu_usbnet.rc"
+	rm -f "$VENMNT/lib/modules/librehu-usbnet/"*.ko
+	rmdir "$VENMNT/lib/modules/librehu-usbnet" 2>/dev/null
+	ui_print "restes du zip usbnet retires du vendor (pilotes Ethernet USB integres au noyau)"
+fi
 
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then

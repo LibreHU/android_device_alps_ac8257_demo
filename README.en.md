@@ -9,8 +9,13 @@ MediaTek MT6761 family). A real ROM built from the LineageOS sources, not a GSI.
 [BUILD.en.md](docs/BUILD.en.md#0-without-a-build-pc-githubs-ci)). Tries of 12/11 on the unit: boot menu, then
 reboot to fastboot; two causes found and fixed (`vendor` mount refused by fs_mgr, SELinux policy:
 [Known risks](#known-risks)). **LineageOS boots** (12/11 evening, `/init` fixed by hand by the tester): picture and touch
-in portrait, brightness inverted, touch outside the screen without calibration; fixed in the next build (rotation,
-backlight, calibration at boot), to be tried.**
+in portrait, brightness inverted, touch outside the screen without calibration; fixed in build `17daf55` (rotation,
+backlight, calibration at boot). Feedback of 13/11 (previous build): fast, adb, MTP, USB host / device, mic, MCU,
+LibreHU apps, Geekbench OK; kernel crashes (Wi-Fi without a country: zero channel scanned, connsys reset), Wi-Fi access
+point not seen, Ethernet not taken by Android, hardware video green until a standby (ARM2 without LibreHU-service's
+root), black lock screen, status bar too small. Next build: Wi-Fi country from the language, Ethernet feature, KernelSU
+Next root granted to LibreHU-service out of the box, no lock screen, bigger bars, Aurora Store and LibreHU Helper (MCU
+Toolkit removed).**
 
 ## Branches
 

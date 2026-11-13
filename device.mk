@@ -68,6 +68,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # son logcatd.rc) n'est mis par AOSP que dans PRODUCT_PACKAGES_DEBUG : ajoute ici pour toutes les variantes.
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.logd.logpersistd=logcatd
+PRODUCT_PACKAGES += \
+    logpersist.start
 
 # Dalle 720 x 1280 (portrait) montee en paysage : le stock la tourne avec persist.sf.hwrotation=90 (SurfaceFlinger de
 # MediaTek). Ici SurfaceFlinger et l'InputReader de LineageOS, corriges par tools/patch_lineage_sources.sh, lisent
@@ -81,8 +83,30 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # Calibration d'usine de la dalle tactile au demarrage (librehu/touchcal), avant que LibreHU-service ait le root.
 PRODUCT_PACKAGES += \
     librehu_touchcal
+
+# Root de KernelSU Next accorde a LibreHU-service des le premier demarrage (librehu/ksugrant) : tactile, boutons,
+# passage de main de l'ARM2 (video verte) et reglages du service sans passer par le gestionnaire. Un choix de
+# l'utilisateur dans le gestionnaire (refus compris) n'est jamais modifie.
 PRODUCT_PACKAGES += \
-    logpersist.start
+    librehu_ksugrant
+
+# Pays du Wi-Fi d'apres la langue choisie a l'installation (librehu/boot/librehu_wificountry.sh) ; sans pays dans la
+# langue, celui du stock. Sans pays, le pilote Wi-Fi MediaTek scanne zero canal et finit par planter le noyau.
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.librehu.wificountry_default=CN
+
+# Pas d'ecran de verrouillage (aussi def_lockscreen_disabled dans l'overlay de SettingsProvider) : lu par
+# SettingsProvider a la creation de ses reglages (DatabaseHelper, ro.lockscreen.disable.default).
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.lockscreen.disable.default=true
+PRODUCT_PACKAGES += \
+    librehu_wificountry
+
+# Ethernet (adaptateurs USB RTL8152/8153, ASIX..., pilotes integres au noyau LibreHU) : sans la fonctionnalite
+# android.hardware.ethernet (le system stock la declarait, celui de LineageOS rien), le service Ethernet d'Android
+# n'est lance que si l'hote USB est declare, et l'interface eth0 n'est pas prise comme reseau.
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.hardware.ethernet.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.ethernet.xml
 
 # Valeurs persist du stock qu'un /data vide n'a pas (getprop du stock, rapport LibreHU Helper) : ECNR des appels active
 # (la propriete vendor que lit le HAL audio suit, voir rootdir/etc/init/librehu.rc) ; identifiant de puce connsys du
@@ -97,11 +121,13 @@ PRODUCT_PACKAGES += \
     mcu_ready
 
 # Applis LibreHU dans /system/priv-app (service, launcher, OTA, ViPER4Android, telephone, FM, widgets, touches au
-# volant, sources, CD / DVD, outils MCU, Android Auto, CarPlay), avec la liste blanche de leurs permissions privilegiees
+# volant, sources, CD / DVD, Android Auto, CarPlay), avec la liste blanche de leurs permissions privilegiees
 # (librehu/privapp-permissions-librehu.xml ; APK de librehu/fetch_apks.sh, qui la verifie ; un APK absent est ignore). Le pilote ViPERFX_RE est ajoute a l'image vendor par tools/vendor_add_viper.sh.
+# LibreHU Helper et Aurora Store sont installes comme applis ordinaires au premier demarrage (librehu/userapps,
+# librehu_ksunext ci-dessous) ; MCU Toolkit n'est plus dans la ROM (13/11/2026).
 PRODUCT_PACKAGES += \
     $(foreach app,LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
-        LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay,\
+        LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUAndroidAuto LibreHUCarPlay,\
         $(if $(wildcard $(LOCAL_PATH)/librehu/$(app).apk),$(app)))
 
 # Applis aux bibliotheques natives compressees (librehu/native_libs.py, installees telles quelles par
@@ -121,7 +147,7 @@ PRODUCT_PACKAGES += \
 # Precompilation speed (code natif complet) de ces applis a la construction de la ROM (dexpreopt d'Android 9).
 PRODUCT_DEXPREOPT_SPEED_APPS += \
     LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
-    LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUMcuTools LibreHUAndroidAuto LibreHUCarPlay
+    LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUAndroidAuto LibreHUCarPlay
 
 # Proprietaires cote system (interfaces HIDL Autochips / MediaTek, autochips.jar ; voir proprietary-files.txt)
 $(call inherit-product-if-exists, vendor/jancar/ac8257_demo/ac8257_demo-vendor.mk)

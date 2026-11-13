@@ -7,4 +7,8 @@
     <!-- L'ecran reste allume tant que l'autoradio est alimente -->
     <bool name="def_stay_on_while_plugged_in">true</bool>
     <integer name="def_screen_off_timeout">2147483647</integer>
+
+    <!-- Pas d'ecran de verrouillage sur un autoradio : apres une veille, il restait noir (retroeclairage allume) et
+         seule une souris USB permettait d'en sortir (essai du 13/11/2026) -->
+    <bool name="def_lockscreen_disabled">true</bool>
 </resources>

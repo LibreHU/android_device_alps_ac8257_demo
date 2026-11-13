@@ -10,7 +10,12 @@ famille MediaTek MT6761). Une vraie ROM construite depuis les sources LineageOS,
 demarrage puis redemarrage en fastboot ; deux causes trouvees et corrigees (montage de `vendor` refuse par fs_mgr,
 politique SELinux : [Risques connus](#risques-connus)). **LineageOS demarre** (12/11 au soir, `/init` corrige a la main
 par le testeur) : image et tactile en portrait, luminosite inversee, tactile hors ecran sans calibration ; corriges
-dans le build suivant (rotation, retroeclairage, calibration au demarrage), a essayer.**
+dans le build `17daf55` (rotation, retroeclairage, calibration au demarrage). Retour du 13/11 (build precedent) : rapide,
+adb, MTP, USB hote / peripherique, micro, MCU, applis LibreHU, Geekbench OK ; plantages du noyau (Wi-Fi sans pays :
+zero canal scanne, remise a zero du connsys), borne Wi-Fi non vue, Ethernet non pris par Android, video materielle
+verte jusqu'a une veille (ARM2 sans le root de LibreHU-service), ecran de verrouillage noir, barre d'etat trop petite.
+Build suivant : pays du Wi-Fi d'apres la langue, fonctionnalite Ethernet, root de KernelSU Next accorde d'office a
+LibreHU-service, pas d'ecran de verrouillage, barres plus grandes, Aurora Store et LibreHU Helper (MCU Toolkit retire).**
 
 ## Branches du depot
 
