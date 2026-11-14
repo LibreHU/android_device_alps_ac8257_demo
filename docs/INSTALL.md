@@ -139,7 +139,10 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 - Aucun son, alors qu'Android joue et que LibreHU-service affiche la sourdine coupee (builds jusqu'au 14/11) : le
   noeud `/dev/gpios_ioctl` etait cree en 0600 root, le service ne pouvait pas couper la sourdine de l'ampli (GPIO 166) ;
   regle ueventd ajoutee (droits du stock), trouve et confirme sur l'unite par Reo Au In le 13/11.
-- En cours d'analyse (14/11) : Parametres Bluetooth qui plantent, AV IN 1 et 2, routage audio. Streaming Bluetooth :
+- Parametres Bluetooth (et « Appareils connectes ») qui plantent : le service d'impression manquait (fonctionnalite
+  `android.software.print` non declaree), les Parametres d'Android 9 plantent alors ; corrige dans le build qui suit
+  le 14/11.
+- En cours d'analyse (14/11) : AV IN 1 et 2, routage audio. Streaming Bluetooth :
   la reconnexion automatique de LibreHU-service relancait sans fin un telephone injoignable (toutes les 40 s) ;
   corrige dans le service (`d0debeb`), test a refaire telephone a portee.
 - Wi-Fi 5 GHz : l'unite voit le 5 GHz (canaux 36 a 44 et 157 dans un releve du 14/11). Android 9 ne connait pas le

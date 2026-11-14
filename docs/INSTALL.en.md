@@ -134,7 +134,9 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 - No sound at all while Android plays and LibreHU-service shows mute off (builds up to 14/11): `/dev/gpios_ioctl` was
   created 0600 root, so the service could not release the amplifier mute (GPIO 166); ueventd rule added (stock
   permissions), found and confirmed on the unit by Reo Au In on 13/11.
-- Being investigated (14/11): Bluetooth settings crashing, AV IN 1 and 2, audio routing. Bluetooth streaming: the
+- Bluetooth settings (and "Connected devices") crashing: the print service was missing (feature
+  `android.software.print` not declared), and Android 9's Settings then crash; fixed in the build after 14/11.
+- Being investigated (14/11): AV IN 1 and 2, audio routing. Bluetooth streaming: the
   LibreHU-service auto-connect retried an unreachable phone for ever (every 40 s); fixed in the service (`d0debeb`),
   to test again with the phone in range.
 - 5 GHz Wi-Fi: the unit sees 5 GHz (channels 36 to 44 and 157 in a scan of 14/11). Android 9 does not know WPA3

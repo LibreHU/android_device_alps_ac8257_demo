@@ -109,6 +109,14 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.ethernet.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.ethernet.xml
 
+# Impression : sans la fonctionnalite android.software.print (le fichier de fonctionnalites du vendor stock ne la
+# declare pas), PrintManagerService ne demarre pas et les Parametres d'Android 9 plantent a l'ouverture de « Appareils
+# connectes » (et donc du Bluetooth) : PrintSettingPreferenceController.onStart appelle addPrintJobStateChangeListener
+# sur un PrintManager nul (journal du 14/11/2026, « Feature android.software.print not available »). PrintSpooler est
+# deja dans LineageOS (build/make/target/product/core.mk).
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.software.print.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.print.xml
+
 # Valeurs persist du stock qu'un /data vide n'a pas (getprop du stock, rapport LibreHU Helper) : ECNR des appels active
 # (la propriete vendor que lit le HAL audio suit, voir rootdir/etc/init/librehu.rc) ; identifiant de puce connsys du
 # Wi-Fi pose par le meme fichier.
