@@ -19,3 +19,17 @@
 # l'unite par chmod 0660 + bascule de la sourdine). L'UID de l'appli change d'une installation a l'autre : droits du
 # stock. Pour SELinux enforcing, il faudra en plus un type de peripherique et des regles allow.
 /dev/gpios_ioctl          0666   root       root
+
+# Desentrelaceur video Autochips (drivers/misc/autochips/di du noyau : entree video CVBS, cameras) : regle du
+# /ueventd.rc stock, absente de celui de LineageOS (comparaison du 14/11/2026 avec le dump SP Flash Tool du stock).
+/dev/di                   0666   system     system
+
+# Bus I2C : le system stock les ouvrait tous (init.jancar.rc, « on boot » : chmod 777 + chown system de /dev/i2c-0 a
+# i2c-6). Le /vendor/ueventd.rc stock ne couvre que i2c-1 et i2c-6 (puce audio BD37534). LibreHU CarPlay cherche la
+# puce MFi sur chaque /dev/i2c-N qu'il peut ouvrir (adresses 0x10 / 0x11) : sans ces regles, une puce sur un autre bus
+# reste introuvable.
+/dev/i2c-0                0666   system     system
+/dev/i2c-2                0666   system     system
+/dev/i2c-3                0666   system     system
+/dev/i2c-4                0666   system     system
+/dev/i2c-5                0666   system     system

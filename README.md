@@ -20,7 +20,9 @@ retire). Video verte : cause trouvee le 13/11, le HAL `backcar` du vendor ne peu
 en 0600 root par ueventd, le system stock posait la regle) ; regle dans `rootdir/ueventd.ac8257.rc` (build suivant `1ec65bc`,
 confirme sur l'unite le 13/11 : plus de video verte). Aucun son (trouve par Reo Au In le 13/11) : meme cause,
 `/dev/gpios_ioctl` en 0600 root, LibreHU-service ne pouvait pas couper la sourdine de l'ampli (GPIO 166) ; regle ueventd
-aux droits du stock (build qui suit le 14/11). Build suivant `96472d7` (13/11) : AudioFX retire (ViPER4Android
+aux droits du stock (build qui suit le 14/11). Compare au dump SP Flash Tool du stock : il manquait aussi `/dev/di`
+(desentrelaceur video, entree CVBS) et les bus `/dev/i2c-0` a `5` (ouverts par le `init.jancar.rc` du system stock ;
+LibreHU CarPlay y cherche la puce MFi) : regles ajoutees. Build suivant `96472d7` (13/11) : AudioFX retire (ViPER4Android
 le remplace), mise a jour par l'appli installable dans TWRP (block map d'uncrypt), noyau avec batterie pleine sur
 secteur (Android voyait 0-1 %) et sans decodeur IR « clavier MCE » (faux clavier physique) ; build `845e87b` : la
 touche power de facade rallume l'unite verrouillee (tactile garde actif ecran eteint, resette au rallumage ; en essai) ; en analyse : streaming et

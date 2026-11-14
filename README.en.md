@@ -19,7 +19,9 @@ KernelSU Next root granted to LibreHU-service out of the box, no lock screen, bi
 0600 root by ueventd, the stock system held the rule); rule in `rootdir/ueventd.ac8257.rc` (build after `1ec65bc`,
 confirmed on the unit on 13/11: no more green video). No sound at all (found by Reo Au In on 13/11): same cause,
 `/dev/gpios_ioctl` made 0600 root, LibreHU-service could not release the amplifier mute (GPIO 166); ueventd rule with
-the stock permissions (build after 14/11). Build after `96472d7` (13/11): AudioFX removed (ViPER4Android
+the stock permissions (build after 14/11). Compared with the SP Flash Tool dump of the stock: `/dev/di` (video
+deinterlacer, CVBS input) and the `/dev/i2c-0` to `5` buses (opened by the stock system's `init.jancar.rc`; LibreHU
+CarPlay looks for the MFi chip there) were missing too: rules added. Build after `96472d7` (13/11): AudioFX removed (ViPER4Android
 replaces it), update from the app installable in TWRP (uncrypt block map), kernel with a full battery on mains (Android
 saw 0-1 %) and without the "MCE keyboard" IR decoder (fake physical keyboard); build `845e87b`: the front panel power
 key wakes the locked unit (touch kept awake while the screen is off, reset when it comes back; being tested); being investigated: Bluetooth
