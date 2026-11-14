@@ -136,6 +136,10 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   permissions), found and confirmed on the unit by Reo Au In on 13/11.
 - Bluetooth settings (and "Connected devices") crashing: the print service was missing (feature
   `android.software.print` not declared), and Android 9's Settings then crash; fixed in the build after 14/11.
+- Wired Android Auto unavailable ("this head unit does not support USB host mode"), Internet over the cable and USB
+  devices invisible to the apps: feature `android.hardware.usb.host` not declared (the stock system declared it);
+  fixed in the build after 14/11. USB tethering of recent phones (RNDIS class `ef/04/01`): kernel driver fixed the
+  same day.
 - Being investigated (14/11): AV IN 1 and 2, audio routing. Bluetooth streaming: the
   LibreHU-service auto-connect retried an unreachable phone for ever (every 40 s); fixed in the service (`d0debeb`),
   to test again with the phone in range.

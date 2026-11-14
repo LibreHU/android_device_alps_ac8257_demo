@@ -117,6 +117,13 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.print.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.print.xml
 
+# Hote USB : le system stock declarait android.hardware.usb.host, pas celui de LineageOS ni le vendor stock. Sans elle,
+# UsbService ne cree pas de UsbHostManager : aucun evenement de branchement, UsbManager ne voit aucun appareil. Open
+# Headunit refuse alors l'Android Auto filaire (« cet autoradio ne prend pas en charge le mode hote USB »), et
+# l'internet par le cable de LibreHU-service, CarPlay filaire et les appareils USB des applis ne marchent pas (14/11).
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.hardware.usb.host.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.usb.host.xml
+
 # Valeurs persist du stock qu'un /data vide n'a pas (getprop du stock, rapport LibreHU Helper) : ECNR des appels active
 # (la propriete vendor que lit le HAL audio suit, voir rootdir/etc/init/librehu.rc) ; identifiant de puce connsys du
 # Wi-Fi pose par le meme fichier.
