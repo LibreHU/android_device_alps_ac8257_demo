@@ -208,6 +208,7 @@ debugfs -R "cat /build.prop" vendor/jancar/ac8257_demo/vendor.img 2>/dev/null | 
 
 cd device/alps/ac8257_demo
 tools/vendor_add_viper.sh             # ViPERFX_RE driver in vendor.img (copy vendor.img.orig kept)
+                                      # (taken by tools/fetch_viper.sh into prebuilt/viper, also for the TWRP zip)
 tools/fetch_kernel.sh                 # LibreHU kernel stable-4.9.337: boot images + Wi-Fi / BT / GPS / FM modules
                                       # (+ androidboot.selinux=permissive in the header of the boot images)
 tools/vendor_add_conn_modules.sh      # these modules in vendor.img (the LibreHU kernel refuses the stock ones)

@@ -108,12 +108,14 @@ jobs:
           du -sh .repo; rm -rf .repo/project-objects .repo/projects
           du -sh /mnt/lineage; df -h / /mnt
 
-      - name: LibreHU apps (librehu/fetch_apks.sh) and boot images (tools/fetch_kernel.sh)
+      - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh)
         working-directory: /mnt/lineage/device/alps/ac8257_demo
         run: |
           librehu/fetch_apks.sh
           # LibreHU kernel stable-4.9.337: boot images with the stock AVB footer, androidboot.selinux=permissive added
           tools/fetch_kernel.sh
+          # ViPERFX_RE driver of the ROM's ViPER4Android app (same version), for the TWRP zip: installed or updated in /vendor
+          tools/fetch_viper.sh
           ls -la prebuilt
 
       - name: ccache
@@ -175,7 +177,8 @@ jobs:
           cp /mnt/lineage/device/alps/ac8257_demo/prebuilt/boot-librehu-bootmenu.img \
              /mnt/lineage/device/alps/ac8257_demo/prebuilt/boot-librehu.img /home/runner/flash/
           cp $P/system/build.prop /home/runner/flash/build.prop || true
-          # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), modules of the same kernel
+          # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), modules of the same kernel,
+          # ViPERFX_RE driver
           D=$(date -u +%Y%m%d)
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
             /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/unsigned.zip \

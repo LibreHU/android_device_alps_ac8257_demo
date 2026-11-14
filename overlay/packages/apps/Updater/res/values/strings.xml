@@ -9,4 +9,11 @@
      caracteres. Le zip est signe avec la cle de la ROM (RecoverySystem.verifyPackage) et installe par TWRP. -->
 <resources>
     <string name="updater_server_url" translatable="false">https://github.com/LibreHU/android_device_alps_ac8257_demo/releases/download/lineage-16.0-ota/updater.json</string>
+    <!-- Menu « Afficher l'historique des modifications » (Utils.getChangelogURL) : nouveautes de chaque build, resumees
+         pour les utilisateurs, sur le site de LibreHU, au lieu de download.lineageos.org/<appareil>/changes (404 pour
+         ac8257_demo). Sans %1$s : le nom de l'appareil passe par getString est ignore. -->
+    <string name="menu_changelog_url" translatable="false">https://librehu.github.io/lineageos.html#changes</string>
+    <!-- Mise a jour que l'appli refuse d'installer (Utils.getUpgradeBlockedURL : autre version de LineageOS) : la page
+         d'installation par TWRP au lieu du wiki de LineageOS (404 pour ac8257_demo). -->
+    <string name="blocked_update_info_url" translatable="false">https://librehu.github.io/lineageos.html#install</string>
 </resources>

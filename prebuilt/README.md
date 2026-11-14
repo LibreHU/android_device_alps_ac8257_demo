@@ -29,3 +29,9 @@ stock** (`AVBf`, vbmeta chaine du boot), sans lequel le LK refuse l'image, dever
 logo sans journal du noyau : `tools/ac8257/repack_boot.py` du depot du noyau). Un `boot.img` construit par LineageOS
 (`BOARD_AVB_ENABLE := false`) n'a pas ce pied. Le zip `mka bacon` reprend cette image (`IMAGES/boot.img`).
 Le noyau stock #72 (`kernel`) n'est plus utilise par le build : il n'y a pas d'image de boot stock a publier.
+
+`viper/` (non versionne) : **pilote ViPERFX_RE** v2.1.1 ([likelikeslike/ViPERFX_RE](https://github.com/likelikeslike/ViPERFX_RE),
+module officiel non-AIDL, GPL-2.0) : `libv4a_re_armeabi-v7a.so`, `libv4a_re_arm64-v8a.so`, `LICENSE`, `SOURCE`,
+`version`, `SHA256SUMS`, ecrits par `tools/fetch_viper.sh` (SHA-256 du module verifie). Meme version que l'appli
+ViPER4Android LibreHU de la ROM. Le zip TWRP (`tools/make_flashable_zip.py`) les emporte dans `viper/` : son
+installateur met le pilote dans `/vendor/lib[64]/soundfx` et le declare dans les `audio_effects` de vendor.

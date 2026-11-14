@@ -20,7 +20,7 @@ Every build of the CI (branch `lineage-16.0`) is published in the
 
 | File | What it is |
 |---|---|
-| `LibreHU-LineageOS-16.0-ac8257_demo-<date>-<tree>.zip` | TWRP zip (system, boot, kernel modules): **the one to install** |
+| `LibreHU-LineageOS-16.0-ac8257_demo-<date>-<tree>.zip` | TWRP zip (system, boot, kernel modules, ViPER driver): **the one to install** |
 | `system.img.zst` | system image for fastboot (zstd: unpack before flashing) |
 | `boot-librehu-bootmenu.img` / `boot-librehu.img` | boot image with / without the boot menu |
 | `SHA256SUMS` | checksums of the files |
@@ -79,6 +79,10 @@ $b[123] = $b[123] -bor 3
 5. *Install* -> the zip -> swipe. It writes `system` (read back and checked), `boot` and the kernel's Wi-Fi /
    Bluetooth / GPS / FM modules into `/vendor/lib/modules` (originals backed up in `/sdcard/LibreHU/backup`). It keeps
    the boot image type installed (with or without the menu); `bootmenu` or `plain` in the zip's name forces one.
+   It also installs or updates the **ViPER4Android driver** (ViPERFX_RE, same version as the ROM's app) into
+   `/vendor/lib[64]/soundfx` and declares it in `/vendor/etc/audio_effects.xml` (original copy `.v4a-orig` next to
+   it): the `viper4android-re` zip is no longer needed. The `viper4android-re-restore` zip removes it and creates
+   `/sdcard/LibreHU/no-viper`, which stops the next zips from putting it back (the `viper4android-re` zip deletes it).
 6. *Reboot -> System*. The first boot takes a few minutes; the boot menu starts Android by itself after 3 seconds.
 
 ## 5. First boot

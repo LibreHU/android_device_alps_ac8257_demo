@@ -7,7 +7,9 @@ LineageOS 16.0's own zip (`mka bacon`, ota_from_target_files.py) cannot be made 
   read), written to the partition at their offsets and checked against the SHA-256 of the whole image;
 - boot.img / boot-bootmenu.img: prebuilt/boot-librehu*.img (tools/fetch_kernel.sh: LibreHU kernel, stock AVB footer,
   androidboot.selinux=permissive);
-- modules/: the connectivity modules of that kernel (prebuilt/modules), for /vendor/lib/modules.
+- modules/: the connectivity modules of that kernel (prebuilt/modules), for /vendor/lib/modules;
+- viper/: the ViPERFX_RE driver of the ROM's ViPER4Android app (prebuilt/viper, tools/fetch_viper.sh), installed or
+  updated in /vendor/lib[64]/soundfx and declared in vendor's audio_effects.
 
     tools/make_flashable_zip.py <system.img (sparse or raw)> <prebuilt dir> <out.zip> [--build NAME] [--chunk-mib N]
 """
@@ -18,6 +20,7 @@ import struct
 import zipfile
 
 SPARSE_MAGIC = 0xED26FF3A
+VIPER_FILES = ("libv4a_re_armeabi-v7a.so", "libv4a_re_arm64-v8a.so", "LICENSE", "SOURCE", "version", "SHA256SUMS")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -87,6 +90,10 @@ def main():
     for p in [os.path.join(a.prebuilt, v) for v in boots.values()] + [os.path.join(mods, n) for n in ("SHA256SUMS", "kernel_version")]:
         if not os.path.isfile(p):
             raise SystemExit(f"{p} missing: run tools/fetch_kernel.sh first")
+    viper = os.path.join(a.prebuilt, "viper")
+    for n in VIPER_FILES:
+        if not os.path.isfile(os.path.join(viper, n)):
+            raise SystemExit(f"{os.path.join(viper, n)} missing: run tools/fetch_viper.sh first")
 
     with zipfile.ZipFile(a.out, "w", zipfile.ZIP_DEFLATED, allowZip64=False) as z:
         def add_bytes(name, data, mode=0o644):
@@ -135,6 +142,8 @@ def main():
         for n in sorted(os.listdir(mods)):
             if n.endswith(".ko") or n in ("SHA256SUMS", "kernel_version", "release.txt"):
                 z.write(os.path.join(mods, n), f"modules/{n}")
+        for n in VIPER_FILES:
+            z.write(os.path.join(viper, n), f"viper/{n}")
 
         add_bytes("info/build", (a.build or "unknown") + "\n")
         add_bytes("info/system.size", f"{size}\n")

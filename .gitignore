@@ -9,6 +9,7 @@ librehu/*.apk.part
 prebuilt/kernel-librehu
 prebuilt/modules/
 prebuilt/modules.new/
+prebuilt/viper/
 librehu/ksunext/*.apk
 librehu/ksunext/*.apk.part
 librehu/userapps/

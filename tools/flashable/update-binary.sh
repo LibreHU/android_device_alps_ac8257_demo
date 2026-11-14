@@ -2,7 +2,8 @@
 # LibreHU - LineageOS 16.0 pour l'UJC201 (ac8257_demo) : installateur TWRP fait par tools/make_flashable_zip.py.
 # Ecrit system (image brute en morceaux de 1 Gio, empreinte relue sur toute la partition), boot (image du noyau LibreHU
 # avec androidboot.selinux=permissive ; « bootmenu » ou « plain » dans le nom du zip, sinon le type deja installe) et les
-# modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois). Ne touche jamais
+# modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois), et installe ou
+# met a jour le pilote ViPER4Android RE dans /vendor (sauf LibreHU/no-viper dans la memoire interne). Ne touche jamais
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
@@ -211,6 +212,95 @@ if [ -n "$VENMNT" ] && { [ -f "$VENMNT/etc/init/init.librehu_usbnet.rc" ] || [ -
 	rm -f "$VENMNT/lib/modules/librehu-usbnet/"*.ko
 	rmdir "$VENMNT/lib/modules/librehu-usbnet" 2>/dev/null
 	ui_print "restes du zip usbnet retires du vendor (pilotes Ethernet USB integres au noyau)"
+fi
+
+# --- pilote ViPER4Android RE (ViPERFX_RE de l'appli ViPER4Android LibreHU de la ROM, meme version) : installe ou mis a
+# jour dans /vendor/lib[64]/soundfx et declare dans les audio_effects de vendor (bibliotheque "v4a_re", effet
+# "v4a_standard_re"), comme le zip viper4android-re de LibreHU-flashablesZips : meme sauvegarde <fichier>.v4a-orig
+# (fichier sans ViPER), que son zip viper4android-re-restore remet. Le fichier en place est repris (ce que d'autres zips
+# y ont ajoute reste) et reecrit seulement s'il change. Rien n'est fait si la memoire interne contient LibreHU/no-viper
+# (cree par le zip viper4android-re-restore). Un echec ici n'arrete pas l'installation : system, boot et modules sont
+# deja ecrits.
+V4A_UUID=90380da3-8536-4744-a6a3-5731970e640f
+# Le fichier $1 sans les lignes de ViPER
+v4a_strip() {
+	case $1 in
+		*.xml) sed -e '/v4a_standard_re/d' -e '/"v4a_re"/d' "$1" ;;
+		*) sed -e '/v4a_standard_re {/,/}/d' -e '/v4a_re {/,/}/d' "$1" ;;
+	esac
+}
+viper_install() {
+	unzip -o -q "$ZIPFILE" 'viper/*' -d $TMPD || { ui_print "ViPER : extraction du zip impossible"; return 1; }
+	while read -r S F; do
+		[ "$(sha256sum $TMPD/viper/$F | cut -d' ' -f1)" = "$S" ] || { ui_print "ViPER : empreinte de $F incorrecte"; return 1; }
+	done < $TMPD/viper/SHA256SUMS
+	VV=$(cat $TMPD/viper/version)
+	NL=0
+	for arch in lib lib64; do
+		d=$VENMNT/$arch/soundfx
+		[ -d $d ] || continue
+		NL=$((NL + 1))
+		so=$TMPD/viper/libv4a_re_armeabi-v7a.so; [ $arch = lib64 ] && so=$TMPD/viper/libv4a_re_arm64-v8a.so
+		if cmp -s $so $d/libv4a_re.so; then
+			ui_print "ViPER : $d/libv4a_re.so deja en $VV"
+			continue
+		fi
+		if [ -f $d/libv4a_re.so ]; then ST="mis a jour"; else ST="installe"; fi
+		cp $so $d/libv4a_re.so.librehu.new || { rm -f $d/libv4a_re.so.librehu.new; ui_print "ViPER : copie dans $d impossible (vendor plein ?)"; return 1; }
+		chmod 0644 $d/libv4a_re.so.librehu.new; chown 0:0 $d/libv4a_re.so.librehu.new 2>/dev/null
+		[ -z "$UJC_TEST" ] && chcon u:object_r:vendor_file:s0 $d/libv4a_re.so.librehu.new
+		mv -f $d/libv4a_re.so.librehu.new $d/libv4a_re.so || { ui_print "ViPER : remplacement dans $d impossible"; return 1; }
+		ui_print "ViPER : $d/libv4a_re.so $ST ($VV)"
+	done
+	[ $NL -gt 0 ] || { ui_print "ViPER : $VENMNT/lib/soundfx introuvable"; return 1; }
+	NC=0
+	VBK=""
+	for f in $VENMNT/etc/audio_effects*.xml $VENMNT/etc/audio_effects*.conf; do
+		[ -f "$f" ] && [ ! -L "$f" ] || continue
+		T=$TMPD/v4a_cfg
+		case $f in
+			*.xml)
+				grep -q '<libraries>' "$f" && grep -q '<effects>' "$f" || continue
+				v4a_strip "$f" | sed \
+				    -e "s|<libraries>|<libraries>\n        <library name=\"v4a_re\" path=\"libv4a_re.so\"/>|" \
+				    -e "s|<effects>|<effects>\n        <effect name=\"v4a_standard_re\" library=\"v4a_re\" uuid=\"$V4A_UUID\"/>|" \
+				    > $T || { ui_print "ViPER : lecture de $f impossible"; return 1; }
+				;;
+			*)
+				grep -q '^libraries {' "$f" && grep -q '^effects {' "$f" || continue
+				v4a_strip "$f" | sed \
+				    -e "s|^libraries {|libraries {\n  v4a_re {\n    path /vendor/lib/soundfx/libv4a_re.so\n  }|" \
+				    -e "s|^effects {|effects {\n  v4a_standard_re {\n    library v4a_re\n    uuid $V4A_UUID\n  }|" \
+				    > $T || { ui_print "ViPER : lecture de $f impossible"; return 1; }
+				;;
+		esac
+		NC=$((NC + 1))
+		grep -q "$V4A_UUID" $T || { ui_print "ViPER : modification de $f echouee"; return 1; }
+		if cmp -s $T "$f"; then
+			ui_print "ViPER : effet deja declare dans $f"
+			continue
+		fi
+		if [ ! -f "$f.v4a-orig" ]; then
+			cp -p "$f" "$f.v4a-orig" && v4a_strip "$f" > "$f.v4a-orig" || { rm -f "$f.v4a-orig"; ui_print "ViPER : sauvegarde $f.v4a-orig impossible"; return 1; }
+		fi
+		if [ -n "$BK" ]; then
+			[ -n "$VBK" ] || VBK=$BK/viper-$(date +%Y%m%d-%H%M%S)
+			mkdir -p $VBK && cp -p "$f" $VBK/
+		fi
+		# reecriture sur place : garde l'inode, les droits et le contexte SELinux
+		cat $T > "$f" || { ui_print "ViPER : ecriture de $f impossible (restaurer $f.v4a-orig)"; return 1; }
+		cmp -s $T "$f" || { ui_print "ViPER : verification de $f echouee (restaurer $f.v4a-orig)"; return 1; }
+		ui_print "ViPER : effet v4a_standard_re declare dans $f"
+	done
+	[ $NC -gt 0 ] || { ui_print "ViPER : aucun audio_effects utilisable dans $VENMNT/etc"; return 1; }
+	[ -n "$VBK" ] && ui_print "ViPER : configuration d'avant sauvegardee : $VBK"
+	return 0
+}
+if [ -f $SDCARD/LibreHU/no-viper ]; then
+	ui_print "ViPER : LibreHU/no-viper dans la memoire interne, pilote non touche"
+elif ! viper_install; then
+	ui_print "ViPER : pilote non installe, le reste de la ROM l'est. Reessayer :"
+	ui_print "  zip viper4android-re (LibreHU Apps)"
 fi
 
 # --- /data : jamais effacee ici

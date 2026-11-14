@@ -10,7 +10,8 @@
 #   - bibliotheque "v4a_re" et effet "v4a_standard_re" (UUID 90380da3-...) declares dans /etc/audio_effects.xml.
 # Sous Android 9 Treble, les effets sont charges par le HAL audio du vendor : le pilote doit etre dans vendor (les
 # espaces de noms de l'editeur de liens interdisent a un processus vendor de charger une bibliotheque de /system).
-# A utiliser avec l'appli ViPER4Android LibreHU de la meme version (2.1.1).
+# A utiliser avec l'appli ViPER4Android LibreHU de la meme version (2.1.1). Pilote pris par tools/fetch_viper.sh
+# (prebuilt/viper), comme le zip TWRP de la ROM.
 #
 # Modifie seulement l'image locale (debugfs), jamais l'unite. Une copie d'origine est gardee (vendor.img.orig).
 #   tools/vendor_add_viper.sh [vendor.img]
@@ -20,8 +21,7 @@ set -e
 
 MY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMG="${1:-$MY_DIR/../../../../vendor/jancar/ac8257_demo/vendor.img}"
-VER=v2.1.1
-SHA=c8f769f9d9f470e47f8278d69615c899d54af3916d10291d853fbd299ee847a2
+V="$MY_DIR/../prebuilt/viper"
 UUID=90380da3-8536-4744-a6a3-5731970e640f
 CFG=/etc/audio_effects.xml
 
@@ -31,9 +31,8 @@ command -v debugfs >/dev/null || { echo "debugfs manquant (paquet e2fsprogs)" >&
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 
-curl -fsSL -o "$T/module.zip" "https://github.com/likelikeslike/ViPERFX_RE/releases/download/$VER/ViPER4Android-RE-$VER.zip"
-echo "$SHA  $T/module.zip" | sha256sum -c -
-unzip -q -o "$T/module.zip" 'common/files/*' -d "$T/mod"
+"$MY_DIR/fetch_viper.sh"
+VER=$(cat "$V/version")
 
 [ -f "$IMG.orig" ] || cp "$IMG" "$IMG.orig"
 
@@ -63,8 +62,8 @@ CMDS="$T/cmds"
     echo "sif $CFG gid 0"
     echo "ea_set -f $T/ctx_cfg $CFG security.selinux"
     for arch in lib lib64; do
-        so=$T/mod/common/files/libv4a_re_armeabi-v7a.so
-        [ $arch = lib64 ] && so=$T/mod/common/files/libv4a_re_arm64-v8a.so
+        so=$V/libv4a_re_armeabi-v7a.so
+        [ $arch = lib64 ] && so=$V/libv4a_re_arm64-v8a.so
         dst=/$arch/soundfx/libv4a_re.so
         echo "rm $dst"
         echo "write $so $dst"
