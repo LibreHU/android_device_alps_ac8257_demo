@@ -44,6 +44,12 @@
 # 4. frameworks/base (lineage-patches/frameworks_base) : retroeclairage Jancar inverse (lcd-backlight 0 = maximum,
 #    179 = minimum ; le system stock compense, TWRP aussi dans touchfix) : LightsService convertit la luminosite
 #    d'Android quand ro.librehu.backlight_inverted vaut true (device.mk).
+#
+# 5. packages/apps/Bluetooth (lineage-patches/packages_apps_Bluetooth) : en A2DP sink, Android 9 ne prend le focus audio
+#    que sur une lecture locale (appli multimedia d'Android Automotive) ou sur une TV / un objet connecte ; sinon il
+#    jette le son du telephone et le met en pause (A2dpSinkStreamHandler, SRC_STR_START / SRC_PLAY). Comme
+#    a2dp_sink_automatically_request_audio_focus d'Android 10, le focus est pris quand le telephone lance la lecture,
+#    si ro.librehu.a2dp_sink_auto_focus vaut true (device.mk). Logcat du 14/11/2026 : musique Bluetooth muette.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -99,7 +105,7 @@ else
     echo "patch_lineage_sources: genfscon fuseblk retire de device/lineage/sepolicy/common/private/genfs_contexts"
 fi
 
-# 3, 4. frameworks : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
+# 3, 4, 5. frameworks, Bluetooth : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
 apply_patch() {
     local proj=$1 witness=$2 mark=$3 p=$4 what=$5
     [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
@@ -119,5 +125,7 @@ apply_patch frameworks/native services/surfaceflinger/SurfaceFlinger.cpp librehu
     "$PATCHES/frameworks_native/0001-librehu-display-rotation.patch" "rotation de la dalle et du tactile"
 apply_patch frameworks/base services/core/java/com/android/server/lights/LightsService.java librehu.backlight_inverted \
     "$PATCHES/frameworks_base/0001-librehu-backlight-inverted.patch" "retroeclairage inverse"
+apply_patch packages/apps/Bluetooth src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java librehu.a2dp_sink_auto_focus \
+    "$PATCHES/packages_apps_Bluetooth/0001-librehu-a2dp-sink-auto-focus.patch" "focus audio de la musique Bluetooth"
 
 exit $TODO

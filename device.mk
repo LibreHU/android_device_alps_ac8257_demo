@@ -91,6 +91,19 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     librehu_ksugrant
 
+# Musique Bluetooth (A2DP sink) : deux reglages de voiture absents d'Android 9 pour un appareil qui n'est pas une
+# voiture Android Automotive.
+# - persist.bluetooth.enablenewavrcp=false, comme packages/services/Car/car_product/build/car.mk (pie-release) : sinon
+#   la pile n'ouvre que le nouveau profil AVRCP, cote telephone (bta_av_rc_create : « Skipping RC creation for the old
+#   AVRCP profile »), et le controleur AVRCP de l'autoradio ne se connecte jamais (logcat du 14/11/2026 :
+#   « AvrcpControllerSM: Currently Disconnected »), donc ni titres, ni lecture / pause depuis l'autoradio.
+# - ro.librehu.a2dp_sink_auto_focus=true : l'appli Bluetooth corrigee par tools/patch_lineage_sources.sh prend le focus
+#   audio quand le telephone lance la lecture (a2dp_sink_automatically_request_audio_focus d'Android 10). Sans lui, le
+#   son du telephone etait jete (« btif_a2dp_sink_set_focus_state_event: state=0 », aucun requestAudioFocus).
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.bluetooth.enablenewavrcp=false \
+    ro.librehu.a2dp_sink_auto_focus=true
+
 # Pays du Wi-Fi d'apres la langue choisie a l'installation (librehu/boot/librehu_wificountry.sh) ; sans pays dans la
 # langue, celui du stock. Sans pays, le pilote Wi-Fi MediaTek scanne zero canal et finit par planter le noyau.
 PRODUCT_PROPERTY_OVERRIDES += \

@@ -152,6 +152,14 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   (RNDIS de classe `ef/04/01`) : pilote du noyau corrige le meme jour.
 - Multitouch non declare (le system stock le declarait) : corrige dans le build qui suit le 14/11. Kit de cameras
   360° : serveur `atcavm_server` et service watermark du stock remis le meme jour.
+- Musique Bluetooth muette (build `fc917b8` et avant) : la pile Bluetooth ouvrait le profil AVRCP d'un telephone,
+  pas celui d'une voiture (`persist.bluetooth.enablenewavrcp`, a `false` sur les voitures Android 9), et l'A2DP sink
+  d'Android 9 ne prend le focus audio que sur une lecture lancee depuis l'autoradio : le son du telephone etait jete.
+  Corrige dans le build suivant (propriete + appli Bluetooth corrigee par `tools/patch_lineage_sources.sh`).
+- Plantages vus le 14/11, corriges dans LibreHU-service `b1112ee` (mise a jour par LibreHU Apps, sans nouveau build) :
+  Parametres -> Appareils connectes -> le telephone, et « Fichiers recus » ; LibreHU-service au demarrage d'Android
+  Auto filaire et sur l'onglet Reseau (permission `ACCESS_NETWORK_STATE` manquante : chaque plantage coupait aussi le
+  VPN de l'internet par le cable).
 - En cours d'analyse (14/11) : AV IN 1 et 2, routage audio. Streaming Bluetooth :
   la reconnexion automatique de LibreHU-service relancait sans fin un telephone injoignable (toutes les 40 s) ;
   corrige dans le service (`d0debeb`), test a refaire telephone a portee.

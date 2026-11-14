@@ -146,6 +146,13 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   same day.
 - Multitouch not declared (the stock system declared it): fixed in the build after 14/11. 360° camera kit: the
   stock `atcavm_server` server and watermark service restored the same day.
+- Silent Bluetooth music (build `fc917b8` and before): the Bluetooth stack opened a phone's AVRCP profile, not a
+  car's (`persist.bluetooth.enablenewavrcp`, `false` on Android 9 cars), and Android 9's A2DP sink only takes audio
+  focus for a play started from the head unit: the phone's sound was dropped. Fixed in the next build (property +
+  Bluetooth app patched by `tools/patch_lineage_sources.sh`).
+- Crashes seen on 14/11, fixed in LibreHU-service `b1112ee` (updated through LibreHU Apps, no new build): Settings ->
+  Connected devices -> the phone, and "Received files"; LibreHU-service when wired Android Auto starts and on the
+  Network tab (`ACCESS_NETWORK_STATE` permission missing: each crash also dropped the cable-internet VPN).
 - Being investigated (14/11): AV IN 1 and 2, audio routing. Bluetooth streaming: the
   LibreHU-service auto-connect retried an unreachable phone for ever (every 40 s); fixed in the service (`d0debeb`),
   to test again with the phone in range.

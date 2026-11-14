@@ -1,0 +1,46 @@
+--- a/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
++++ b/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
+@@ -25,6 +25,7 @@
+ import android.media.AudioManager.OnAudioFocusChangeListener;
+ import android.os.Handler;
+ import android.os.Message;
++import android.os.SystemProperties;
+ import android.util.Log;
+ 
+ import com.android.bluetooth.R;
+@@ -112,8 +113,8 @@
+         switch (message.what) {
+             case SRC_STR_START:
+                 mStreamAvailable = true;
+-                // Always request audio focus if on TV.
+-                if (isTvDevice()) {
++                // Always request audio focus if on TV (LibreHU: or on a head unit, shouldRequestFocus).
++                if (isTvDevice() || shouldRequestFocus()) {
+                     if (mAudioFocus == AudioManager.AUDIOFOCUS_NONE) {
+                         requestAudioFocus();
+                     }
+@@ -147,8 +148,8 @@
+ 
+             case SRC_PLAY:
+                 // Remote play command.
+-                // If is an iot device gain focus and start avrcp updates.
+-                if (isIotDevice() || isTvDevice()) {
++                // If is an iot device gain focus and start avrcp updates (LibreHU: or a head unit).
++                if (isIotDevice() || isTvDevice() || shouldRequestFocus()) {
+                     if (mAudioFocus == AudioManager.AUDIOFOCUS_NONE) {
+                         requestAudioFocus();
+                     }
+@@ -378,4 +379,13 @@
+         return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+     }
+ 
++    // LibreHU (UJC201) : un autoradio n'a pas l'appli multimedia d'Android Automotive, qui envoie la lecture locale
++    // (SNK_PLAY) et prend ainsi le focus audio. Sans focus, le son du telephone est jete (btif_a2dp_sink : trames
++    // sautees) et le telephone mis en pause. Comme a2dp_sink_automatically_request_audio_focus d'Android 10
++    // (SRC_STR_START, SRC_PLAY), le focus est pris quand le telephone lance la lecture si
++    // ro.librehu.a2dp_sink_auto_focus vaut true (device.mk).
++    private boolean shouldRequestFocus() {
++        return SystemProperties.getBoolean("ro.librehu.a2dp_sink_auto_focus", false);
++    }
++
+ }
