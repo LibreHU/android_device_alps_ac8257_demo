@@ -139,8 +139,12 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 - Aucun son, alors qu'Android joue et que LibreHU-service affiche la sourdine coupee (builds jusqu'au 14/11) : le
   noeud `/dev/gpios_ioctl` etait cree en 0600 root, le service ne pouvait pas couper la sourdine de l'ampli (GPIO 166) ;
   regle ueventd ajoutee (droits du stock), trouve et confirme sur l'unite par Reo Au In le 13/11.
-- En cours d'analyse (13/11) : streaming audio Bluetooth, Parametres Bluetooth qui plantent, AV IN 1 et 2, routage
-  audio, Wi-Fi 5 GHz.
+- En cours d'analyse (14/11) : Parametres Bluetooth qui plantent, AV IN 1 et 2, routage audio. Streaming Bluetooth :
+  la reconnexion automatique de LibreHU-service relancait sans fin un telephone injoignable (toutes les 40 s) ;
+  corrige dans le service (`d0debeb`), test a refaire telephone a portee.
+- Wi-Fi 5 GHz : l'unite voit le 5 GHz (canaux 36 a 44 et 157 dans un releve du 14/11). Une borne qui n'annonce son
+  reseau en 5 GHz qu'en WPA2-Enterprise (EAP) n'est joignable avec un mot de passe qu'en 2,4 GHz : activer WPA2-PSK
+  sur la radio 5 GHz de la borne.
 - YouTube en VP9 1080p60 saccade : pareil sous le stock et dans Chrome, limite du decodeur materiel : mesure sur
   l'unite (codecbench, 13/11/2026), le VP9 materiel decode le 1080p a ~60 fps au plus (MediaTek annonce 23-79 fps),
   le VP9 logiciel a 61 fps, le H.264 materiel a 126 fps. Lire en 720p (definition de l'ecran), en 1080p30, ou en
