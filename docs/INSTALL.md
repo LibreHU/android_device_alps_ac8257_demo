@@ -150,7 +150,8 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   l'unite (codecbench, 13/11/2026), le VP9 materiel decode le 1080p a ~60 fps au plus (MediaTek annonce 23-79 fps),
   le VP9 logiciel a 61 fps, le H.264 materiel a 126 fps. Lire en 720p (definition de l'ecran), en 1080p30, ou en
   H.264 : extension enhanced-h264ify de Firefox, avec le 60 i/s autorise dans ses reglages ; veille de la voiture peu fiable ; le tactile peut ne pas se reveiller apres l'extinction de
-  l'ecran ; service watermark d'Autochips absent (bruit dans les journaux).
+  l'ecran ; service watermark d'Autochips absent jusqu'au build qui suit le 14/11 : le HAL 360° du vendor le cherchait
+  5 fois par seconde et ce bruit chassait le reste des journaux (remis depuis le dump du stock, pour les kits 360°).
 
 La compiler soi-meme : [BUILD.md](BUILD.md).
 

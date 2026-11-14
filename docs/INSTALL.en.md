@@ -144,7 +144,8 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   the unit (codecbench, 13/11/2026), the hardware VP9 decodes 1080p at ~60 fps at most (MediaTek announces 23-79 fps),
   software VP9 at 61 fps, hardware H.264 at 126 fps. Watch in 720p (the screen's definition), 1080p30, or H.264:
   Firefox add-on enhanced-h264ify, with 60 fps allowed in its settings; car standby unreliable; touch may not wake up after the screen turns off; Autochips
-  watermark service missing (log noise).
+  watermark service missing up to the build after 14/11: the vendor 360° HAL looked for it 5 times a second and this
+  noise pushed the rest out of the logs (restored from the stock dump, for 360° kits).
 
 Build it yourself: [BUILD.en.md](BUILD.en.md).
 

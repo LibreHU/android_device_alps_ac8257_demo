@@ -45,3 +45,38 @@ lib64/libmetazone_jni.so
 # Dependance non-AOSP de libdvr_jni.so (enregistrement USB ; le reste de ses NEEDED est dans LineageOS)
 lib/libusbdvr.so
 lib64/libusbdvr.so
+
+# Service watermark (horodatage des enregistrements du kit 360) : son client est le HAL avmhal du vendor stock, qui
+# cherche IWatermark/WatermarkService (manifeste du vendor) ; le serveur etait cette appli du system stock, en UID
+# system et persistante (re-signee avec la cle plateforme : module). Dependances MediaTek : NEEDED du /system stock.
+-app/AtcWatermark/AtcWatermark.apk
+lib/libwatermark.so
+lib/libwatermark_config.so
+lib/libwatermark_impl.so
+lib/libwatermark_jni.so
+lib/libwatermark_service.so
+lib/libdpframework_mtk.so
+lib/libged_sys.so
+lib/libgralloc_extra_sys.so
+lib/libgraphics2d_ext.so
+lib/libion_mtk_sys.so
+lib/libion_ulit_sys.so
+lib/libjpeg-alpha.so
+lib/libpq_prot_mtk.so
+lib/vendor.mediatek.hardware.power@2.0.so
+lib/vendor.mediatek.hardware.pq@2.0.so
+lib64/libwatermark.so
+lib64/libwatermark_config.so
+lib64/libwatermark_impl.so
+lib64/libwatermark_jni.so
+lib64/libwatermark_service.so
+lib64/libdpframework_mtk.so
+lib64/libged_sys.so
+lib64/libgralloc_extra_sys.so
+lib64/libgraphics2d_ext.so
+lib64/libion_mtk_sys.so
+lib64/libion_ulit_sys.so
+lib64/libjpeg-alpha.so
+lib64/libpq_prot_mtk.so
+lib64/vendor.mediatek.hardware.power@2.0.so
+lib64/vendor.mediatek.hardware.pq@2.0.so
