@@ -1,0 +1,11 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# /dev/gpios_ioctl (drivers/misc/jancar/jancar_gpios.c du noyau) : LibreHU-service, appli privilegiee (domaine
+# priv_app), y pilote la sourdine de l'ampli (GPIO 166), le commutateur video CVBS et les entrees. Sans type propre, le
+# noeud reste un « device » generique, que la politique ne peut ouvrir a aucun domaine (system/sepolicy,
+# public/domain.te : neverallow domain device:chr_file { open read write }) : refuse des le passage en enforcing.
+# Le type est cote system (Treble : le vendor stock ne connait pas ce noeud). Droits Unix : rootdir/ueventd.ac8257.rc.
+type librehu_gpio_device, dev_type;
+
+allow priv_app librehu_gpio_device:chr_file rw_file_perms;

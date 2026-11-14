@@ -114,6 +114,7 @@ Data.
 | Tactile hors de l'ecran | `adb logcat -s LibreHU-Touch` et `adb shell head -c 19 /proc/gt9xx_config` (identifiant de la dalle), a envoyer |
 | Video verte (Android Auto, lecteurs) | corrige dans les builds d'apres le 13/11 (`1ec65bc` et avant : une veille, contact coupe puis remis, ramene l'image ; ou `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, puis redemarrer LibreHU-service) |
 | Ecran noir retroeclaire, ou tactile mort apres une extinction de l'ecran | une souris USB ou `adb shell input keyevent 26` rallume l'ecran ; build `171f952` : `adb root`, `adb shell "echo 1 > /sys/module/mtk_tpd/parameters/sleep_on_blank"`, puis eteindre et rallumer l'ecran (a refaire a chaque demarrage, corrige dans le build suivant) ; installee avant le 13/11 : `adb shell locksettings set-disabled true` |
+| Pas de son du tout (ampli muet) | corrige dans le build qui suit le 14/11 ; avant : `adb root`, `adb shell chmod 0666 /dev/gpios_ioctl`, puis dans LibreHU-service, onglet Audio, activer puis couper la sourdine (jusqu'au redemarrage) |
 | Reseau Wi-Fi introuvable | choisir sa langue et sa region dans les Parametres, redemarrer |
 
 Rapports : LibreHU Helper (installe avec la ROM). Il contient le numero de serie de l'autoradio : le partager en prive.
@@ -135,6 +136,9 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   sur le menu power d'Android (LibreHU-service, onglet Dalle, action « Bouton power maintenu »). Rallumer l'unite
   verrouillee par cette touche : la dalle reste active ecran eteint ; le build `171f952` ne la resettait pas au
   rallumage (tactile mort) : corrige dans le build suivant.
+- Aucun son, alors qu'Android joue et que LibreHU-service affiche la sourdine coupee (builds jusqu'au 14/11) : le
+  noeud `/dev/gpios_ioctl` etait cree en 0600 root, le service ne pouvait pas couper la sourdine de l'ampli (GPIO 166) ;
+  regle ueventd ajoutee (droits du stock), trouve et confirme sur l'unite par Reo Au In le 13/11.
 - En cours d'analyse (13/11) : streaming audio Bluetooth, Parametres Bluetooth qui plantent, AV IN 1 et 2, routage
   audio, Wi-Fi 5 GHz.
 - YouTube en VP9 1080p60 saccade : pareil sous le stock et dans Chrome, limite du decodeur materiel : mesure sur

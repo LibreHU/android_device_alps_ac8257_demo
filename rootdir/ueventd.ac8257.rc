@@ -11,3 +11,11 @@
 # fail. Permission denied »), sendReadyToArm2() rend 1 sans rien faire : l'ARM2 garde ses deux couches d'affichage et
 # la video decodee par le materiel reste verte jusqu'a la premiere veille.
 /dev/backcardrv           0660   system     system
+
+# Pilote GPIO Jancar (drivers/misc/jancar/jancar_gpios.c du noyau) : LibreHU-service l'ouvre directement, avec l'UID
+# de son appli (librehu_hw.c), pour la sourdine de l'ampli (GPIO 166, 1 = muet), le commutateur video CVBS et les
+# entrees. Le system stock le donnait a tout le monde (crwxrwxrwx, ivi-services tourne en system) ; sans regle, le
+# service ne peut rien piloter et l'ampli reste muet : aucun son (rapport de Reo Au In du 13/11/2026, confirme sur
+# l'unite par chmod 0660 + bascule de la sourdine). L'UID de l'appli change d'une installation a l'autre : droits du
+# stock. Pour SELinux enforcing, il faudra en plus un type de peripherique et des regles allow.
+/dev/gpios_ioctl          0666   root       root

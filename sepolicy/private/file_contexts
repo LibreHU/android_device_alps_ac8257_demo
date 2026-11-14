@@ -10,3 +10,6 @@
 # ses propres labels.
 /avm                    u:object_r:rootfs:s0
 /jancar                 u:object_r:rootfs:s0
+# Pilote GPIO Jancar, ouvert par LibreHU-service : type propre (sepolicy/private/librehu_gpio.te) a la place du
+# « device » generique, qu'aucune politique ne peut ouvrir a un domaine.
+/dev/gpios_ioctl        u:object_r:librehu_gpio_device:s0

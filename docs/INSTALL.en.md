@@ -110,6 +110,7 @@ uncrypt's block map); fixed afterwards. By hand: the new zip from TWRP, **withou
 | Touch outside the screen | `adb logcat -s LibreHU-Touch` and `adb shell head -c 19 /proc/gt9xx_config` (panel id), to send |
 | Green video (Android Auto, players) | fixed in the builds after 13/11 (`1ec65bc` and older: a standby, ignition off then on, brings the picture back; or `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, then restart LibreHU-service) |
 | Black screen with the backlight on, or touch dead after the screen turned off | a USB mouse or `adb shell input keyevent 26` turns the screen on; build `171f952`: `adb root`, `adb shell "echo 1 > /sys/module/mtk_tpd/parameters/sleep_on_blank"`, then turn the screen off and on (at every boot, fixed in the next build); installed before 13/11: `adb shell locksettings set-disabled true` |
+| No sound at all (amplifier muted) | fixed in the build after 14/11; before that: `adb root`, `adb shell chmod 0666 /dev/gpios_ioctl`, then in LibreHU-service, Audio tab, turn mute on then off (until the next reboot) |
 | Wi-Fi network not found | choose your language and region in Settings, reboot |
 
 Reports: LibreHU Helper (installed with the ROM). It contains the unit's serial number: share it privately.
@@ -130,6 +131,9 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   menu (LibreHU-service, Touch tab, action "Power button held"). Waking the locked unit with that key: the touch
   panel stays awake while the screen is off; build `171f952` did not reset it when the screen came back (touch dead):
   fixed in the next build.
+- No sound at all while Android plays and LibreHU-service shows mute off (builds up to 14/11): `/dev/gpios_ioctl` was
+  created 0600 root, so the service could not release the amplifier mute (GPIO 166); ueventd rule added (stock
+  permissions), found and confirmed on the unit by Reo Au In on 13/11.
 - Being investigated (13/11): Bluetooth audio streaming, Bluetooth settings crashing, AV IN 1 and 2, audio routing,
   5 GHz Wi-Fi.
 - YouTube in VP9 1080p60 stutters: the same on the stock and in Chrome, a limit of the hardware decoder: measured on
