@@ -146,6 +146,8 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   cable et appareils USB des applis invisibles : fonctionnalite `android.hardware.usb.host` non declaree (le system
   stock la declarait) ; corrige dans le build qui suit le 14/11. Partage de connexion USB des telephones recents
   (RNDIS de classe `ef/04/01`) : pilote du noyau corrige le meme jour.
+- Multitouch non declare (le system stock le declarait) : corrige dans le build qui suit le 14/11. Kit de cameras
+  360° : serveur `atcavm_server` et service watermark du stock remis le meme jour.
 - En cours d'analyse (14/11) : AV IN 1 et 2, routage audio. Streaming Bluetooth :
   la reconnexion automatique de LibreHU-service relancait sans fin un telephone injoignable (toutes les 40 s) ;
   corrige dans le service (`d0debeb`), test a refaire telephone a portee.

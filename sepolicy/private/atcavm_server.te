@@ -1,0 +1,12 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# atcavm_server (serveur 360 Autochips du system stock, rootdir/etc/init/atcavm_server.rc) : domaine propre, sans
+# lequel l'init d'Android 9 refuse de lancer le service, meme en permissif (comme mcu_ready). Il parle aux HAL du
+# vendor (avmhal, fastdisplay, backcar, car_event_monitor, watermark), types de la politique vendor que la politique
+# system ne peut pas nommer : permissif a lui seul en attendant le passage en enforcing (userdebug seulement).
+type atcavm_server, domain, coredomain;
+type atcavm_server_exec, exec_type, file_type;
+
+init_daemon_domain(atcavm_server)
+permissive atcavm_server;

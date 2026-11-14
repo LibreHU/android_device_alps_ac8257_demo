@@ -140,6 +140,8 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
   devices invisible to the apps: feature `android.hardware.usb.host` not declared (the stock system declared it);
   fixed in the build after 14/11. USB tethering of recent phones (RNDIS class `ef/04/01`): kernel driver fixed the
   same day.
+- Multitouch not declared (the stock system declared it): fixed in the build after 14/11. 360° camera kit: the
+  stock `atcavm_server` server and watermark service restored the same day.
 - Being investigated (14/11): AV IN 1 and 2, audio routing. Bluetooth streaming: the
   LibreHU-service auto-connect retried an unreachable phone for ever (every 40 s); fixed in the service (`d0debeb`),
   to test again with the phone in range.

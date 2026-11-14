@@ -124,13 +124,19 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.usb.host.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.usb.host.xml
 
+# Multitouch : le system stock declarait android.hardware.touchscreen.multitouch.jazzhand (5 doigts et plus, avec
+# multitouch et multitouch.distinct), pas LineageOS (pm list features du 14/11/2026). La dalle GT9xx suit 5 points.
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
+
 # Valeurs persist du stock qu'un /data vide n'a pas (getprop du stock, rapport LibreHU Helper) : ECNR des appels active
 # (la propriete vendor que lit le HAL audio suit, voir rootdir/etc/init/librehu.rc) ; identifiant de puce connsys du
 # Wi-Fi pose par le meme fichier.
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.audiohal.third_ecnr_lib.enable=1
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/etc/init/librehu.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/librehu.rc
+    $(LOCAL_PATH)/rootdir/etc/init/librehu.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/librehu.rc \
+    $(LOCAL_PATH)/rootdir/etc/init/atcavm_server.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/atcavm_server.rc
 
 # Droits des noeuds Autochips que le system stock posait (rootdir/ueventd.ac8257.rc : /dev/backcardrv du HAL backcar,
 # sans lequel la video materielle reste verte). Racine du system (system-as-root : build_image.py y copie root/).

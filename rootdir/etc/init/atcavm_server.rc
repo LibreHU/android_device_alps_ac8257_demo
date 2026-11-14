@@ -1,0 +1,20 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: Apache-2.0
+#
+# Serveur 360 Autochips (/system/bin/atcavm_server du system stock, depot vendor) : affichage rapide et enregistrement
+# du kit de cameras 360 (client « Record » du HAL avmhal du vendor, qui incruste le watermark). Repris du
+# atcavm_server.rc stock (dump SP Flash Tool du 14/11/2026), avec deux differences :
+#   - pas de declencheur « fastserver » (le init.rc stock le lancait, pas celui de LineageOS) : demarre avec main ;
+#   - pas des reglages de cpuset du stock (coeur 3 reserve a ce serveur, applis limitees aux coeurs 0 a 2) ni de son
+#     writepid /dev/cpuset/critical/tasks (cpuset absent de LineageOS).
+on boot
+    chmod 0660 /dev/adf0
+    chmod 0660 /dev/adf1
+    chmod 0660 /sys/kernel/debug/sync/sw_sync
+    chown system graphics /sys/kernel/debug/sync/sw_sync
+
+service atcavm_server /system/bin/atcavm_server
+    class main
+    user system
+    group system camera
+    capabilities KILL SYS_NICE
