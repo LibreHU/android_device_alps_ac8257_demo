@@ -142,9 +142,10 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
 - En cours d'analyse (14/11) : Parametres Bluetooth qui plantent, AV IN 1 et 2, routage audio. Streaming Bluetooth :
   la reconnexion automatique de LibreHU-service relancait sans fin un telephone injoignable (toutes les 40 s) ;
   corrige dans le service (`d0debeb`), test a refaire telephone a portee.
-- Wi-Fi 5 GHz : l'unite voit le 5 GHz (canaux 36 a 44 et 157 dans un releve du 14/11). Une borne qui n'annonce son
-  reseau en 5 GHz qu'en WPA2-Enterprise (EAP) n'est joignable avec un mot de passe qu'en 2,4 GHz : activer WPA2-PSK
-  sur la radio 5 GHz de la borne.
+- Wi-Fi 5 GHz : l'unite voit le 5 GHz (canaux 36 a 44 et 157 dans un releve du 14/11). Android 9 ne connait pas le
+  WPA3 (SAE, ajoute dans Android 10) : un reseau en WPA3 seul s'affiche en « WPA2-EAP » (AKM inconnue -> EAP par
+  defaut dans le code d'Android 9) et reste injoignable. Mettre la radio 5 GHz de la borne en mode mixte WPA2/WPA3,
+  ou utiliser le 2,4 GHz.
 - YouTube en VP9 1080p60 saccade : pareil sous le stock et dans Chrome, limite du decodeur materiel : mesure sur
   l'unite (codecbench, 13/11/2026), le VP9 materiel decode le 1080p a ~60 fps au plus (MediaTek annonce 23-79 fps),
   le VP9 logiciel a 61 fps, le H.264 materiel a 126 fps. Lire en 720p (definition de l'ecran), en 1080p30, ou en

@@ -137,9 +137,9 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 - Being investigated (14/11): Bluetooth settings crashing, AV IN 1 and 2, audio routing. Bluetooth streaming: the
   LibreHU-service auto-connect retried an unreachable phone for ever (every 40 s); fixed in the service (`d0debeb`),
   to test again with the phone in range.
-- 5 GHz Wi-Fi: the unit sees 5 GHz (channels 36 to 44 and 157 in a scan of 14/11). An access point that announces its
-  network on 5 GHz with WPA2-Enterprise (EAP) only can be joined with a password on 2.4 GHz only: enable WPA2-PSK on
-  its 5 GHz radio.
+- 5 GHz Wi-Fi: the unit sees 5 GHz (channels 36 to 44 and 157 in a scan of 14/11). Android 9 does not know WPA3
+  (SAE, added in Android 10): a WPA3-only network shows as "WPA2-EAP" (unknown AKM -> EAP by default in Android 9's
+  code) and cannot be joined. Set the access point's 5 GHz radio to WPA2/WPA3 mixed mode, or use 2.4 GHz.
 - YouTube in VP9 1080p60 stutters: the same on the stock and in Chrome, a limit of the hardware decoder: measured on
   the unit (codecbench, 13/11/2026), the hardware VP9 decodes 1080p at ~60 fps at most (MediaTek announces 23-79 fps),
   software VP9 at 61 fps, hardware H.264 at 126 fps. Watch in 720p (the screen's definition), 1080p30, or H.264:
