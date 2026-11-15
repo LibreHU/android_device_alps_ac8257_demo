@@ -3,83 +3,89 @@
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Corrige les sources LineageOS 16.0 la ou elles empechent de demarrer sur le vendor stock de l'UJC201. A lancer depuis
-# la racine des sources (~/android/lineage), apres chaque repo sync : repo sync remet les fichiers d'origine.
-# Sans argument : corrige ; --check : dit seulement s'il reste quelque chose a corriger (code 1 si oui).
+# Corrige les sources LineageOS 17.1 la ou elles empechent de demarrer sur le vendor stock de l'UJC201 (Android 9).
+# A lancer depuis la racine des sources (~/android/lineage), apres chaque repo sync : repo sync remet les fichiers
+# d'origine. Sans argument : corrige ; --check : dit seulement s'il reste quelque chose a corriger (code 1 si oui).
 # Codes : 0 = sources corrigees, 1 = reste a corriger (--check), 2 = fichier introuvable, 3 = sources inattendues.
+# Version de la branche lineage-17.1 : la branche lineage-16.0 a la sienne (correctifs 2 et 5 differents).
 #
-# 1. system/core/fs_mgr/fs_mgr.cpp, fs_mgr_is_device_unlocked() : fs_mgr ne croit l'unite deverrouillee que si
-#    androidboot.verifiedbootstate vaut "orange". Le LK de Jancar annonce "green" meme deverrouille (getprop de l'unite
-#    sous le stock : ro.boot.verifiedbootstate=green, ro.boot.vbmeta.device_state=unlocked, rapports LibreHU Helper du
-#    04/11 et du 10/11/2026) ; avec le drapeau VERIFICATION_DISABLED de vbmeta, il ne passe meme aucun
-#    androidboot.vbmeta.* : libavb saute alors avb_append_options (avb_slot_verify.c) ; ligne de commande du noyau de
-#    l'essai du 12/11 : verifiedbootstate=green, root=PARTUUID=... de libavb, rien d'autre. Or fastboot
-#    --disable-verity / --disable-verification modifie les drapeaux de l'en-tete de vbmeta, que couvre son empreinte
+# 1. system/core/fs_mgr : fs_mgr ne croit l'unite deverrouillee que si androidboot.verifiedbootstate vaut "orange".
+#    Le LK de Jancar annonce "green" meme deverrouille (getprop de l'unite sous le stock :
+#    ro.boot.verifiedbootstate=green, ro.boot.vbmeta.device_state=unlocked, rapports LibreHU Helper du 04/11 et du
+#    10/11/2026) ; avec le drapeau VERIFICATION_DISABLED de vbmeta, il ne passe meme aucun androidboot.vbmeta.* :
+#    libavb saute alors avb_append_options (avb_slot_verify.c) ; ligne de commande du noyau de l'essai du 12/11 :
+#    verifiedbootstate=green, root=PARTUUID=... de libavb, rien d'autre. Or fastboot --disable-verity /
+#    --disable-verification modifie les drapeaux de l'en-tete de vbmeta, que couvre son empreinte
 #    (external/avb/libavb/avb_vbmeta_image.c) : libavb rend ERROR_VERIFICATION, que fs_mgr refuse sur une unite qu'il
-#    croit verrouillee. Console de l'essai du 12/11 (console-ramoops) :
-#      init: [libfs_mgr]ERROR_VERIFICATION isn't allowed when the device is LOCKED
-#      init: Failed to setup verity for '/vendor'
-#      init: Failed to mount required partitions early ...
-#      init: Reboot start, reason: reboot, rebootTarget: bootloader
-#    La fonction considere desormais l'unite deverrouillee si vbmeta.device_state vaut "unlocked" ou est absent ; seul
-#    un "locked" explicite du LK garde fs_mgr strict. Un vbmeta qui ne se verifie pas n'arrive jusqu'a l'init que si
-#    le LK l'a accepte : le refuser n'apporte rien. Le system stock de Jancar demarre avec ce meme vbmeta modifie.
+#    croit verrouillee ; vendor ne se monte pas et l'init redemarre en bootloader (console de l'essai du 12/11 sous
+#    LineageOS 16.0 : « ERROR_VERIFICATION isn't allowed when the device is LOCKED »).
+#    Android 10 a deux copies de ce test : fs_mgr_is_device_unlocked() (fs_mgr/fs_mgr.cpp) et IsDeviceUnlocked()
+#    (fs_mgr/libfs_avb/util.cpp, appele par AvbHandle::Open pour le vbmeta du montage de vendor par la premiere
+#    etape de l'init). Les deux considerent desormais l'unite deverrouillee si vbmeta.device_state vaut "unlocked" ou
+#    est absent ; seul un "locked" explicite du LK les garde stricts. Un vbmeta qui ne se verifie pas n'arrive
+#    jusqu'a l'init que si le LK l'a accepte : le refuser n'apporte rien.
 #
-# 2. device/lineage/sepolicy/common/private/genfs_contexts : "genfscon fuseblk / u:object_r:vfat:s0".
-#    La politique vendor stock de Jancar (vendor_sepolicy.cil, ligne 1) etiquette deja fuseblk en sdcardfs. Au
-#    demarrage, l'init d'Android 9 compile la politique system + vendor avec secilc, qui refuse deux genfscon
-#    differents pour le meme systeme de fichiers et le meme chemin ("Found conflicting genfscon rules",
-#    libsepol/cil/src/cil_post.c, __cil_post_process_context_rules) ; l'init ne charge alors aucune politique
-#    ("Unable to load SELinux policy", system/core/init/selinux.cpp) et son LOG(FATAL) redemarre en bootloader
-#    (system/core/init/log.cpp, InitAborter). La ligne LineageOS est retiree : fuseblk garde l'etiquette du vendor,
-#    comme sous le stock. Verifie hors de l'unite : secilc sur le plat_sepolicy.cil du build + mapping 28.0 +
-#    plat_pub_versioned.cil et vendor_sepolicy.cil du vendor stock : echec avec la ligne, compile sans.
+# 2. fuseblk : la politique vendor stock de Jancar (vendor_sepolicy.cil, ligne 1) etiquette deja fuseblk en sdcardfs ;
+#    secilc refuse deux genfscon differents pour le meme systeme de fichiers, l'init ne charge alors aucune politique
+#    et redemarre en bootloader (essai du 12/11 sous LineageOS 16.0). LineageOS 17.1 prevoit le cas :
+#    TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR := true (BoardConfig.mk) retire sa ligne
+#    (device/lineage/sepolicy/common/sepolicy.mk, board_excludes_fuseblk_sepolicy dans genfs_contexts). Ce script
+#    verifie seulement que genfs_contexts a toujours cette condition.
 #
 # 3. frameworks/native (lineage-patches/frameworks_native) : la dalle est en portrait (720 x 1280, fb0 « U:720x1280p »)
 #    et montee en paysage ; le stock la tourne avec persist.sf.hwrotation=90, propriete du SurfaceFlinger de MediaTek
-#    que celui d'AOSP ignore (il ne lit que primaryDisplayOrientation du configstore, a 0 dans le vendor stock).
-#    SurfaceFlinger prend persist.librehu.display_rotation (sinon ro.librehu.display_rotation, 90 dans device.mk) ;
-#    l'InputReader tourne le tactile interne d'autant (premier demarrage du 12/11 : image et tactile en portrait).
+#    que celui d'AOSP ignore (il ne lit que ro.surface_flinger.primary_display_orientation, sinon le configstore, a 0
+#    dans le vendor stock). SurfaceFlinger prend persist.librehu.display_rotation (sinon ro.librehu.display_rotation,
+#    90 dans device.mk) ; l'InputReader (TouchInputMapper::findViewport) tourne le tactile interne d'autant.
 #
 # 4. frameworks/base (lineage-patches/frameworks_base) : retroeclairage Jancar inverse (lcd-backlight 0 = maximum,
 #    179 = minimum ; le system stock compense, TWRP aussi dans touchfix) : LightsService convertit la luminosite
-#    d'Android quand ro.librehu.backlight_inverted vaut true (device.mk).
+#    d'Android quand ro.librehu.backlight_inverted vaut true (device.mk), avant ses deux chemins (SurfaceControl et
+#    HAL lights).
 #
-# 5. packages/apps/Bluetooth (lineage-patches/packages_apps_Bluetooth) : en A2DP sink, Android 9 ne prend le focus audio
-#    que sur une lecture locale (appli multimedia d'Android Automotive) ou sur une TV / un objet connecte ; sinon il
-#    jette le son du telephone et le met en pause (A2dpSinkStreamHandler, SRC_STR_START / SRC_PLAY). Comme
-#    a2dp_sink_automatically_request_audio_focus d'Android 10, le focus est pris quand le telephone lance la lecture,
-#    si ro.librehu.a2dp_sink_auto_focus vaut true (device.mk). Logcat du 14/11/2026 : musique Bluetooth muette.
+# 5. Musique Bluetooth (focus audio de l'A2DP sink) : rien a corriger en 17.1, c'est le reglage
+#    a2dp_sink_automatically_request_audio_focus d'Android 10 (overlay/packages/apps/Bluetooth).
+#
+# 6. vendor/jancar/ac8257_demo : autochips.jar est dans PRODUCT_BOOT_JARS (device.mk). Android 10 construit l'image de
+#    demarrage (boot.art) dans Soong (build/soong/java/dexpreopt_bootjars.go), qui ne trouve que des modules Soong :
+#    le module Make du depot vendor (BUILD_PREBUILT, branche lineage-16.0) donne « failed to find dex jar path for
+#    module "autochips" ». Le script ecrit vendor/jancar/ac8257_demo/Android.bp (dex_import, comme
+#    vendor/lineage/build/tools/extract_utils.sh de LineageOS 17.1 pour un jar) et retire le module Make du meme nom
+#    d'Android.mk (un nom defini deux fois arrete le build : core/base_rules.mk, « already defined by »). Seule la
+#    copie locale du depot vendor change, jamais le depot.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
 PATCHES=$(cd "$(dirname "$0")" && pwd)/lineage-patches
 FSMGR=$TOP/system/core/fs_mgr/fs_mgr.cpp
+FSAVB=$TOP/system/core/fs_mgr/libfs_avb/util.cpp
 GENFS=$TOP/device/lineage/sepolicy/common/private/genfs_contexts
+VENDOR=$TOP/vendor/jancar/ac8257_demo
 CHECK=0
 [ "$1" = "--check" ] && CHECK=1
 TODO=0
 
-for f in "$FSMGR" "$GENFS"; do
+for f in "$FSMGR" "$FSAVB" "$GENFS" "$VENDOR/Android.mk"; do
     [ -f "$f" ] || { echo "patch_lineage_sources: $f introuvable (lancer depuis la racine des sources)" >&2; exit 2; }
 done
 
-# 1. fs_mgr : vbmeta.device_state (librehu_device_state = premiere version du 12/11, insuffisante : retiree)
-if grep -q 'librehu_vbmeta_state' "$FSMGR"; then
-    echo "patch_lineage_sources: system/core/fs_mgr deja corrige"
-elif [ $CHECK = 1 ]; then
-    echo "patch_lineage_sources: $FSMGR croit l'unite verrouillee (LK Jancar : verifiedbootstate=green)"
-    TODO=1
-else
-    if grep -q 'librehu_device_state' "$FSMGR"; then
-        sed -i '/^    \/\/ LibreHU (UJC201) : le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille, avec$/,/^    }$/d' "$FSMGR"
-        grep -q 'librehu_device_state' "$FSMGR" && { echo "patch_lineage_sources: ancienne correction de $FSMGR non retiree" >&2; exit 3; }
+# 1. fs_mgr : vbmeta.device_state, dans les deux copies du test (fichier, premiere ligne de la fonction)
+patch_unlock() {
+    local file=$1 func=$2 rel=${1#$TOP/}
+    if grep -q 'librehu_vbmeta_state' "$file"; then
+        echo "patch_lineage_sources: $rel deja corrige"
+        return
     fi
-    if [ "$(grep -c '^bool fs_mgr_is_device_unlocked() {$' "$FSMGR")" != 1 ]; then
-        echo "patch_lineage_sources: fs_mgr_is_device_unlocked() introuvable dans $FSMGR (sources changees ?)" >&2
+    if [ $CHECK = 1 ]; then
+        echo "patch_lineage_sources: $rel croit l'unite verrouillee (LK Jancar : verifiedbootstate=green)"
+        TODO=1
+        return
+    fi
+    if [ "$(grep -c "^$func\$" "$file")" != 1 ]; then
+        echo "patch_lineage_sources: « $func » introuvable dans $rel (sources changees ?)" >&2
         exit 3
     fi
-    sed -i '/^bool fs_mgr_is_device_unlocked() {$/r /dev/stdin' "$FSMGR" <<'EOF'
+    sed -i "/^$func\$/r /dev/stdin" "$file" <<'EOF'
     // LibreHU (UJC201) : le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille et, avec le
     // drapeau VERIFICATION_DISABLED de vbmeta, ne passe aucun androidboot.vbmeta.*. Seul un vbmeta.device_state=locked
     // explicite garde fs_mgr strict : un vbmeta qui ne se verifie pas n'arrive ici que si le LK l'a accepte, et le
@@ -90,22 +96,21 @@ else
         return true;
     }
 EOF
-    grep -q 'librehu_vbmeta_state' "$FSMGR" || { echo "patch_lineage_sources: correction de $FSMGR impossible" >&2; exit 3; }
-    echo "patch_lineage_sources: system/core/fs_mgr/fs_mgr.cpp : unite deverrouillee sauf vbmeta.device_state=locked"
+    grep -q 'librehu_vbmeta_state' "$file" || { echo "patch_lineage_sources: correction de $rel impossible" >&2; exit 3; }
+    echo "patch_lineage_sources: $rel : unite deverrouillee sauf vbmeta.device_state=locked"
+}
+patch_unlock "$FSMGR" 'bool fs_mgr_is_device_unlocked() {'
+patch_unlock "$FSAVB" 'bool IsDeviceUnlocked() {'
+
+# 2. sepolicy : la ligne fuseblk de LineageOS doit rester conditionnelle (TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR)
+if grep -q '^ifelse(board_excludes_fuseblk_sepolicy' "$GENFS"; then
+    echo "patch_lineage_sources: device/lineage/sepolicy : fuseblk laisse au vendor (TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR)"
+elif grep -q '^genfscon fuseblk ' "$GENFS"; then
+    echo "patch_lineage_sources: $GENFS etiquette fuseblk sans condition (sources changees ?) : conflit avec le vendor Jancar" >&2
+    exit 3
 fi
 
-# 2. sepolicy : genfscon fuseblk
-if ! grep -q '^genfscon fuseblk ' "$GENFS"; then
-    echo "patch_lineage_sources: device/lineage/sepolicy deja corrige"
-elif [ $CHECK = 1 ]; then
-    echo "patch_lineage_sources: $GENFS etiquette encore fuseblk (conflit avec le vendor Jancar)"
-    TODO=1
-else
-    sed -i '/^genfscon fuseblk /d' "$GENFS"
-    echo "patch_lineage_sources: genfscon fuseblk retire de device/lineage/sepolicy/common/private/genfs_contexts"
-fi
-
-# 3, 4, 5. frameworks, Bluetooth : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
+# 3, 4. frameworks : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
 apply_patch() {
     local proj=$1 witness=$2 mark=$3 p=$4 what=$5
     [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
@@ -121,11 +126,52 @@ apply_patch() {
         echo "patch_lineage_sources: $proj corrige ($what)"
     fi
 }
-apply_patch frameworks/native services/surfaceflinger/SurfaceFlinger.cpp librehuRotation \
+apply_patch frameworks/native services/inputflinger/InputReader.cpp librehuDisplayRotation \
     "$PATCHES/frameworks_native/0001-librehu-display-rotation.patch" "rotation de la dalle et du tactile"
 apply_patch frameworks/base services/core/java/com/android/server/lights/LightsService.java librehu.backlight_inverted \
     "$PATCHES/frameworks_base/0001-librehu-backlight-inverted.patch" "retroeclairage inverse"
-apply_patch packages/apps/Bluetooth src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java librehu.a2dp_sink_auto_focus \
-    "$PATCHES/packages_apps_Bluetooth/0001-librehu-a2dp-sink-auto-focus.patch" "focus audio de la musique Bluetooth"
+
+# 6. autochips.jar en module Soong (copie locale du depot vendor)
+VMK=$VENDOR/Android.mk
+VBP=$VENDOR/Android.bp
+if grep -q '^LOCAL_MODULE := autochips$' "$VMK"; then
+    if [ $CHECK = 1 ]; then
+        echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.mk definit encore autochips en module Make"
+        TODO=1
+    else
+        # bloc « include $(CLEAR_VARS) ... include $(BUILD_PREBUILT) » qui contient LOCAL_MODULE := autochips
+        awk '
+            /^include \$\(CLEAR_VARS\)$/ { inblk = 1; buf = $0 "\n"; drop = 0; next }
+            inblk { buf = buf $0 "\n"; if ($0 == "LOCAL_MODULE := autochips") drop = 1
+                    if ($0 ~ /^include \$\(BUILD_[A-Z_]+\)$/) { if (!drop) printf "%s", buf; inblk = 0 }
+                    next }
+            { print }
+            END { if (inblk) printf "%s", buf }' "$VMK" > "$VMK.librehu"
+        mv "$VMK.librehu" "$VMK"
+        grep -q '^LOCAL_MODULE := autochips$' "$VMK" && { echo "patch_lineage_sources: module Make autochips non retire" >&2; exit 3; }
+        echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.mk : module Make autochips retire"
+    fi
+fi
+if ! grep -qs 'name: "autochips"' "$VBP"; then
+    if [ $CHECK = 1 ]; then
+        echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.bp sans le module Soong autochips"
+        TODO=1
+    else
+        [ -f "$VENDOR/proprietary/framework/autochips.jar" ] || {
+            echo "patch_lineage_sources: $VENDOR/proprietary/framework/autochips.jar introuvable" >&2; exit 2; }
+        [ -f "$VBP" ] && { echo "patch_lineage_sources: $VBP existe deja sans autochips (depot vendor change ?)" >&2; exit 3; }
+        cat > "$VBP" <<'EOF'
+// LibreHU : ecrit par device/alps/ac8257_demo/tools/patch_lineage_sources.sh (LineageOS 17.1), pas dans le depot.
+// autochips.jar est dans PRODUCT_BOOT_JARS : Android 10 construit l'image de demarrage dans Soong, qui ne trouve que
+// des modules Soong (le module Make du meme nom est retire d'Android.mk par le meme script).
+dex_import {
+	name: "autochips",
+	owner: "jancar",
+	jars: ["proprietary/framework/autochips.jar"],
+}
+EOF
+        echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.bp : autochips en dex_import"
+    fi
+fi
 
 exit $TODO

@@ -3,13 +3,15 @@
      Copyright (C) 2026 LibreHU
      SPDX-License-Identifier: AGPL-3.0-or-later
 
-     Profils Bluetooth d'un autoradio, ceux de la voiture de reference d'Android 9
-     (packages/services/Car, car_product/overlay/packages/apps/Bluetooth/res/values/config.xml, pie-release) :
-     l'autoradio est le cote voiture (HFP client, A2DP sink, AVRCP controleur, PBAP / MAP client), pas un telephone.
-     Classe d'appareil « Car audio » et A2DP sink compile : bluetooth/bdroid_buildcfg.h.
+     Profils Bluetooth d'un autoradio, ceux de la voiture de reference d'Android 10
+     (packages/services/Car, car_product/overlay/packages/apps/Bluetooth/res/values/config.xml, lineage-17.1, liste
+     identique a celle de pie-release) : l'autoradio est le cote voiture (HFP client, A2DP sink, AVRCP controleur,
+     PBAP / MAP client), pas un telephone. Classe d'appareil « Car audio » et A2DP sink compile :
+     bluetooth/bdroid_buildcfg.h.
 -->
 <resources>
-    <!-- Roles d'un telephone, coupes -->
+    <!-- Roles d'un telephone, coupes (profile_supported_hdp : HDP n'existe plus dans Android 10, gardee comme dans
+         la voiture de reference) -->
     <bool name="profile_supported_a2dp">false</bool>
     <bool name="profile_supported_hs_hfp">false</bool>
     <bool name="profile_supported_hid_host">false</bool>
@@ -28,4 +30,10 @@
     <bool name="profile_supported_pbapclient">true</bool>
     <bool name="profile_supported_pan">true</bool>
     <bool name="profile_supported_mapmce">true</bool>
+
+    <!-- Musique Bluetooth : l'autoradio prend le focus audio quand le telephone lance la lecture (A2dpSinkStreamHandler,
+         SRC_STR_START et SRC_PLAY, shouldRequestFocus). A false (valeur d'Android 10), seuls une TV ou un objet
+         connecte le prennent, et le son du telephone est jete (musique muette, logcat du 14/11/2026 sous LineageOS
+         16.0, ou la branche lineage-16.0 corrige le code de l'appli pour la meme chose). -->
+    <bool name="a2dp_sink_automatically_request_audio_focus">true</bool>
 </resources>

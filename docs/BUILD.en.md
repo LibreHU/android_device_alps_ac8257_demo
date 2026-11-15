@@ -1,5 +1,9 @@
 # Building LineageOS 16.0 for the UJC201, step by step
 
+> **Branch `lineage-17.1` (LineageOS 17.1, experimental)**: this guide applies too, with the differences of
+> [LINEAGE-17.1.en.md](LINEAGE-17.1.en.md) (`repo init -b lineage-17.1`, local manifest, fix script, CI and the
+> `lineage-17.1-ota` update channel).
+
 *Français : [BUILD.md](BUILD.md)*
 
 From scratch to the **`system`, `boot` and `vendor` images** to flash, on a **Proxmox VE 8 or 9** server with a

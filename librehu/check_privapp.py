@@ -3,7 +3,7 @@
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-"""Checks that each APK of this folder (all installed in /system/priv-app) has every Android 9 privileged permission it
+"""Checks that each APK of this folder (all installed in /system/priv-app) has every Android 10 privileged permission it
 asks for in privapp-permissions-librehu.xml. LineageOS sets ro.control_privapp_permissions=enforce, where a
 privileged permission of a priv-app missing from the whitelist makes system_server stop at boot (boot loop); this tree
 puts it back to "log" like the stock (lineage_ac8257_demo.mk), so a miss is only a logcat warning, but the list is
@@ -85,7 +85,7 @@ def manifest(apk):
 
 def main():
     here = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).parent)
-    privileged = {l.strip() for l in (Path(__file__).parent / "privileged-permissions-android9.txt").read_text().splitlines()
+    privileged = {l.strip() for l in (Path(__file__).parent / "privileged-permissions-android10.txt").read_text().splitlines()
                   if l.strip() and not l.startswith("#")}
     wl = {}
     for p in ET.parse(Path(__file__).parent / "privapp-permissions-librehu.xml").getroot().iter("privapp-permissions"):

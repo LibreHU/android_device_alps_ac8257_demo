@@ -10,6 +10,11 @@ LOCAL_PATH := device/alps/ac8257_demo
 # Lance avec Android 9 (ro.product.first_api_level=28) : Treble complet, vendor stock
 PRODUCT_SHIPPING_API_LEVEL := 28
 
+# Vendor stock d'Android 9 sous un system Android 10 : ses bibliotheques sont liees aux bibliotheques VNDK de la
+# version 28, que le system garde a cote des siennes (/system/lib*/vndk-28, vndk-sp-28 ; prebuilts/vndk/v28, choisies
+# par le linker d'apres ro.vndk.version=28 du vendor). Sans elles, les HAL du vendor ne se chargent pas.
+PRODUCT_EXTRA_VNDK_VERSIONS := 28
+
 # Ecran 1280 x 720 (wm size du stock), 160 dpi
 # Animation de demarrage de LineageOS a la taille de l'ecran (sans ces valeurs : 1080 x 1920, portrait,
 # vendor/lineage/bootanimation/Android.mk).
@@ -37,27 +42,29 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # BOARD_PROPERTY_OVERRIDES_SPLIT_ENABLED), donc jamais installees ici puisque le vendor est l'image stock : celui-ci
 # les a (getprop du stock : ro.zygote=zygote64_32, ro.vndk.version=28). Reprises cote system par securite, memes
 # valeurs : sans ro.zygote, init.rc n'importe pas init.zygote64_32.rc et zygote ne demarre pas ; sans ro.vndk.version,
-# le linker ne prend pas ld.config.28.txt. Si le vendor les pose aussi, sa valeur est ignoree (ro.* deja posee).
+# le linker ne prend pas ld.config.28.txt. Ordre de lecture d'Android 10 (init/property_service.cpp,
+# property_load_boot_defaults) : prop.default, build.prop du system, puis default.prop et build.prop du vendor, le
+# dernier lu gagnant (« Overriding previous 'ro.' property ») : une valeur du vendor stock passe donc devant celles
+# de ce fichier (memes valeurs ici).
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
     ro.zygote=zygote64_32 \
     ro.vndk.version=28
 
 # Dossier des rc du vendor (getprop du stock : /vendor/etc/init/hw/), absent des deux build.prop du stock donc venu
 # d'un default.prop : init.ac8257.rc du vendor importe ${ro.vendor.rc}init.connectivity.rc (wpa_supplicant, mnld),
-# init.modem.rc, init.ago.rc, init.volte.rc, init.mal.rc, et l'import est developpe a la lecture des rc, quand seuls
-# prop.default et /vendor/default.prop sont charges. Sans la valeur : plus de Wi-Fi ni de GPS. Meme valeur que le stock,
-# sans effet si le vendor la pose aussi (ro.* : la premiere gagne, prop.default est lu en premier).
+# init.modem.rc, init.ago.rc, init.volte.rc, init.mal.rc, et l'import est developpe a la lecture des rc, une fois les
+# fichiers de proprietes charges. Sans la valeur : plus de Wi-Fi ni de GPS. Meme valeur que le stock, sans effet si le
+# vendor la pose aussi.
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
     ro.vendor.rc=/vendor/etc/init/hw/
 
-# adb a chaque demarrage, quoi que pose le default.prop du vendor (contenu inconnu, charge apres prop.default) :
-# build.prop du system est lu apres lui (init/property_service.cpp : property_load_boot_defaults puis
-# load_system_props), et l'init de LineageOS 16.0 n'ajoute plus « adb » de lui-meme (update_sys_usb_config seulement
-# une fois les proprietes de /data chargees). Valeur du stock.
+# adb au demarrage (valeur du stock). Sous Android 10 un persist.sys.usb.config du vendor (contenu inconnu) passerait
+# devant (lu apres le build.prop du system) ; en userdebug, l'init ajoute de toute facon « adb » une fois les
+# proprietes de /data chargees (update_sys_usb_config, ro.debuggable=1).
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.sys.usb.config=adb
 
-# Fluidite des applis LibreHU (Jetpack Compose) : sans code natif, Android 9 les fait tourner en interprete / JIT, et
+# Fluidite des applis LibreHU (Jetpack Compose) : sans code natif, Android les fait tourner en interprete / JIT, et
 # la compilation de fond n'a lieu qu'appareil inactif et en charge (presque jamais sur un autoradio). Installations
 # et mises a jour (LibreHU Apps) compilees en speed ; applis de la ROM precompilees en speed a la construction.
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -84,25 +91,25 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
     librehu_touchcal
 
-# Root de KernelSU Next accorde d'office a toutes les applis LibreHU (librehu/ksugrant : org.librehu.* et ViPER4Android) :
-# KernelSU n'affiche pas de demande, une appli sans profil est refusee en silence. LibreHU-service : tactile, boutons,
-# passage de main de l'ARM2 (video verte) et reglages du service sans passer par le gestionnaire. Un choix de
-# l'utilisateur dans le gestionnaire (refus compris) n'est jamais modifie.
+# Root de KernelSU Next accorde d'office a toutes les applis LibreHU (librehu/ksugrant : org.librehu.* et
+# ViPER4Android) : KernelSU n'affiche pas de demande, une appli sans profil est refusee en silence. LibreHU-service :
+# tactile, boutons, passage de main de l'ARM2 (video verte) et reglages du service sans passer par le gestionnaire. Un
+# choix de l'utilisateur dans le gestionnaire (refus compris) n'est jamais modifie.
 PRODUCT_PACKAGES += \
     librehu_ksugrant
 
-# Musique Bluetooth (A2DP sink) : deux reglages de voiture absents d'Android 9 pour un appareil qui n'est pas une
-# voiture Android Automotive.
-# - persist.bluetooth.enablenewavrcp=false, comme packages/services/Car/car_product/build/car.mk (pie-release) : sinon
-#   la pile n'ouvre que le nouveau profil AVRCP, cote telephone (bta_av_rc_create : « Skipping RC creation for the old
-#   AVRCP profile »), et le controleur AVRCP de l'autoradio ne se connecte jamais (logcat du 14/11/2026 :
-#   « AvrcpControllerSM: Currently Disconnected »), donc ni titres, ni lecture / pause depuis l'autoradio.
-# - ro.librehu.a2dp_sink_auto_focus=true : l'appli Bluetooth corrigee par tools/patch_lineage_sources.sh prend le focus
-#   audio quand le telephone lance la lecture (a2dp_sink_automatically_request_audio_focus d'Android 10). Sans lui, le
-#   son du telephone etait jete (« btif_a2dp_sink_set_focus_state_event: state=0 », aucun requestAudioFocus).
+# Musique Bluetooth (A2DP sink) : deux reglages de voiture pour un appareil qui n'est pas une voiture Android
+# Automotive.
+# - persist.bluetooth.enablenewavrcp=false, comme packages/services/Car/car_product/build/car.mk (pie-release et
+#   lineage-17.1) : sinon la pile n'ouvre que le nouveau profil AVRCP, cote telephone (bta_av_rc_create : « Skipping RC
+#   creation for the old AVRCP profile »), et le controleur AVRCP de l'autoradio ne se connecte jamais (logcat du
+#   14/11/2026 sous LineageOS 16.0 : « AvrcpControllerSM: Currently Disconnected »), donc ni titres, ni lecture /
+#   pause depuis l'autoradio.
+# - focus audio pris quand le telephone lance la lecture : a2dp_sink_automatically_request_audio_focus d'Android 10,
+#   dans overlay/packages/apps/Bluetooth (sous LineageOS 16.0 : correctif de l'appli et
+#   ro.librehu.a2dp_sink_auto_focus).
 PRODUCT_PROPERTY_OVERRIDES += \
-    persist.bluetooth.enablenewavrcp=false \
-    ro.librehu.a2dp_sink_auto_focus=true
+    persist.bluetooth.enablenewavrcp=false
 
 # Pays du Wi-Fi d'apres la langue choisie a l'installation (librehu/boot/librehu_wificountry.sh) ; sans pays dans la
 # langue, celui du stock. Sans pays, le pilote Wi-Fi MediaTek scanne zero canal et finit par planter le noyau.
@@ -123,10 +130,10 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.ethernet.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.ethernet.xml
 
 # Impression : sans la fonctionnalite android.software.print (le fichier de fonctionnalites du vendor stock ne la
-# declare pas), PrintManagerService ne demarre pas et les Parametres d'Android 9 plantent a l'ouverture de « Appareils
-# connectes » (et donc du Bluetooth) : PrintSettingPreferenceController.onStart appelle addPrintJobStateChangeListener
-# sur un PrintManager nul (journal du 14/11/2026, « Feature android.software.print not available »). PrintSpooler est
-# deja dans LineageOS (build/make/target/product/core.mk).
+# declare pas), PrintManagerService ne demarre pas et les Parametres plantent (Android 9, 14/11/2026) a l'ouverture de
+# « Appareils connectes » (et donc du Bluetooth) : PrintSettingPreferenceController.onStart appelle
+# addPrintJobStateChangeListener sur un PrintManager nul (journal du 14/11/2026, « Feature android.software.print not
+# available »). PrintSpooler est deja dans LineageOS (build/make/target/product/core.mk).
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.print.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.print.xml
 
@@ -162,17 +169,18 @@ PRODUCT_PACKAGES += \
 
 # Applis LibreHU dans /system/priv-app (service, launcher, OTA, ViPER4Android, telephone, FM, widgets, touches au
 # volant, sources, CD / DVD, Android Auto, CarPlay), avec la liste blanche de leurs permissions privilegiees
-# (librehu/privapp-permissions-librehu.xml ; APK de librehu/fetch_apks.sh, qui la verifie ; un APK absent est ignore). Le pilote ViPERFX_RE est ajoute a l'image vendor par tools/vendor_add_viper.sh.
-# LibreHU Helper et Aurora Store sont installes comme applis ordinaires au premier demarrage (librehu/userapps,
-# librehu_ksunext ci-dessous) ; MCU Toolkit n'est plus dans la ROM (13/11/2026).
+# (librehu/privapp-permissions-librehu.xml ; APK de librehu/fetch_apks.sh, qui la verifie ; un APK absent est ignore).
+# Le pilote ViPERFX_RE est ajoute a l'image vendor par tools/vendor_add_viper.sh. LibreHU Helper et Aurora Store sont
+# installes comme applis ordinaires au premier demarrage (librehu/userapps, librehu_ksunext ci-dessous) ; MCU Toolkit
+# n'est plus dans la ROM (13/11/2026).
 PRODUCT_PACKAGES += \
     $(foreach app,LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
         LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUAndroidAuto LibreHUCarPlay,\
         $(if $(wildcard $(LOCAL_PATH)/librehu/$(app).apk),$(app)))
 
 # Applis aux bibliotheques natives compressees (librehu/native_libs.py, installees telles quelles par
-# librehu/Android.mk) : leurs bibliotheques extraites dans /system/priv-app/<appli>/lib/<isa>/, la ou Android 9 les
-# cherche pour une appli systeme (il ne les extrait pas lui-meme).
+# librehu/Android.mk) : leurs bibliotheques extraites dans /system/priv-app/<appli>/lib/<isa>/, la ou Android (9 et
+# 10) les cherche pour une appli systeme (il ne les extrait pas lui-meme).
 librehu_lib_isa = $(notdir $(patsubst %/,%,$(dir $(1))))
 librehu_lib_app = $(patsubst %-lib,%,$(notdir $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir $(1)))))))
 PRODUCT_COPY_FILES += \
@@ -184,7 +192,7 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     $(if $(wildcard $(LOCAL_PATH)/librehu/ksunext/KernelSUNext.apk),librehu_ksunext)
 
-# Precompilation speed (code natif complet) de ces applis a la construction de la ROM (dexpreopt d'Android 9).
+# Precompilation speed (code natif complet) de ces applis a la construction de la ROM (dexpreopt).
 PRODUCT_DEXPREOPT_SPEED_APPS += \
     LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDialer LibreHUFM LibreHUWidgets \
     LibreHUBtnRemap LibreHUEasySource LibreHUDisc LibreHUAndroidAuto LibreHUCarPlay

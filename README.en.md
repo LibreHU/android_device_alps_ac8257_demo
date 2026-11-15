@@ -1,6 +1,11 @@
-# LineageOS 16.0 for the UJC201 (Jancar, Autochips AC8257)
+# LineageOS 17.1 for the UJC201 (Jancar, Autochips AC8257) — experimental branch
 
 *Français : [README.md](README.md)*
+
+**Branch `lineage-17.1`: LineageOS 17.1 (Android 10), EXPERIMENTAL, never tried on the unit.** Differences with
+16.0, build, CI and the update channel of its own (a 17.1 only updates from the `lineage-17.1-ota` feed):
+[docs/LINEAGE-17.1.en.md](docs/LINEAGE-17.1.en.md). The rest of this README describes the common tree and its history
+under LineageOS 16.0 (branch `lineage-16.0`, the everyday ROM).
 
 **LineageOS 16.0 (Android 9)** device tree for the Jancar UJC201 head unit (`ac8257_demo`, Autochips AC8257 SoC,
 MediaTek MT6761 family). A real ROM built from the LineageOS sources, not a GSI.
@@ -34,7 +39,8 @@ streaming and settings, AV IN, audio routing, 5 GHz Wi-Fi. Every build is publis
 | Branch | Content |
 |---|---|
 | `twrp` (default) | TWRP recovery for the UJC201, with its CI and releases |
-| **`lineage-16.0`** | this branch: LineageOS 16.0 ROM |
+| `lineage-16.0` | LineageOS 16.0 ROM (Android 9), the everyday one |
+| **`lineage-17.1`** | this branch: LineageOS 17.1 ROM (Android 10), experimental ([docs/LINEAGE-17.1.en.md](docs/LINEAGE-17.1.en.md)) |
 
 Kernel: [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
 (`stable-4.9.337`: Autochips GPL sources + LibreHU changes + linux-stable fixes up to 4.9.337, the only branch

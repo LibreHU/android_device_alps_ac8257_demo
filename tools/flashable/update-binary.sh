@@ -1,5 +1,5 @@
 #!/sbin/sh
-# LibreHU - LineageOS 16.0 pour l'UJC201 (ac8257_demo) : installateur TWRP fait par tools/make_flashable_zip.py.
+# LibreHU - LineageOS 17.1 (experimentale) pour l'UJC201 (ac8257_demo) : installateur TWRP fait par tools/make_flashable_zip.py.
 # Ecrit system (image brute en morceaux de 1 Gio, empreinte relue sur toute la partition), boot (image du noyau LibreHU
 # avec androidboot.selinux=permissive ; « bootmenu » ou « plain » dans le nom du zip, sinon le type deja installe) et les
 # modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois), et installe ou
@@ -54,8 +54,10 @@ blockmap_zip() {
 	dd if=/dev/null of="$2" bs=1 seek="$FSIZE" 2>/dev/null
 	[ "$(stat -c %s "$2")" = "$FSIZE" ]
 }
+OTA=0
 case "$ZIPFILE" in
 	@*)
+		OTA=1
 		ui_print "Zip de l'appli Mises a jour : relecture depuis /data (block map)..."
 		blockmap_zip "${ZIPFILE#@}" $OTAZIP || abort "zip de la mise a jour illisible (${ZIPFILE#@})"
 		ZIPFILE=$OTAZIP
@@ -65,7 +67,7 @@ esac
 part() { [ -n "$UJC_TEST" ] && echo "$BYNAME/$1" && return; [ -e $BYNAME/$1 ] && echo $BYNAME/$1 && return; echo /dev/block/by-name/$1; }
 info() { unzip -p "$ZIPFILE" info/$1 2>/dev/null; }
 
-ui_print "LibreHU - LineageOS 16.0 (UJC201)"
+ui_print "LibreHU - LineageOS 17.1 EXPERIMENTALE (UJC201)"
 ui_print "--------------------------------"
 ui_print "build : $(info build)"
 
@@ -91,6 +93,34 @@ if [ $(( ${FLAGS:-0} & 2 )) != 2 ]; then
 	abort "vbmeta : verification active"
 fi
 ui_print "vbmeta : verification desactivee (drapeaux $FLAGS) : OK"
+
+# --- canal de mise a jour : une mise a jour par l'appli Mises a jour ne passe que d'une LineageOS a la meme version
+# (17.1 -> 17.1 ; chaque version a son flux, release lineage-<version>-ota). L'appli le verifie deja
+# (packages/apps/Updater, Utils.canInstall : ro.lineage.build.version identique) ; ici, au cas ou un flux contiendrait
+# le zip d'une autre version. Un flash a la main dans TWRP reste libre (changement de version voulu). Rien n'est ecrit
+# avant ce point.
+ZVER=$(info lineage_version)
+if [ "$OTA" = 1 ]; then
+	[ -n "$ZVER" ] || abort "zip sans version LineageOS (info/lineage_version) : mise a jour refusee"
+	SYSRO=${UJC_TMP:-/tmp}/librehu_sysro
+	mkdir -p $SYSRO
+	CUR=
+	if mount -t ext4 -o ro $(part system) $SYSRO 2>/dev/null; then
+		for bp in $SYSRO/system/build.prop $SYSRO/build.prop; do
+			[ -f $bp ] && CUR=$(sed -n 's/^ro.lineage.build.version=//p' $bp | head -n 1) && break
+		done
+		umount $SYSRO 2>/dev/null
+	fi
+	rmdir $SYSRO 2>/dev/null
+	[ -n "$CUR" ] || abort "version de LineageOS installee illisible : mise a jour refusee (zip a flasher a la main dans TWRP)"
+	if [ "$CUR" != "$ZVER" ]; then
+		ui_print "Mise a jour LineageOS $ZVER sur LineageOS $CUR : refusee,"
+		ui_print "chaque version a son propre canal de mise a jour."
+		ui_print "Changer de version : flasher le zip a la main dans TWRP."
+		abort "canal de mise a jour : LineageOS $CUR, zip $ZVER"
+	fi
+	ui_print "canal de mise a jour : LineageOS $CUR -> $ZVER : OK"
+fi
 
 rm -rf $TMPD; mkdir -p $TMPD
 unzip -o -q "$ZIPFILE" 'info/*' 'boot*.img' 'modules/*' -d $TMPD || abort "extraction du zip impossible"
@@ -309,6 +339,14 @@ if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/pa
 	ui_print "ATTENTION : /data vient d'une autre ROM (stock ?)."
 	ui_print "Premiere installation : Wipe > Format Data (taper yes)"
 	ui_print "AVANT de redemarrer, sinon LineageOS ne demarre pas."
+fi
+# Donnees d'Android 9 (LineageOS 16.0) sous Android 10 : mise a niveau des applis et de leurs donnees au premier
+# demarrage, jamais essayee sur l'unite (branche lineage-17.1 experimentale).
+if grep -q 'sdkVersion="28"' /data/system/packages.xml 2>/dev/null; then
+	ui_print " "
+	ui_print "ATTENTION : /data vient d'Android 9 (LineageOS 16.0)."
+	ui_print "Android 10 experimental : en cas de probleme,"
+	ui_print "Wipe > Format Data, ou restaurer la sauvegarde TWRP."
 fi
 
 ui_print " "

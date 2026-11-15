@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """TWRP zip of a LineageOS build for the UJC201, installed by tools/flashable/update-binary.sh.
 
-LineageOS 16.0's own zip (`mka bacon`, ota_from_target_files.py) cannot be made for this tree: no recovery
+LineageOS's own zip (16.0 and 17.1) (`mka bacon`, ota_from_target_files.py) cannot be made for this tree: no recovery
 (TARGET_NO_RECOVERY: "target build has specified no recovery") and no kernel built (TARGET_NO_KERNEL). This one holds:
 - system.img as a raw image cut in pieces of --chunk-mib MiB (each under 2 GiB: no zip64, which TWRP's unzip may not
   read), written to the partition at their offsets and checked against the SHA-256 of the whole image;
@@ -12,6 +12,9 @@ LineageOS 16.0's own zip (`mka bacon`, ota_from_target_files.py) cannot be made 
   updated in /vendor/lib[64]/soundfx and declared in vendor's audio_effects.
 
     tools/make_flashable_zip.py <system.img (sparse or raw)> <prebuilt dir> <out.zip> [--build NAME] [--chunk-mib N]
+        [--lineage-version V]
+--lineage-version: ro.lineage.build.version of the system image (17.1), written to info/lineage_version: the
+installer refuses an update from the LineageOS Updater app when the installed system is another version.
 """
 import argparse
 import hashlib
@@ -82,6 +85,7 @@ def main():
     ap.add_argument("prebuilt")
     ap.add_argument("out")
     ap.add_argument("--build", default="")
+    ap.add_argument("--lineage-version", default="")
     ap.add_argument("--chunk-mib", type=int, default=1024)
     a = ap.parse_args()
     chunk = a.chunk_mib << 20
@@ -146,6 +150,8 @@ def main():
             z.write(os.path.join(viper, n), f"viper/{n}")
 
         add_bytes("info/build", (a.build or "unknown") + "\n")
+        if a.lineage_version:
+            add_bytes("info/lineage_version", a.lineage_version + "\n")
         add_bytes("info/system.size", f"{size}\n")
         add_bytes("info/system.chunk_mib", f"{a.chunk_mib}\n")
         add_bytes("info/system.chunks", " ".join(names) + "\n")

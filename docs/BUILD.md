@@ -1,5 +1,9 @@
 # Construire LineageOS 16.0 pour l'UJC201, pas à pas
 
+> **Branche `lineage-17.1` (LineageOS 17.1, expérimentale)** : ce guide vaut aussi, avec les différences de
+> [LINEAGE-17.1.md](LINEAGE-17.1.md) (`repo init -b lineage-17.1`, manifeste local, script de correction, CI et
+> canal de mises à jour `lineage-17.1-ota`).
+
 *English: [BUILD.en.md](BUILD.en.md)*
 
 De zéro jusqu'aux **images `system`, `boot` et `vendor`** à flasher, sur un serveur **Proxmox VE 8 ou 9** avec un

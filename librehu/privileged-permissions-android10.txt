@@ -1,6 +1,7 @@
-# Permissions privilegiees d'Android 9 (protectionLevel avec privileged ou signatureOrSystem), d'apres
-# frameworks/base/core/res/AndroidManifest.xml de pie-release (AOSP). Une appli de /system/priv-app qui en demande
-# une sans liste blanche fait planter system_server au demarrage (ro.control_privapp_permissions=enforce).
+# Permissions privilegiees d'Android 10 (protectionLevel avec privileged ou signatureOrSystem), d'apres
+# frameworks/base/core/res/AndroidManifest.xml de lineage-17.1 (LineageOS). Une appli de /system/priv-app qui en
+# demande une sans liste blanche fait planter system_server au demarrage (ro.control_privapp_permissions=enforce).
+android.permission.WRITE_OBB
 android.permission.ACCESS_IMS_CALL_SERVICE
 android.permission.ACCESS_UCE_PRESENCE_SERVICE
 android.permission.ACCESS_UCE_OPTIONS_SERVICE
@@ -21,20 +22,25 @@ android.permission.TETHER_PRIVILEGED
 android.permission.RECEIVE_WIFI_CREDENTIAL_CHANGE
 android.permission.OVERRIDE_WIFI_CONFIG
 android.permission.SCORE_NETWORKS
+android.permission.NETWORK_CARRIER_PROVISIONING
 android.permission.ACCESS_LOWPAN_STATE
 android.permission.CHANGE_LOWPAN_STATE
 android.permission.READ_LOWPAN_CREDENTIAL
 android.permission.MANAGE_LOWPAN_INTERFACES
-android.permission.SUSPEND_APPS
+android.permission.WIFI_SET_DEVICE_MOBILITY_STATE
+android.permission.WIFI_UPDATE_USABILITY_STATS_SCORE
 android.permission.BLUETOOTH_PRIVILEGED
 android.permission.CONNECTIVITY_INTERNAL
 android.permission.CONNECTIVITY_USE_RESTRICTED_NETWORKS
+android.permission.NETWORK_SIGNAL_STRENGTH_WAKEUP
 android.permission.PACKET_KEEPALIVE_OFFLOAD
 android.permission.RECEIVE_DATA_ACTIVITY_CHANGE
 android.permission.LOOP_RADIO
 android.permission.NFC_HANDOVER_STATUS
 android.permission.MANAGE_USB
+android.permission.MANAGE_DEBUGGING
 android.permission.ACCESS_MTP
+android.permission.INSTALL_DYNAMIC_SYSTEM
 android.permission.ACCESS_BROADCAST_RADIO
 android.permission.ACCESS_FM_RADIO
 android.permission.TV_INPUT_HARDWARE
@@ -53,8 +59,10 @@ android.permission.REGISTER_SIM_SUBSCRIPTION
 android.permission.REGISTER_CALL_PROVIDER
 android.permission.REGISTER_CONNECTION_MANAGER
 android.permission.BIND_INCALL_SERVICE
+android.permission.NETWORK_SCAN
 android.permission.BIND_VISUAL_VOICEMAIL_SERVICE
 android.permission.BIND_SCREENING_SERVICE
+android.permission.BIND_CALL_REDIRECTION_SERVICE
 android.permission.BIND_CONNECTION_SERVICE
 android.permission.BIND_TELECOM_CONNECTION_SERVICE
 android.permission.CONTROL_INCALL_EXPERIENCE
@@ -68,9 +76,10 @@ android.permission.USE_RESERVED_DISK
 android.permission.REAL_GET_TASKS
 android.permission.START_TASKS_FROM_RECENTS
 android.permission.INTERACT_ACROSS_USERS
+android.permission.INTERACT_ACROSS_PROFILES
 android.permission.MANAGE_USERS
-android.permission.MANAGE_ACTIVITY_STACKS
 android.permission.ACTIVITY_EMBEDDING
+android.permission.START_ACTIVITIES_FROM_BACKGROUND
 android.permission.GET_PROCESS_STATE_AND_OOM_SCORE
 android.permission.SET_DISPLAY_OFFSET
 android.permission.READ_WALLPAPER_INTERNAL
@@ -99,6 +108,7 @@ android.permission.SET_DEBUG_APP
 android.permission.SET_PROCESS_LIMIT
 android.permission.SET_ALWAYS_FINISH
 android.permission.SIGNAL_PERSISTENT_PROCESSES
+android.permission.REQUEST_INCIDENT_REPORT_APPROVAL
 android.permission.GET_ACCOUNTS_PRIVILEGED
 android.permission.STATUS_BAR
 android.permission.UPDATE_DEVICE_STATS
@@ -115,30 +125,34 @@ android.permission.CHANGE_HDMI_CEC_ACTIVE_SOURCE
 android.permission.MODIFY_PARENTAL_CONTROLS
 android.permission.READ_CONTENT_RATING_SYSTEMS
 android.permission.NOTIFY_TV_INPUTS
-android.permission.MANAGE_DEVICE_ADMINS
+android.permission.RESET_PASSWORD
+android.permission.LOCK_DEVICE
 android.permission.INSTALL_PACKAGES
 android.permission.INSTALL_SELF_UPDATES
 android.permission.INSTALL_PACKAGE_UPDATES
+com.android.permission.INSTALL_EXISTING_PACKAGES
 android.permission.DELETE_CACHE_FILES
 android.permission.DELETE_PACKAGES
 android.permission.MOVE_PACKAGE
 android.permission.CHANGE_COMPONENT_ENABLED_STATE
 android.permission.OBSERVE_GRANT_REVOKE_PERMISSIONS
-android.permission.READ_FRAME_BUFFER
 android.permission.CONTROL_DISPLAY_SATURATION
+android.permission.CONTROL_DISPLAY_COLOR_TRANSFORMS
 android.permission.BRIGHTNESS_SLIDER_USAGE
 android.permission.ACCESS_AMBIENT_LIGHT_STATS
 android.permission.CONFIGURE_DISPLAY_BRIGHTNESS
 android.permission.CONTROL_VPN
 android.permission.CAPTURE_AUDIO_OUTPUT
+android.permission.CAPTURE_MEDIA_OUTPUT
 android.permission.CAPTURE_AUDIO_HOTWORD
 android.permission.MODIFY_AUDIO_ROUTING
-android.permission.CAPTURE_VIDEO_OUTPUT
-android.permission.CAPTURE_SECURE_VIDEO_OUTPUT
+android.permission.MODIFY_DEFAULT_AUDIO_EFFECTS
+android.permission.REMOTE_DISPLAY_PROVIDER
 android.permission.MEDIA_CONTENT_CONTROL
 android.permission.SET_VOLUME_KEY_LONG_PRESS_LISTENER
 android.permission.SET_MEDIA_KEY_LISTENER
 android.permission.REBOOT
+android.permission.POWER_SAVER
 android.permission.USER_ACTIVITY
 android.permission.BROADCAST_NETWORK_PRIVILEGED
 android.permission.MASTER_CLEAR
@@ -160,6 +174,7 @@ android.permission.BIND_KEYGUARD_APPWIDGET
 android.permission.MODIFY_APPWIDGET_BIND_PERMISSIONS
 android.permission.GLOBAL_SEARCH
 android.permission.READ_SEARCH_INDEXABLES
+android.permission.WRITE_SETTINGS_HOMEPAGE_DATA
 android.permission.SET_WALLPAPER_COMPONENT
 android.permission.READ_DREAM_STATE
 android.permission.WRITE_DREAM_STATE
@@ -172,8 +187,10 @@ android.permission.PACKAGE_VERIFICATION_AGENT
 android.permission.INTENT_FILTER_VERIFICATION_AGENT
 android.permission.SERIAL_PORT
 android.permission.UPDATE_LOCK
+android.permission.REQUEST_NOTIFICATION_ASSISTANT_SERVICE
 android.permission.ACCESS_NOTIFICATIONS
 android.permission.MANAGE_FINGERPRINT
+android.permission.CONTROL_KEYGUARD_SECURE_NOTIFICATIONS
 android.permission.PROVIDE_TRUST_AGENT
 android.permission.SHOW_KEYGUARD_MESSAGE
 android.permission.LAUNCH_TRUST_AGENT_SETTINGS
@@ -195,3 +212,9 @@ android.permission.NOTIFICATION_DURING_SETUP
 android.permission.READ_RUNTIME_PROFILES
 android.permission.MODIFY_QUIET_MODE
 android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS
+android.permission.WATCH_APPOPS
+android.permission.MONITOR_DEFAULT_SMS_PACKAGE
+android.permission.BIND_EXPLICIT_HEALTH_CHECK_SERVICE
+android.permission.SEND_DEVICE_CUSTOMIZATION_READY
+android.permission.SUBSTITUTE_SHARE_TARGET_APP_NAME_AND_ICON
+lineage.permission.PREVENT_POWER_KEY

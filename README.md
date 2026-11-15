@@ -1,6 +1,11 @@
-# LineageOS 16.0 pour l'UJC201 (Jancar, Autochips AC8257)
+# LineageOS 17.1 pour l'UJC201 (Jancar, Autochips AC8257) — branche experimentale
 
 *English: [README.en.md](README.en.md)*
+
+**Branche `lineage-17.1` : LineageOS 17.1 (Android 10), EXPERIMENTALE, jamais essayee sur l'unite.** Differences
+avec la 16.0, construction, CI et canal de mises a jour propre a la 17.1 (une 17.1 ne se met a jour que depuis le
+flux `lineage-17.1-ota`) : [docs/LINEAGE-17.1.md](docs/LINEAGE-17.1.md). La suite de ce README decrit l'arbre commun
+et son historique sous LineageOS 16.0 (branche `lineage-16.0`, la ROM de tous les jours).
 
 Arbre de device **LineageOS 16.0 (Android 9)** de l'autoradio Jancar UJC201 (`ac8257_demo`, SoC Autochips AC8257,
 famille MediaTek MT6761). Une vraie ROM construite depuis les sources LineageOS, pas une GSI.
@@ -35,7 +40,8 @@ Parametres Bluetooth, AV IN, routage audio, Wi-Fi 5 GHz. Chaque build est publie
 | Branche | Contenu |
 |---|---|
 | `twrp` (par defaut) | recovery TWRP de l'UJC201, avec sa CI et ses releases |
-| **`lineage-16.0`** | cette branche : ROM LineageOS 16.0 |
+| `lineage-16.0` | ROM LineageOS 16.0 (Android 9), celle de tous les jours |
+| **`lineage-17.1`** | cette branche : ROM LineageOS 17.1 (Android 10), experimentale ([docs/LINEAGE-17.1.md](docs/LINEAGE-17.1.md)) |
 
 Noyau : [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9)
 (`stable-4.9.337` : sources GPL Autochips + modifications LibreHU + correctifs linux-stable jusqu'a 4.9.337, la seule

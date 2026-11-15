@@ -5,7 +5,7 @@
 # Applis LibreHU integrees a /system/priv-app (APK telecharges par fetch_apks.sh, signature d'origine gardee).
 # Un APK absent est simplement ignore : la ROM se construit sans lui.
 # Toutes privilegiees, comme LibreHU-service le demande (README du service : SET_TIME, Bluetooth, demarrage fiable) :
-# leurs permissions privilegiees d'Android 9 sont dans privapp-permissions-librehu.xml ; check_privapp.py le verifie
+# leurs permissions privilegiees d'Android 10 sont dans privapp-permissions-librehu.xml ; check_privapp.py le verifie
 # pour chaque APK telecharge. LineageOS impose ro.control_privapp_permissions=enforce (une permission absente de la
 # liste ferait planter system_server au demarrage) ; lineage_ac8257_demo.mk remet « log » comme le stock : un oubli
 # n'est alors qu'un avertissement dans logcat.
@@ -24,7 +24,7 @@ LIBREHU_APPS := LibreHUService LibreHULauncher LibreHUOTA LibreHUViPER LibreHUDi
 #    (core/prebuilt_internal.mk, uncompress-shared-libs), ce qui retire sa signature v2 : PackageManager le refuserait.
 #    L'APK est donc installe tel quel (module ETC dans /system/priv-app/$(1)/, sans dexpreopt : Android le compile au
 #    premier demarrage) et device.mk copie ses bibliotheques extraites dans /system/priv-app/$(1)/lib/<isa>/, la ou
-#    Android 9 les cherche pour une appli systeme (il ne les extrait jamais lui-meme). Cas d'Android Auto.
+#    Android (9 et 10) les cherche pour une appli systeme (il ne les extrait jamais lui-meme). Cas d'Android Auto.
 #  - $(1).abi32 : bibliotheques 32 bits seulement (FM) : LOCAL_MULTILIB := 32, precompile pour arm (sinon pour
 #    arm64, alors que l'appli tourne en 32 bits).
 define librehu-priv-app

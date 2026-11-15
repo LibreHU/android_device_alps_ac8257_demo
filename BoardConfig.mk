@@ -4,8 +4,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# LineageOS 16.0 (Android 9) pour l'UJC201 (Jancar, Autochips AC8257).
-# Systeme LineageOS + partition vendor stock (Android 9, VNDK 28, Treble) + noyau LibreHU (image de boot de sa CI).
+# LineageOS 17.1 (Android 10) pour l'UJC201 (Jancar, Autochips AC8257), branche lineage-17.1 (experimentale).
+# Systeme LineageOS 17.1 + partition vendor stock (Android 9, VNDK 28, Treble) + noyau LibreHU (image de boot de sa
+# CI). Un system Android 10 sur un vendor Android 9 : bibliotheques VNDK 28 (PRODUCT_EXTRA_VNDK_VERSIONS, device.mk),
+# politique SELinux du vendor compilee avec le mapping 28.0 du system, matrice de compatibilite FCM 3.
 #
 
 DEVICE_PATH := device/alps/ac8257_demo
@@ -96,8 +98,11 @@ BOARD_ROOT_EXTRA_FOLDERS := avm jancar
 TARGET_FS_CONFIG_GEN := $(DEVICE_PATH)/config.fs
 
 # Vendor stock (Android 9, PPR1.180610.011) : image lue sur l'unite par tools/get_vendor_img.sh,
-# jamais publiee dans ce depot. Ne pas definir BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE : sinon le build
-# d'Android 9 reconstruit une vendor depuis les sources et ignore celle-ci (build/core/Makefile).
+# jamais publiee dans ce depot. Ne pas definir BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE : sous Android 9 le build
+# reconstruirait une vendor depuis les sources et ignorerait celle-ci (build/core/Makefile) ; sous Android 10
+# BOARD_PREBUILT_VENDORIMAGE suffit a l'en empecher (core/board_config.mk, BUILDING_VENDOR_IMAGE), mais LineageOS ne
+# met TARGET_USES_PREBUILT_VENDOR_SEPOLICY a true que sans BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE
+# (device/lineage/sepolicy/common/sepolicy.mk), et le reglage fuseblk ci-dessous en depend.
 BOARD_PREBUILT_VENDORIMAGE := vendor/jancar/ac8257_demo/vendor.img
 
 # autochips.jar dans PRODUCT_BOOT_JARS (device.mk) : check-boot-jars (droidcore, donc `m` par defaut) le refuserait
@@ -106,17 +111,21 @@ BOARD_PREBUILT_VENDORIMAGE := vendor/jancar/ac8257_demo/vendor.img
 SKIP_BOOT_JARS_CHECK := true
 
 # Politique audio : audio_policy_configuration.xml du vendor, comme le stock (son logcat : APM::Serializer,
-# APM::VolumeCurve). Sans ce drapeau l'audiopolicy d'Android 9 lit audio_policy.conf, qui dans ce vendor est la
-# configuration generique de l'emulateur goldfish, presque entierement en commentaire
-# (frameworks/av/services/audiopolicy/Android.mk).
-USE_XML_AUDIO_POLICY_CONF := 1
+# APM::VolumeCurve). Android 10 ne lit plus que ce format (audio_policy.conf et USE_XML_AUDIO_POLICY_CONF, qu'il
+# fallait sous Android 9, ont disparu de frameworks/av/services/audiopolicy) : rien a regler ici.
 
 # Bluetooth d'autoradio : bluetooth/bdroid_buildcfg.h (classe d'appareil « Car audio », A2DP sink compile) ; profils
 # voiture dans overlay/packages/apps/Bluetooth.
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
 
-# Treble / VNDK (ro.vndk.version=28)
+# Treble / VNDK (ro.vndk.version=28) : le system Android 10 garde aussi les bibliotheques VNDK 28 du vendor stock
+# (PRODUCT_EXTRA_VNDK_VERSIONS := 28 dans device.mk, prebuilts/vndk/v28).
 BOARD_VNDK_VERSION := current
+
+# APEX aplatis (dossiers dans /system/apex, sans image ni dm-verity par APEX au demarrage) : valeur par defaut
+# d'Android 10 pour un appareil qui n'herite pas de updatable_apex.mk (core/board_config.mk), donnee ici
+# explicitement. Un appareil lance avec Android 9, noyau 4.9 de LibreHU.
+TARGET_FLATTEN_APEX := true
 
 # Recovery : on garde TWRP (branche twrp) ; LineageOS ne construit ni n'installe de recovery (et ne fait donc pas de
 # zip : images flashees par fastboot, voir docs/BUILD.md).
@@ -135,23 +144,29 @@ TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 BOARD_AVB_ENABLE := false
 
 # SELinux : la politique vendor est dans la partition vendor stock (Treble, mapping 28.0) ; cote system, le domaine
-# de mcu_ready (sans domaine, l'init d'Android 9 refuse de lancer le service, meme en permissif).
+# de mcu_ready (sans domaine, l'init d'Android 9 et 10 refuse de lancer le service, meme en permissif).
 BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(DEVICE_PATH)/sepolicy/private
 
 # LineageOS etiquette fuseblk en vfat (device/lineage/sepolicy/common/private/genfs_contexts), le vendor Jancar en
 # sdcardfs : au demarrage, secilc refuse ces deux genfscon et l'init, sans politique, redemarre en bootloader (premier
-# essai du build de la CI, 12/11/2026). tools/patch_lineage_sources.sh retire la ligne LineageOS apres repo sync ;
-# sans lui, le build s'arrete ici plutot que de produire un system qui ne demarre pas.
-ifneq ($(filter-out 0,$(shell grep -s -c '^genfscon fuseblk ' device/lineage/sepolicy/common/private/genfs_contexts)),)
-$(error genfscon fuseblk de LineageOS en conflit avec le vendor Jancar : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+# essai du build de la CI sous LineageOS 16.0, 12/11/2026). LineageOS 17.1 retire sa ligne avec ce reglage
+# (device/lineage/sepolicy/common/sepolicy.mk : board_excludes_fuseblk_sepolicy, avec
+# TARGET_USES_PREBUILT_VENDOR_SEPOLICY, vrai ici) ; la CI verifie plat_sepolicy.cil apres le build.
+TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR := true
+ifeq ($(shell grep -s -c '^ifelse(board_excludes_fuseblk_sepolicy' device/lineage/sepolicy/common/private/genfs_contexts),0)
+$(error genfscon fuseblk de LineageOS sans la condition board_excludes_fuseblk_sepolicy (sources changees ?) : conflit avec le vendor Jancar)
 endif
-# Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (et, vbmeta en VERIFICATION_DISABLED, aucun
-# androidboot.vbmeta.*) : fs_mgr de LineageOS croit alors l'unite verrouillee, refuse le vbmeta modifie par fastboot,
-# vendor ne se monte pas et l'init redemarre en bootloader avant meme SELinux (essais du 12/11/2026, console-ramoops :
-# "ERROR_VERIFICATION isn't allowed when the device is LOCKED"). tools/patch_lineage_sources.sh : unite deverrouillee
-# sauf vbmeta.device_state=locked explicite.
+# Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (et, vbmeta en VERIFICATION_DISABLED,
+# aucun androidboot.vbmeta.*) : fs_mgr de LineageOS croit alors l'unite verrouillee, refuse le vbmeta modifie par
+# fastboot, vendor ne se monte pas et l'init redemarre en bootloader avant meme SELinux (essais du 12/11/2026,
+# console-ramoops : "ERROR_VERIFICATION isn't allowed when the device is LOCKED"). tools/patch_lineage_sources.sh :
+# unite deverrouillee sauf vbmeta.device_state=locked explicite, dans les deux copies du test d'Android 10 (fs_mgr.cpp
+# et libfs_avb/util.cpp).
 ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/fs_mgr.cpp),0)
 $(error fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+endif
+ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/libfs_avb/util.cpp),0)
+$(error libfs_avb de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 # Dalle en portrait montee en paysage et retroeclairage inverse (tools/lineage-patches, appliques par le meme script) :
 # sans eux, image et tactile en portrait (premier demarrage du 12/11/2026) et luminosite a l'envers.
@@ -160,6 +175,11 @@ $(error frameworks/native sans la rotation de la dalle : lancer device/alps/ac82
 endif
 ifeq ($(shell grep -s -c 'librehu.backlight_inverted' frameworks/base/services/core/java/com/android/server/lights/LightsService.java),0)
 $(error frameworks/base sans le retroeclairage inverse : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+endif
+# autochips.jar (PRODUCT_BOOT_JARS) en module Soong : Android 10 construit l'image de demarrage dans Soong, le module
+# Make du depot vendor donnerait « failed to find dex jar path for module "autochips" » (meme script).
+ifneq ($(shell grep -qs 'name: "autochips"' vendor/jancar/ac8257_demo/Android.bp && echo yes),yes)
+$(error autochips.jar sans module Soong (vendor/jancar/ac8257_demo/Android.bp) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 
 # Security patch (vendor stock)
