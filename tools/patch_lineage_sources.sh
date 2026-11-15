@@ -49,10 +49,10 @@
 # 6. vendor/jancar/ac8257_demo : autochips.jar est dans PRODUCT_BOOT_JARS (device.mk). Android 10 construit l'image de
 #    demarrage (boot.art) dans Soong (build/soong/java/dexpreopt_bootjars.go), qui ne trouve que des modules Soong :
 #    le module Make du depot vendor (BUILD_PREBUILT, branche lineage-16.0) donne « failed to find dex jar path for
-#    module "autochips" ». Le script ecrit vendor/jancar/ac8257_demo/Android.bp (dex_import, comme
-#    vendor/lineage/build/tools/extract_utils.sh de LineageOS 17.1 pour un jar) et retire le module Make du meme nom
-#    d'Android.mk (un nom defini deux fois arrete le build : core/base_rules.mk, « already defined by »). Seule la
-#    copie locale du depot vendor change, jamais le depot.
+#    module "autochips" ». La branche lineage-17.1 du depot vendor a deja ce module (Android.bp, dex_import, comme
+#    vendor/lineage/build/tools/extract_utils.sh de LineageOS 17.1 pour un jar) : rien a faire. Avec une copie de sa
+#    branche lineage-16.0, le script ecrit cet Android.bp et retire le module Make du meme nom d'Android.mk (un nom
+#    defini deux fois arrete le build : core/base_rules.mk, « already defined by ») ; seule la copie locale change.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}

@@ -18,7 +18,7 @@ Treble) and the kernel the LibreHU one (`stable-4.9.337`).
 | Panel and touch rotation | SurfaceFlinger + InputReader patch | same logic, patch redone for Android 10 (`TouchInputMapper::findViewport`) |
 | Inverted backlight | LightsService patch | same logic, applied before both Android 10 paths (SurfaceControl and lights HAL) |
 | Audio focus of Bluetooth music (A2DP sink) | Bluetooth app patch | Android 10 setting: `a2dp_sink_automatically_request_audio_focus` = true (overlay); no patch |
-| `autochips.jar` on the BOOTCLASSPATH | Make module of the vendor repository | Android 10 builds the boot image in Soong, which only finds Soong modules ("failed to find dex jar path"): the script writes `vendor/jancar/ac8257_demo/Android.bp` (`dex_import`, as the LineageOS 17.1 extraction tool does) and removes the Make module of the same name from the local copy of the vendor repository (the repository itself is not changed) |
+| `autochips.jar` on the BOOTCLASSPATH | Make module of the vendor repository (branch `lineage-16.0`) | Android 10 builds the boot image in Soong, which only finds Soong modules ("failed to find dex jar path"): vendor repository branch `lineage-17.1`, `Android.bp` (`dex_import`, as the LineageOS 17.1 extraction tool does); with a `lineage-16.0` copy, the script does the same in the local copy |
 | APEX | — | flattened (`TARGET_FLATTEN_APEX := true`, Android 10 default without `updatable_apex.mk`) |
 | `USE_XML_AUDIO_POLICY_CONF` | needed | removed: Android 10 only reads the vendor's XML |
 | Privileged permissions checked | Android 9 list | `librehu/privileged-permissions-android10.txt` (217 permissions); the LibreHU apps of 15/11/2026 pass without additions |
@@ -51,12 +51,12 @@ As [BUILD.en.md](BUILD.en.md), with these differences:
 repo init -u https://github.com/LineageOS/android.git -b lineage-17.1 --depth=1
 ```
 
-Local manifest: the tree at `revision="lineage-17.1"`, the vendor repository at `revision="lineage-16.0"` (its only
-branch: the same proprietary files serve).
+Local manifest: the tree and the vendor repository at `revision="lineage-17.1"` (the same proprietary files as its
+`lineage-16.0` branch, `autochips.jar` as a Soong module).
 
 ```xml
 <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo" remote="github" revision="lineage-17.1" />
-<project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="lineage-16.0" />
+<project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="lineage-17.1" />
 ```
 
 After each `repo sync`, from the top of the sources (the build stops otherwise, `BoardConfig.mk`):

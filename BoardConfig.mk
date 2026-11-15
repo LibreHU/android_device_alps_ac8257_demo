@@ -153,7 +153,7 @@ BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(DEVICE_PATH)/sepolicy/private
 # (device/lineage/sepolicy/common/sepolicy.mk : board_excludes_fuseblk_sepolicy, avec
 # TARGET_USES_PREBUILT_VENDOR_SEPOLICY, vrai ici) ; la CI verifie plat_sepolicy.cil apres le build.
 TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR := true
-ifeq ($(shell grep -s -c '^ifelse(board_excludes_fuseblk_sepolicy' device/lineage/sepolicy/common/private/genfs_contexts),0)
+ifeq ($(shell grep -s -c 'board_excludes_fuseblk_sepolicy' device/lineage/sepolicy/common/private/genfs_contexts),0)
 $(error genfscon fuseblk de LineageOS sans la condition board_excludes_fuseblk_sepolicy (sources changees ?) : conflit avec le vendor Jancar)
 endif
 # Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (et, vbmeta en VERIFICATION_DISABLED,

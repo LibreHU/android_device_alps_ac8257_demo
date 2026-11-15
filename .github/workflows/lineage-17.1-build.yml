@@ -85,13 +85,13 @@ jobs:
         run: |
           repo init -u https://github.com/LineageOS/android.git -b lineage-17.1 --depth=1 -g default,-darwin,-mips --no-clone-bundle
           mkdir -p .repo/local_manifests
-          # The vendor repository has only its lineage-16.0 branch: the same proprietary files serve 17.1;
-          # tools/patch_lineage_sources.sh turns its autochips.jar into a Soong module in the local copy.
+          # The vendor repository's own lineage-17.1 branch: the same proprietary files, autochips.jar as a Soong
+          # module (Android.bp).
           cat > .repo/local_manifests/ujc201.xml <<XML
           <?xml version="1.0" encoding="UTF-8"?>
           <manifest>
             <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo" remote="github" revision="lineage-17.1" />
-            <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="lineage-16.0" />
+            <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="lineage-17.1" />
           </manifest>
           XML
           for i in 1 2 3 4; do
