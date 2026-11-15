@@ -11,7 +11,7 @@
 # regles viendront avec le passage en enforcing (Roadmap, point 4). Les domaines permissifs sont refuses en build user
 # (system/sepolicy/Android.mk) : userdebug seulement.
 type mcu_ready, domain, coredomain;
-type mcu_ready_exec, exec_type, file_type;
+type mcu_ready_exec, system_file_type, exec_type, file_type;
 
 init_daemon_domain(mcu_ready)
 permissive mcu_ready;

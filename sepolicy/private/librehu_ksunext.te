@@ -6,7 +6,7 @@
 # en permissif) ; ses regles (shell, pm / cmd package, lecture de l'APK) viendront avec le passage en enforcing.
 # Permissif a lui seul en attendant, comme mcu_ready (userdebug seulement).
 type librehu_ksunext, domain, coredomain;
-type librehu_ksunext_exec, exec_type, file_type;
+type librehu_ksunext_exec, system_file_type, exec_type, file_type;
 
 init_daemon_domain(librehu_ksunext)
 permissive librehu_ksunext;

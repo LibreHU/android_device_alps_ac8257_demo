@@ -6,7 +6,7 @@
 # un service sans transition de domaine, meme en permissif) ; permissif a lui seul en attendant le passage en
 # enforcing (userdebug seulement).
 type librehu_touchcal, domain, coredomain;
-type librehu_touchcal_exec, exec_type, file_type;
+type librehu_touchcal_exec, system_file_type, exec_type, file_type;
 
 init_daemon_domain(librehu_touchcal)
 permissive librehu_touchcal;
