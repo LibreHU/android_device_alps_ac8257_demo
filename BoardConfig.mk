@@ -111,8 +111,11 @@ BOARD_PREBUILT_VENDORIMAGE := vendor/jancar/ac8257_demo/vendor.img
 SKIP_BOOT_JARS_CHECK := true
 
 # Politique audio : audio_policy_configuration.xml du vendor, comme le stock (son logcat : APM::Serializer,
-# APM::VolumeCurve). Android 10 ne lit plus que ce format (audio_policy.conf et USE_XML_AUDIO_POLICY_CONF, qu'il
-# fallait sous Android 9, ont disparu de frameworks/av/services/audiopolicy) : rien a regler ici.
+# APM::VolumeCurve). Android 10 ne lit plus que ce format mais exige toujours le drapeau : sans lui,
+# AudioPolicyManager.cpp s'arrete sur « #error Audio policy no longer supports legacy .conf configuration format »
+# (frameworks/av/services/audiopolicy/managerdefault/Android.mk et AudioPolicyManager.cpp, lineage-17.1 : « TODO:
+# after Q release, remove this check » ; build CI du 15/11/2026).
+USE_XML_AUDIO_POLICY_CONF := 1
 
 # Bluetooth d'autoradio : bluetooth/bdroid_buildcfg.h (classe d'appareil « Car audio », A2DP sink compile) ; profils
 # voiture dans overlay/packages/apps/Bluetooth.

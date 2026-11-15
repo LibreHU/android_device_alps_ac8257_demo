@@ -21,7 +21,7 @@ de tous les jours.
 | Focus audio de la musique Bluetooth (A2DP sink) | patch de l'appli Bluetooth | réglage natif d'Android 10 : `a2dp_sink_automatically_request_audio_focus` = true (overlay) ; plus de patch |
 | `autochips.jar` dans le BOOTCLASSPATH | module Make du dépôt vendor (branche `lineage-16.0`) | Android 10 construit l'image de démarrage dans Soong, qui ne trouve que des modules Soong (« failed to find dex jar path ») : branche `lineage-17.1` du dépôt vendor, `Android.bp` (`dex_import`, comme l'outil d'extraction de LineageOS 17.1) ; avec une copie `lineage-16.0`, le script fait la même chose dans la copie locale |
 | APEX | — | aplatis (`TARGET_FLATTEN_APEX := true`, défaut d'Android 10 sans `updatable_apex.mk`) |
-| `USE_XML_AUDIO_POLICY_CONF` | nécessaire | supprimé : Android 10 ne lit que l'XML du vendor |
+| `USE_XML_AUDIO_POLICY_CONF` | nécessaire | toujours nécessaire (Android 10 ne lit que l'XML mais `AudioPolicyManager.cpp` s'arrête sans le drapeau) |
 | Permissions privilégiées vérifiées | liste d'Android 9 | `librehu/privileged-permissions-android10.txt` (217 permissions) ; les applis LibreHU du 15/11/2026 y passent sans ajout |
 | Flux de l'appli Mises à jour | release `lineage-16.0-ota` | release `lineage-17.1-ota` (une 17.1 n'est jamais proposée à une 16.0) |
 
