@@ -1,0 +1,24 @@
+--- a/packages/SystemUI/Android.bp
++++ b/packages/SystemUI/Android.bp
+@@ -148,7 +148,9 @@
+     resource_dirs: [],
+ 
+     platform_apis: true,
+-    product_specific: true,
++    // librehuSystemUiInSystem (LibreHU, UJC201): in /system/priv-app, not /system/product. Android 10 scans
++    // /vendor/app before /product: the Jancar vendor's /vendor/app/ivi-systemui, also com.android.systemui
++    // (Android 9, android.uid.system), was installed instead of this one. /system/priv-app comes first, as on 16.0.
+     certificate: "platform",
+     privileged: true,
+ 
+--- a/data/etc/Android.bp
++++ b/data/etc/Android.bp
+@@ -122,7 +122,7 @@
+ 
+ prebuilt_etc {
+     name: "privapp_whitelist_com.android.systemui",
+-    product_specific: true,
++    // LibreHU: in /system/etc/permissions, with SystemUI in /system/priv-app (packages/SystemUI/Android.bp)
+     sub_dir: "permissions",
+     src: "com.android.systemui.xml",
+     filename_from_src: true,

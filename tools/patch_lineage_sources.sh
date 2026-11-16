@@ -53,6 +53,21 @@
 #    vendor/lineage/build/tools/extract_utils.sh de LineageOS 17.1 pour un jar) : rien a faire. Avec une copie de sa
 #    branche lineage-16.0, le script ecrit cet Android.bp et retire le module Make du meme nom d'Android.mk (un nom
 #    defini deux fois arrete le build : core/base_rules.mk, « already defined by ») ; seule la copie locale change.
+#
+# 7. frameworks/av (lineage-patches/frameworks_av) : sans audio_policy_engine_configuration.xml dans /vendor/etc (seul
+#    chemin lu par Android 10, EngineConfig.h DEFAULT_PATH ; le vendor Android 9 n'en a pas), le moteur de politique
+#    audio prend ses strategies par defaut et les courbes de volume de audio_policy_configuration.xml du vendor, qui
+#    n'en a pas pour tous les flux (pas AUDIO_STREAM_ACCESSIBILITY). loadProductStrategies() prenait alors end() pour
+#    le groupe absent (ALOG_ASSERT retire en build user) : audioserver plantait a chaque demarrage (SIGSEGV dans
+#    EngineBase::loadAudioPolicyEngineConfig(), 47 tombstones du premier essai du 15/11) et system_server attendait
+#    media.audio_policy sans fin (pas de boot_completed). Comme Android 11 : un groupe absent prend les courbes
+#    d'AUDIO_STREAM_MUSIC (d'AUDIO_STREAM_PATCH pour les flux internes).
+#
+# 8. frameworks/base (lineage-patches/frameworks_base, 0002) : SystemUI dans /system/priv-app au lieu de
+#    /system/product. Android 10 parcourt /vendor/app avant /product (PackageManagerService) : l'ivi-systemui du vendor
+#    Jancar, lui aussi com.android.systemui (Android 9, android.uid.system), etait installe a la place de celui de
+#    LineageOS (« Failed to scan /system/product/priv-app/SystemUI: ... already installed »). Comme en 16.0, celui du
+#    systeme passe avant (l'ivi-systemui est alors ignore). Sa liste de permissions privilegiees le suit.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -130,6 +145,11 @@ apply_patch frameworks/native services/inputflinger/InputReader.cpp librehuDispl
     "$PATCHES/frameworks_native/0001-librehu-display-rotation.patch" "rotation de la dalle et du tactile"
 apply_patch frameworks/base services/core/java/com/android/server/lights/LightsService.java librehu.backlight_inverted \
     "$PATCHES/frameworks_base/0001-librehu-backlight-inverted.patch" "retroeclairage inverse"
+# 7, 8.
+apply_patch frameworks/av services/audiopolicy/engine/common/src/EngineBase.cpp librehuMissingVolumeGroups \
+    "$PATCHES/frameworks_av/0001-librehu-missing-volume-groups.patch" "groupes de volume absents du vendor"
+apply_patch frameworks/base packages/SystemUI/Android.bp librehuSystemUiInSystem \
+    "$PATCHES/frameworks_base/0002-librehu-systemui-system-priv-app.patch" "SystemUI avant l'ivi-systemui du vendor"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk

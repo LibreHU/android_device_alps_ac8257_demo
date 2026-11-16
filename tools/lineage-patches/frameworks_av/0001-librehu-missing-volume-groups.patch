@@ -1,0 +1,48 @@
+--- a/services/audiopolicy/engine/common/src/EngineBase.cpp
++++ b/services/audiopolicy/engine/common/src/EngineBase.cpp
+@@ -146,6 +146,45 @@
+                   static_cast<size_t>(ret == NO_ERROR ? 0 : 1)};
+     }
+     ALOGE_IF(result.nbSkippedElement != 0, "skipped %zu elements", result.nbSkippedElement);
++    // librehuMissingVolumeGroups (LibreHU, UJC201): the Android 9 vendor has legacy volume curves for some
++    // streams only (not AUDIO_STREAM_ACCESSIBILITY). A strategy naming a volume group that does not exist made
++    // loadProductStrategies() dereference end() (its ALOG_ASSERT is compiled out): audioserver crashed at each
++    // start and system_server waited for media.audio_policy forever. As Android 11 does, such a group gets the
++    // curves of AUDIO_STREAM_MUSIC (of AUDIO_STREAM_PATCH for the internal streams).
++    {
++        auto &groups = result.parsedConfig->volumeGroups;
++        auto findGroup = [&groups](const std::string &name) {
++            return std::find_if(groups.begin(), groups.end(),
++                                [&name](const auto &g) { return g.name == name; });
++        };
++        engineConfig::VolumeGroup music = {"", -1, -1, {}};
++        auto musicIter = findGroup("AUDIO_STREAM_MUSIC");
++        if (musicIter != groups.end()) {
++            music = *musicIter;
++        }
++        engineConfig::VolumeGroup patch = music;
++        auto patchIter = findGroup("AUDIO_STREAM_PATCH");
++        if (patchIter != groups.end()) {
++            patch = *patchIter;
++        }
++        for (const auto &strategyConfig : result.parsedConfig->productStrategies) {
++            for (const auto &group : strategyConfig.attributesGroups) {
++                if (findGroup(group.volumeGroup) != groups.end()) {
++                    continue;
++                }
++                bool internal = group.stream >= AUDIO_STREAM_PUBLIC_CNT;
++                engineConfig::VolumeGroup volumeConfig = internal ? patch : music;
++                volumeConfig.name = group.volumeGroup;
++                if (internal) {
++                    volumeConfig.indexMin = 0;
++                    volumeConfig.indexMax = 100;
++                }
++                ALOGW("%s: No configuration of %s found, using default volume configuration",
++                      __FUNCTION__, group.volumeGroup.c_str());
++                groups.push_back(volumeConfig);
++            }
++        }
++    }
+     loadVolumeGroups(result.parsedConfig->volumeGroups, mVolumeGroups);
+     loadProductStrategies(result.parsedConfig->productStrategies, mProductStrategies,
+                           mVolumeGroups);

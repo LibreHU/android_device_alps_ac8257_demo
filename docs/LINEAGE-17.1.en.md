@@ -6,7 +6,9 @@ Branch **`lineage-17.1`**: the `lineage-16.0` tree (LineageOS 16.0, Android 9) p
 (Android 10). A real ROM built from the LineageOS sources. The vendor stays the unit's own (Android 9, VNDK 28,
 Treble) and the kernel the LibreHU one (`stable-4.9.337`).
 
-**State (15/11/2026): being built by the CI, never tried on the unit.** `lineage-16.0` stays the everyday ROM.
+**State (16/11/2026): first try on the unit on 15/11 (kernel 4.9.337): Android did not finish booting (audioserver
+crashing in a loop, the vendor's SystemUI), fixed in the next build, to try again.** `lineage-16.0` stays the everyday
+ROM.
 
 ## What changes from `lineage-16.0`
 
@@ -23,6 +25,8 @@ Treble) and the kernel the LibreHU one (`stable-4.9.337`).
 | `USE_XML_AUDIO_POLICY_CONF` | needed | still needed (Android 10 only reads the XML but `AudioPolicyManager.cpp` stops without the flag) |
 | Privileged permissions checked | Android 9 list | `librehu/privileged-permissions-android10.txt` (217 permissions); the LibreHU apps of 15/11/2026 pass without additions |
 | Updates feed of the Updater app | release `lineage-16.0-ota` | release `lineage-17.1-ota` |
+| Audio policy (engine) | curves of the vendor's `audio_policy_configuration.xml` | Android 10 only reads `audio_policy_engine_configuration.xml` from `/vendor/etc` (not in the Android 9 vendor) and then takes the vendor's curves, which miss some streams (`AUDIO_STREAM_ACCESSIBILITY`): `frameworks/av` patch (as Android 11, a missing volume group gets the music curves); without it audioserver crashed in a loop |
+| SystemUI | `/system/priv-app` (scanned before `/vendor/app/ivi-systemui`) | Android 10 puts it in `/system/product`, scanned **after** `/vendor/app`: the Jancar `ivi-systemui` (same package `com.android.systemui`) took its place; `frameworks/base` patch: back in `/system/priv-app` |
 
 ## Update channel (OTA) of its own
 
@@ -83,6 +87,16 @@ one kept: the repository's 10 GB of cache are shared), releases `lineage-17.1-<d
    installer says so when it finds Android 9 data).
 4. After the try, send `adb logcat -b all -d`, `adb shell dmesg`, `adb shell getprop` and, after a reboot, the
    content of `/sys/fs/pstore` (from TWRP).
+
+## First try on the unit (15/11/2026, build of 15/11, kernel 4.9.337)
+
+- Android did not finish booting (no `sys.boot_completed`): `system_server` waited for `media.audio_policy` forever
+  ("Waiting for service 'media.audio_policy'"), as `audioserver` crashed at each start (47 tombstones: SIGSEGV, null
+  pointer, `EngineBase::loadAudioPolicyEngineConfig()` of `libaudiopolicyenginedefault.so`). Cause: strategy
+  `STRATEGY_ACCESSIBILITY` without a volume group (see the table). Fixed (`frameworks/av` patch).
+- SystemUI: the vendor's (`/vendor/app/ivi-systemui`, Android 9) was installed instead of LineageOS's. Fixed
+  (`frameworks/base` patch). The 16.0 data was kept: formatting data is still advised.
+- Bluetooth: the MediaTek HAL stops ("TurnOn: failed to init Bluetooth!"): to look at in the next try.
 
 ## To check on the unit
 
