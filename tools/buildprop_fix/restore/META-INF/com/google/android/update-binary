@@ -5,7 +5,7 @@
 
 OUTFD=$2
 ui_print() { echo "ui_print $1" > /proc/self/fd/$OUTFD; echo "ui_print" > /proc/self/fd/$OUTFD; }
-abort() { ui_print "ERREUR : $1"; cleanup; exit 1; }
+abort() { ui_print "ERROR: $1"; cleanup; exit 1; }
 
 BYNAME=/dev/block/platform/bootdevice/by-name
 SYSMNT=${UJC_SYSMNT:-/system_root}
@@ -18,7 +18,7 @@ if [ -z "$UJC_TEST" ]; then
 	umount $SYSMNT 2>/dev/null; umount /system 2>/dev/null
 	mkdir -p $SYSMNT
 	blockdev --setrw $BYNAME/system 2>/dev/null
-	mount -t ext4 -o rw $BYNAME/system $SYSMNT || abort "montage de system impossible"
+	mount -t ext4 -o rw $BYNAME/system $SYSMNT || abort "cannot mount system"
 fi
 
 LAST=$(ls -d $SDCARD/UJC201_buildprop_backup/*/ 2>/dev/null | sort | tail -n1)
@@ -29,20 +29,20 @@ for f in $SYSMNT/system/build.prop $SYSMNT/build.prop; do
 	elif [ -n "$LAST" ] && [ -f "${LAST%/}$f" ]; then src="${LAST%/}$f"
 	fi
 	[ -n "$src" ] || continue
-	cat "$src" > "$f" || abort "ecriture de $f impossible"
+	cat "$src" > "$f" || abort "cannot write $f"
 	sync
 	ui_print "$f <- $src"
 	DONE=$((DONE + 1))
 done
 
 RC=$SYSMNT/system/etc/init/ujc201_version.rc
-if [ -f "$RC" ]; then rm -f "$RC" && ui_print "$RC supprime" && DONE=$((DONE + 1)); fi
+if [ -f "$RC" ]; then rm -f "$RC" && ui_print "$RC deleted" && DONE=$((DONE + 1)); fi
 
-[ $DONE -gt 0 ] || abort "aucune sauvegarde trouvee (.bak ni $SDCARD/UJC201_buildprop_backup)"
+[ $DONE -gt 0 ] || abort "no backup found (no .bak, nothing in $SDCARD/UJC201_buildprop_backup)"
 ui_print " "
-ui_print "$DONE fichier(s) restaure(s)."
-ui_print "Valeurs deja enregistrees dans /data (Android demarre, adb) :"
-ui_print "  setprop persist.jancar.ver_rel \"\"   (Reglages : 12 d'origine)"
+ui_print "$DONE file(s) restored."
+ui_print "Values already saved in /data (Android running, adb):"
+ui_print "  setprop persist.jancar.ver_rel \"\"   (Settings: original 12)"
 ui_print "  setprop persist.jancar.sdk 31"
 cleanup
 exit 0

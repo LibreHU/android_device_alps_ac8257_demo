@@ -16,7 +16,7 @@
 
 OUTFD=$2
 ui_print() { echo "ui_print $1" > /proc/self/fd/$OUTFD; echo "ui_print" > /proc/self/fd/$OUTFD; }
-abort() { ui_print "ERREUR : $1"; cleanup; exit 1; }
+abort() { ui_print "ERROR: $1"; cleanup; exit 1; }
 
 BYNAME=/dev/block/platform/bootdevice/by-name
 SYSMNT=${UJC_SYSMNT:-/system_root}
@@ -40,18 +40,18 @@ if [ -z "$UJC_TEST" ]; then
 	umount $SYSMNT 2>/dev/null; umount /system 2>/dev/null
 	mkdir -p $SYSMNT
 	blockdev --setrw $BYNAME/system 2>/dev/null
-	mount -t ext4 -o rw $BYNAME/system $SYSMNT || abort "montage de system impossible"
+	mount -t ext4 -o rw $BYNAME/system $SYSMNT || abort "cannot mount system"
 	if ! grep -q " $VENMNT " /proc/mounts; then
 		mkdir -p $VENMNT
-		mount -t ext4 -o ro $BYNAME/vendor $VENMNT || abort "montage de vendor impossible"
+		mount -t ext4 -o ro $BYNAME/vendor $VENMNT || abort "cannot mount vendor"
 		MOUNTED_VEN=1
 	fi
-	[ -d $SDCARD ] || abort "memoire interne non montee (/data dechiffre ?) : pas de copie de sauvegarde possible"
+	[ -d $SDCARD ] || abort "internal storage not mounted (/data decrypted?): no backup copy possible"
 fi
 
 # --- valeurs de reference : fingerprint vendor
 VFP=$(prop ro.vendor.build.fingerprint $VENMNT/build.prop)
-[ -n "$VFP" ] || abort "ro.vendor.build.fingerprint introuvable dans $VENMNT/build.prop"
+[ -n "$VFP" ] || abort "ro.vendor.build.fingerprint not found in $VENMNT/build.prop"
 # brand/name/device:release/id/incremental:type/tags
 NAME=$(echo "$VFP" | cut -d/ -f2)
 REL=$(echo "$VFP" | cut -d: -f2 | cut -d/ -f1)
@@ -60,19 +60,19 @@ INC=$(echo "$VFP" | cut -d/ -f5 | cut -d: -f1)
 TYPE=$(echo "$VFP" | cut -d: -f3 | cut -d/ -f1)
 TAGS=$(echo "$VFP" | cut -d/ -f6)
 DESC="$NAME-$TYPE $REL $BID $INC $TAGS"
-case "$REL" in ''|*[!0-9.]*) abort "fingerprint vendor inattendu : $VFP";; esac
-ui_print "Reference (vendor) : $VFP"
+case "$REL" in ''|*[!0-9.]*) abort "unexpected vendor fingerprint: $VFP";; esac
+ui_print "Reference (vendor): $VFP"
 
 # --- fichiers a corriger : build.prop du system (fichiers reguliers uniquement)
 FILES=""
 for f in $SYSMNT/system/build.prop $SYSMNT/build.prop; do
 	[ -f "$f" ] && [ ! -L "$f" ] && grep -q '^ro.build.fingerprint=' "$f" && FILES="$FILES $f"
 done
-[ -n "$FILES" ] || abort "aucun build.prop trouve dans $SYSMNT"
+[ -n "$FILES" ] || abort "no build.prop found in $SYSMNT"
 
 # espace libre (sauvegarde .bak a cote)
 FREE=$(df -k $SYSMNT 2>/dev/null | tail -n1 | awk '{print $4}')
-[ -n "$FREE" ] && [ "$FREE" -lt 64 ] && abort "partition system pleine (${FREE} Ko libres)"
+[ -n "$FREE" ] && [ "$FREE" -lt 64 ] && abort "system partition full (${FREE} KB free)"
 
 STAMP=$(date +%Y%m%d-%H%M%S)
 BKDIR=$SDCARD/UJC201_buildprop_backup/$STAMP
@@ -90,33 +90,33 @@ for f in $FILES; do
 	    -e "s|^persist.jancar.ver_rel=.*|persist.jancar.ver_rel=$REL|" \
 	    -e "s|^persist.jancar.sdk=.*|persist.jancar.sdk=$SDK|" "$f" > $TMP || abort "sed"
 	if ! grep -q '^persist.jancar.ver_rel=' $TMP; then
-		{ echo ""; echo "# UJC201 fix : vraie version Android (le framework Jancar annonce 12 / SDK 31 sinon)"
+		{ echo ""; echo "# UJC201 fix: real Android version (the Jancar framework reports 12 / SDK 31 otherwise)"
 		  echo "persist.jancar.ver_rel=$REL"; } >> $TMP
 	fi
 	grep -q '^persist.jancar.sdk=' $TMP || echo "persist.jancar.sdk=$SDK" >> $TMP
-	[ -s $TMP ] || abort "resultat vide, fichier non modifie"
-	if cmp -s $TMP "$f"; then ui_print "  deja corrige, rien a faire"; continue; fi
-	ui_print "  release     : $(prop ro.build.version.release "$f") -> $REL"
-	ui_print "  fingerprint : $(prop ro.build.fingerprint "$f")"
+	[ -s $TMP ] || abort "empty result, file not changed"
+	if cmp -s $TMP "$f"; then ui_print "  already fixed, nothing to do"; continue; fi
+	ui_print "  release:     $(prop ro.build.version.release "$f") -> $REL"
+	ui_print "  fingerprint: $(prop ro.build.fingerprint "$f")"
 	ui_print "             -> $VFP"
-	ui_print "  description : $(prop ro.build.description "$f") -> $DESC"
+	ui_print "  description: $(prop ro.build.description "$f") -> $DESC"
 	ui_print "  persist.jancar.ver_rel=$REL  persist.jancar.sdk=$SDK"
 
 	# sauvegardes (avant toute modification)
 	if [ -f "$f.bak" ]; then
-		ui_print "  $f.bak existe deja : conserve (original)"
+		ui_print "  $f.bak already there: kept (original)"
 	else
-		cp -p "$f" "$f.bak" || abort "copie $f.bak impossible"
-		ui_print "  sauvegarde : $f.bak"
+		cp -p "$f" "$f.bak" || abort "cannot copy $f.bak"
+		ui_print "  backup:     $f.bak"
 	fi
-	mkdir -p "$BKDIR$(dirname "$f")" || abort "dossier $BKDIR impossible"
-	cp -p "$f" "$BKDIR$f" || abort "copie vers la memoire interne impossible"
-	ui_print "  copie      : $BKDIR$f"
+	mkdir -p "$BKDIR$(dirname "$f")" || abort "cannot create folder $BKDIR"
+	cp -p "$f" "$BKDIR$f" || abort "cannot copy to internal storage"
+	ui_print "  copy:       $BKDIR$f"
 
 	# reecriture sur place (garde inode, droits et contexte SELinux)
-	cat $TMP > "$f" || abort "ecriture de $f impossible (restaurer $f.bak)"
+	cat $TMP > "$f" || abort "cannot write $f (restore $f.bak)"
 	sync
-	cmp -s $TMP "$f" || abort "verification echouee : restaurer $f.bak"
+	cmp -s $TMP "$f" || abort "check failed: restore $f.bak"
 	ui_print "  OK"
 	CHANGED=$((CHANGED + 1))
 done
@@ -125,29 +125,30 @@ rm -f $TMP
 # --- service init : reimpose les valeurs a chaque demarrage (ecrase une valeur deja enregistree dans /data)
 RC=$SYSMNT/system/etc/init/ujc201_version.rc
 SDK=$(prop ro.build.version.sdk $(echo $FILES | cut -d' ' -f1)); [ -n "$SDK" ] || SDK=28
-RCTXT="# UJC201 fix : vraie version Android a chaque demarrage (framework Jancar, ActivityThread)
+RCTXT="# UJC201 fix: real Android version at each boot (Jancar framework, ActivityThread)
 on property:sys.boot_completed=1
     setprop persist.jancar.ver_rel $REL
     setprop persist.jancar.sdk $SDK"
 ui_print " "
 if [ -f "$RC" ] && [ "$(cat "$RC")" = "$RCTXT" ]; then
-	ui_print "$RC : deja present"
+	ui_print "$RC: already there"
 elif [ -d "$(dirname "$RC")" ]; then
-	echo "$RCTXT" > "$RC" || abort "ecriture de $RC impossible"
+	[ -f "$RC" ] && ST=updated || ST=created
+	echo "$RCTXT" > "$RC" || abort "cannot write $RC"
 	chmod 0644 "$RC"; chown 0:0 "$RC" 2>/dev/null
 	[ -z "$UJC_TEST" ] && chcon u:object_r:system_file:s0 "$RC" 2>/dev/null
-	ui_print "$RC : cree"
+	ui_print "$RC: $ST"
 	CHANGED=$((CHANGED + 1))
 else
-	ui_print "ATTENTION : $(dirname "$RC") absent, service init non installe"
+	ui_print "WARNING: $(dirname "$RC") missing, init service not installed"
 fi
 
 ui_print " "
 if [ $CHANGED -gt 0 ]; then
-	ui_print "$CHANGED fichier(s) corrige(s). Sauvegarde : $BKDIR"
+	ui_print "$CHANGED file(s) fixed. Backup: $BKDIR"
 else
-	ui_print "Aucune modification."
+	ui_print "No change."
 fi
-ui_print "Retour arriere : flasher ujc201_buildprop_restore.zip"
+ui_print "To go back: flash ujc201_buildprop_restore.zip"
 cleanup
 exit 0
