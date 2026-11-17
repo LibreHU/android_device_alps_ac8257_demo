@@ -104,8 +104,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
     persist.bluetooth.enablenewavrcp=false \
     ro.librehu.a2dp_sink_auto_focus=true
 
-# Pays du Wi-Fi d'apres la langue choisie a l'installation (librehu/boot/librehu_wificountry.sh) ; sans pays dans la
-# langue, celui du stock. Sans pays, le pilote Wi-Fi MediaTek scanne zero canal et finit par planter le noyau.
+# Pays du Wi-Fi (librehu/boot/librehu_wificountry.sh) : persist.librehu.wificountry s'il est pose, sinon le pays du
+# fuseau horaire, sinon la region de la langue, sinon celui du stock. Sans pays, le pilote Wi-Fi MediaTek scanne zero
+# canal et finit par planter le noyau.
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.librehu.wificountry_default=CN
 
