@@ -14,6 +14,10 @@ CRC que #72, donc memes modules).
 
 ## Changelog récent
 
+### 2026-11-17
+- `tools/apply_twrp_patches.py`, patch 6 : restauration et Install Image d'une image brute **d'une autre taille que la partition** (sauvegardes d'avant le zip boot32 de LibreHU : boot 10 Mio sur boot 32 Mio et inversement, dtbo 8 Mio sur dtbo 1 Mio). Image avec pied AVB (`AVBf`) : contenu ecrit, puis zeros, puis pied recopie dans les 64 derniers octets de la partition (le LK lit le pied a la fin). Image plus grande sans pied : ecrite a la taille de la partition si tout ce qui depasse est a zero. Sinon refus **avant toute ecriture** (partition intacte). Meme taille : TWRP d'origine. Essai sur PC : `python3 tools/test_adaptive_raw.py [bootable/recovery/partition.cpp]` (15 cas). A confirmer sur l'unite.
+- Zips build.prop (`tools/buildprop_fix`) : messages en anglais.
+
 ### 2026-10-12
 - Mise à jour du noyau précompilé vers le noyau stock UJC201-V1.151R6-260122_0427-RH-C0-CYA, Linux 4.9.117+ #72, avec le patch `skip_initramfs` → `want_initramfs` ; la zone DTB ajoutée au flux gzip est conservée.
 - Mise à jour de `prebuilt/dtbo.img` depuis le `recovery_dtbo` du nouveau `recovery.img`.
@@ -68,7 +72,8 @@ verifies, recovery actuel sauvegarde dans `/sdcard/LibreHU/backup`).
 ## Build
 GitHub Actions (`.github/workflows/build-twrp.yml`, lancement manuel) :
 1. `repo sync` du manifeste minimal twrp-12.1 ;
-2. `tools/apply_twrp_patches.py` patche le **source** TWRP (barre d'etat texte, theme, fenetres, navigation aux touches) ;
+2. `tools/apply_twrp_patches.py` patche le **source** TWRP (barre d'etat texte, theme, fenetres, navigation aux touches,
+   restauration d'images d'une autre taille que la partition) ;
 3. build `recoveryimage` avec les flags de `BoardConfig.mk` (pas de FBIOBLANK, luminosite, rotation…) ;
 4. `tools/ujc201_postprocess.py` pose la signature AVB du recovery stock (et applique en binaire ce qui
    manquerait) → **`twrp_ujc201.img`**, publie en pre-release.
@@ -276,6 +281,7 @@ Le firmware annonce `ro.build.version.release=12` (SDK 28 = Android 9) et le fin
 - `recovery/root/` : rc, `touchfix`, `usbmode`, `powerinfo`, `mcuinfo`, `wheelkeys`, `ujc201_keys.conf`
 - `tools/touchfix/` : source de `touchfix` (C autonome, sans libc) + `build.sh`
 - `tools/apply_twrp_patches.py` : patchs du source TWRP (applique par le workflow)
+- `tools/test_adaptive_raw.py` : essai sur PC du patch 6 (images brutes d'une autre taille que la partition)
 - `tools/keynav/keynav.inc` : navigation aux touches (touches au volant, clavier), inseree dans `gui/pages.cpp`
 - `tools/buildprop_fix/` : zips TWRP correctif / restauration du build.prop
 - `tools/ujc201_theme.py` : entrees Advanced + page graphique (partage source / post-traitement)

@@ -14,6 +14,9 @@ apply_twrp_patches.py - patchs source TWRP (bootable/recovery, branche android-1
   5. gui/ (objects.hpp, pages.hpp, pages.cpp) : navigation aux touches (touches au volant de touchfix, clavier USB),
      code dans tools/keynav/keynav.inc : cadre sur l'element actif, fleches / VOL+ VOL- / OK, listes, clavier a
      l'ecran, glissiere de confirmation (OK deux fois). Les elements sont repertories au chargement de la page.
+  6. partition.cpp : restauration et Install Image d'une image brute d'une autre taille que la partition (boot
+     10 <-> 32 Mio, dtbo 8 <-> 1 Mio du zip boot32) : pied AVB recopie a la fin de la partition, surplus de zeros
+     laisse de cote, refus avant toute ecriture sinon (essais sur PC : tools/test_adaptive_raw.py).
 
 L'ecran (FBIOBLANK) n'a pas besoin de patch source : TW_NO_SCREEN_BLANK + TW_BRIGHTNESS_PATH +
 TW_MAX_BRIGHTNESS font ecrire fbdev_blank() dans le fichier de luminosite au lieu de l'ioctl.
@@ -279,6 +282,242 @@ PAGES_UPDATE_NEW = """	int res = (mCurrentSet ? mCurrentSet->Update() : -1);
 	{
 		int c_res = mMouseCursor->Update();"""
 
+# 6. partition.cpp : image brute d'une autre taille que la partition (restauration et Install Image).
+# Code C++ insere avant TWPartition::Raw_Read_Write ; aussi compile et essaye sur PC par tools/test_adaptive_raw.py.
+ADAPT_ANCHOR = 'bool TWPartition::Raw_Read_Write(PartitionSettings *part_settings) {'
+ADAPT_CODE = r'''/* ---- UJC201-adaptive-raw : image brute d'une autre taille que la partition ----
+ * Apres le zip boot32 de LibreHU (boot 10 -> 32 Mio, dtbo 8 -> 1 Mio) ou son zip de retour, les sauvegardes TWRP et les
+ * images d'avant n'ont plus la taille de la partition. Restauration (Restore_Image) et Install Image (Flash_Image) :
+ * - image avec pied AVB ("AVBf" version 1 dans ses 64 derniers octets, blob "AVB0" a vbmeta_offset ; libavb
+ *   avb_footer.h) : le contenu [0, vbmeta_offset + vbmeta_size) est ecrit, puis des zeros, puis le pied dans les
+ *   64 derniers octets de la partition (le LK lit le pied a la fin de la partition) ; refus si le contenu ne tient pas ;
+ * - image plus grande sans pied : ecrite a la taille de la partition seulement si tout ce qui depasse est a zero ;
+ * - meme taille, ou image plus petite sans pied : comportement d'origine de TWRP.
+ * Tout est decide AVANT la premiere ecriture : un refus laisse la partition intacte. */
+#define UJC201_RAW_CHUNK 1048576ULL
+
+static unsigned long long ujc201_be(const unsigned char *p, int n)
+{
+	unsigned long long v = 0;
+	for (int i = 0; i < n; i++)
+		v = (v << 8) | p[i];
+	return v;
+}
+
+static bool ujc201_pread(int fd, void *buf, unsigned long long len, unsigned long long off)
+{
+	unsigned long long done = 0;
+	while (done < len) {
+		ssize_t r = pread64(fd, (char *)buf + done, (size_t)(len - done), (off64_t)(off + done));
+		if (r <= 0)
+			return false;
+		done += (unsigned long long)r;
+	}
+	return true;
+}
+
+static bool ujc201_pwrite(int fd, const void *buf, unsigned long long len, unsigned long long off)
+{
+	unsigned long long done = 0;
+	while (done < len) {
+		ssize_t r = pwrite64(fd, (const char *)buf + done, (size_t)(len - done), (off64_t)(off + done));
+		if (r <= 0)
+			return false;
+		done += (unsigned long long)r;
+	}
+	return true;
+}
+
+/* mode : 0 = TWRP d'origine, 1 = tronquee a la partition (surplus a zero), 2 = pied AVB deplace, -1 = refus (why) */
+struct ujc201_raw_plan {
+	int mode;
+	unsigned long long content_end;
+	unsigned char footer[64];
+	char why[192];
+};
+
+static void ujc201_raw_plan_for(int src_fd, unsigned long long fsz, unsigned long long psz, struct ujc201_raw_plan *p)
+{
+	unsigned char magic[4];
+
+	memset(p, 0, sizeof(*p));
+	if (psz == 0 || fsz == psz)
+		return;
+	if (fsz >= 128 && ujc201_pread(src_fd, p->footer, 64, fsz - 64) && memcmp(p->footer, "AVBf", 4) == 0) {
+		unsigned long long major = ujc201_be(p->footer + 4, 4);
+		unsigned long long img = ujc201_be(p->footer + 12, 8);
+		unsigned long long voff = ujc201_be(p->footer + 20, 8);
+		unsigned long long vsz = ujc201_be(p->footer + 28, 8);
+		if (major == 1 && vsz > 0 && voff >= img && voff <= fsz - 64 && vsz <= fsz - 64 - voff &&
+				ujc201_pread(src_fd, magic, 4, voff) && memcmp(magic, "AVB0", 4) == 0) {
+			p->content_end = voff + vsz;
+			if (psz < 128 || p->content_end > psz - 64) {
+				p->mode = -1;
+				snprintf(p->why, sizeof(p->why), "the AVB image content (%llu bytes) does not fit in the "
+						"partition (%llu bytes)", p->content_end, psz);
+			} else
+				p->mode = 2;
+			return;
+		}
+	}
+	if (fsz < psz)
+		return;
+	unsigned char *buf = (unsigned char *)malloc(UJC201_RAW_CHUNK);
+	if (!buf) {
+		p->mode = -1;
+		snprintf(p->why, sizeof(p->why), "out of memory");
+		return;
+	}
+	p->mode = 1;
+	for (unsigned long long off = psz; off < fsz && p->mode == 1; ) {
+		unsigned long long n = fsz - off < UJC201_RAW_CHUNK ? fsz - off : UJC201_RAW_CHUNK;
+		if (!ujc201_pread(src_fd, buf, n, off)) {
+			p->mode = -1;
+			snprintf(p->why, sizeof(p->why), "cannot read the image (%s)", strerror(errno));
+			break;
+		}
+		for (unsigned long long i = 0; i < n; i++) {
+			if (buf[i]) {
+				p->mode = -1;
+				snprintf(p->why, sizeof(p->why), "the image (%llu bytes) is larger than the partition (%llu bytes) "
+						"and its extra bytes are not all zeros (byte %llu)", fsz, psz, off + i);
+				break;
+			}
+		}
+		off += n;
+	}
+	free(buf);
+}
+
+/* Ecrit l'image selon le plan (mode 1 ou 2) ; progression ramenee a la taille du fichier */
+static bool ujc201_raw_write(int src_fd, int dst_fd, unsigned long long fsz, unsigned long long psz,
+		const struct ujc201_raw_plan *p, ProgressTracking *progress)
+{
+	unsigned long long body = p->mode == 2 ? psz - 64 : psz;
+	unsigned long long from_file = body;
+	if (p->mode == 2 && fsz - 64 < body)
+		from_file = fsz - 64;
+	unsigned char *buf = (unsigned char *)malloc(UJC201_RAW_CHUNK);
+	if (!buf)
+		return false;
+	bool ok = true;
+	for (unsigned long long off = 0; ok && off < body; ) {
+		unsigned long long n = body - off < UJC201_RAW_CHUNK ? body - off : UJC201_RAW_CHUNK;
+		unsigned long long f = 0;
+		if (off < from_file)
+			f = from_file - off < n ? from_file - off : n;
+		if (f && !ujc201_pread(src_fd, buf, f, off))
+			ok = false;
+		if (ok) {
+			memset(buf + f, 0, (size_t)(n - f));
+			ok = ujc201_pwrite(dst_fd, buf, n, off);
+		}
+		off += n;
+		if (progress)
+			progress->UpdateSize((unsigned long long)((double)off * (double)fsz / (double)psz));
+		if (ok && PartitionManager.Check_Backup_Cancel() != 0)
+			ok = false;
+	}
+	free(buf);
+	if (ok && p->mode == 2)
+		ok = ujc201_pwrite(dst_fd, p->footer, 64, psz - 64);
+	if (ok)
+		ok = fsync(dst_fd) == 0;
+	if (ok && progress)
+		progress->UpdateSize(fsz);
+	return ok;
+}
+
+/* Restauration / Install Image : 0 = cas ordinaire (code d'origine), 1 = ecrit, -1 = refus (rien ecrit) ou erreur */
+static int ujc201_adaptive_restore(const string &srcfn, const string &dstfn, ProgressTracking *progress)
+{
+	struct stat64 st;
+	struct ujc201_raw_plan p;
+	int src_fd = open(srcfn.c_str(), O_RDONLY | O_LARGEFILE);
+	if (src_fd < 0)
+		return 0;
+	unsigned long long fsz = fstat64(src_fd, &st) == 0 ? (unsigned long long)st.st_size : 0;
+	unsigned long long psz = TWFunc::IOCTL_Get_Block_Size(dstfn.c_str());
+	ujc201_raw_plan_for(src_fd, fsz, psz, &p);
+	if (p.mode == 0) {
+		close(src_fd);
+		return 0;
+	}
+	if (p.mode < 0) {
+		gui_print_color("error", "%s: %s. Nothing was written.\n", srcfn.c_str(), p.why);
+		close(src_fd);
+		return -1;
+	}
+	int dst_fd = open(dstfn.c_str(), O_WRONLY | O_LARGEFILE);
+	if (dst_fd < 0) {
+		gui_print_color("error", "Error opening: '%s' (%s)\n", dstfn.c_str(), strerror(errno));
+		close(src_fd);
+		return -1;
+	}
+	if (p.mode == 2)
+		gui_print("Image %llu bytes, partition %llu bytes: AVB footer moved to the end of the partition\n", fsz, psz);
+	else
+		gui_print("Image %llu bytes, partition %llu bytes: the extra zeros are left out\n", fsz, psz);
+	LOGINFO("UJC201-adaptive-raw: '%s' -> '%s', mode %d, content %llu\n", srcfn.c_str(), dstfn.c_str(), p.mode,
+			p.content_end);
+	if (progress)
+		progress->SetPartitionSize(fsz);
+	bool ok = ujc201_raw_write(src_fd, dst_fd, fsz, psz, &p, progress);
+	int err = errno;
+	close(src_fd);
+	close(dst_fd);
+	if (!ok) {
+		gui_print_color("error", "Error writing '%s' (%s)\n", dstfn.c_str(), strerror(err));
+		return -1;
+	}
+	if (progress)
+		progress->UpdateDisplayDetails(true);
+	return 1;
+}
+
+/* Install Image : une image plus grande que la partition passe si le plan sait l'ecrire */
+static bool ujc201_raw_fits(const string &fn, unsigned long long psz)
+{
+	struct stat64 st;
+	struct ujc201_raw_plan p;
+	int fd = open(fn.c_str(), O_RDONLY | O_LARGEFILE);
+	if (fd < 0)
+		return false;
+	memset(&p, 0, sizeof(p));
+	p.mode = -1;
+	if (fstat64(fd, &st) == 0)
+		ujc201_raw_plan_for(fd, (unsigned long long)st.st_size, psz, &p);
+	close(fd);
+	if (p.mode < 0 && p.why[0])
+		gui_print_color("error", "%s: %s\n", fn.c_str(), p.why);
+	return p.mode > 0;
+}
+
+'''
+RRW_OLD = '''	else {
+#ifdef TW_ENABLE_BLKDISCARD
+		BlkDiscard();
+#endif
+		destfn = Actual_Block_Device;
+		if (part_settings->adbbackup) {'''
+RRW_NEW = '''	else {
+		/* UJC201 : image d'une autre taille que la partition, decide avant toute ecriture (patch 6) */
+		if (!part_settings->adbbackup) {
+			int ujc201 = ujc201_adaptive_restore(part_settings->Backup_Folder + "/" + Backup_FileName,
+					Actual_Block_Device, part_settings->progress);
+			if (ujc201 != 0)
+				return ujc201 > 0;
+		}
+#ifdef TW_ENABLE_BLKDISCARD
+		BlkDiscard();
+#endif
+		destfn = Actual_Block_Device;
+		if (part_settings->adbbackup) {'''
+FLASH_OLD = '''		unsigned long long image_size = TWFunc::Get_File_Size(full_filename);
+		if (image_size > Size) {'''
+FLASH_NEW = '''		unsigned long long image_size = TWFunc::Get_File_Size(full_filename);
+		if (image_size > Size && !ujc201_raw_fits(full_filename, Size)) {'''
+
 def patch(path, old, new, done_marker, count=1):
     s = open(path, encoding='utf-8').read()
     if done_marker in s:
@@ -428,6 +667,10 @@ def main():
     patch(j('gui/pages.cpp'), PAGES_RENDER_OLD, PAGES_RENDER_NEW, 'UJC201-popup')
     patch(j('gui/pages.cpp'), PAGES_UPDATE_OLD, PAGES_UPDATE_NEW, 'UJC201 : fenetre apparue')
     keynav(root)
+    # 6 : fonctions d'abord (leur marqueur est dans le bloc insere), puis les deux appels
+    patch(j('partition.cpp'), ADAPT_ANCHOR, ADAPT_CODE + ADAPT_ANCHOR, 'UJC201-adaptive-raw : image brute')
+    patch(j('partition.cpp'), RRW_OLD, RRW_NEW, 'int ujc201 = ujc201_adaptive_restore(')
+    patch(j('partition.cpp'), FLASH_OLD, FLASH_NEW, 'image_size > Size && !ujc201_raw_fits(')
 
 if __name__ == '__main__':
     main()
