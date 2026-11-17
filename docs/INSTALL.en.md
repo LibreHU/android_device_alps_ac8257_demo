@@ -93,7 +93,8 @@ $b[123] = $b[123] -bor 3
   every boot); a choice made later in the manager, refusal included,
   is kept.
 - Touch calibration applied at every boot (`/jancar/config/pointercal*.xml`).
-- Wi-Fi country from the language chosen in the setup (from the next boot; `CN` until then).
+- Wi-Fi country from the time zone, else from the region of the language (from the next boot; `CN` until then);
+  forced country: `adb root`, `adb shell setprop persist.librehu.wificountry FR`, then reboot.
 - 720 x 1280 portrait panel turned to landscape (90°). Upside down: `adb root`,
   `adb shell setprop persist.librehu.display_rotation 270`, `adb reboot`.
 
@@ -115,7 +116,7 @@ uncrypt's block map); fixed afterwards. By hand: the new zip from TWRP, **withou
 | Green video (Android Auto, players) | fixed in the builds after 13/11 (`1ec65bc` and older: a standby, ignition off then on, brings the picture back; or `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, then restart LibreHU-service) |
 | Black screen with the backlight on, or touch dead after the screen turned off | a USB mouse or `adb shell input keyevent 26` turns the screen on; build `171f952`: `adb root`, `adb shell "echo 1 > /sys/module/mtk_tpd/parameters/sleep_on_blank"`, then turn the screen off and on (at every boot, fixed in the next build); installed before 13/11: `adb shell locksettings set-disabled true` |
 | No sound at all (amplifier muted) | fixed in the build after 14/11; before that: `adb root`, `adb shell chmod 0666 /dev/gpios_ioctl`, then in LibreHU-service, Audio tab, turn mute on then off (until the next reboot) |
-| Wi-Fi network not found | choose your language and region in Settings, reboot |
+| Wi-Fi network not found | set the time zone (or the language with its region) in Settings, reboot; or `adb root`, `adb shell setprop persist.librehu.wificountry FR`, reboot |
 
 Reports: LibreHU Helper (installed with the ROM). It contains the unit's serial number: share it privately.
 

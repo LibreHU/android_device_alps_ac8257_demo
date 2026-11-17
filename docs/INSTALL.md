@@ -96,7 +96,8 @@ $b[123] = $b[123] -bor 3
   ViPER4Android, a chaque demarrage) ; un choix fait ensuite dans le gestionnaire, refus
   compris, est garde.
 - Calibration du tactile appliquee a chaque demarrage (`/jancar/config/pointercal*.xml`).
-- Pays du Wi-Fi d'apres la langue choisie a l'installation (au demarrage suivant ; `CN` jusque-la).
+- Pays du Wi-Fi d'apres le fuseau horaire, sinon la region de la langue (au demarrage suivant ; `CN` jusque-la) ;
+  pays force : `adb root`, `adb shell setprop persist.librehu.wificountry FR` puis redemarrer.
 - Dalle portrait 720 x 1280 tournee en paysage (90°). A l'envers : `adb root`,
   `adb shell setprop persist.librehu.display_rotation 270`, `adb reboot`.
 
@@ -119,7 +120,7 @@ Data.
 | Video verte (Android Auto, lecteurs) | corrige dans les builds d'apres le 13/11 (`1ec65bc` et avant : une veille, contact coupe puis remis, ramene l'image ; ou `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, puis redemarrer LibreHU-service) |
 | Ecran noir retroeclaire, ou tactile mort apres une extinction de l'ecran | une souris USB ou `adb shell input keyevent 26` rallume l'ecran ; build `171f952` : `adb root`, `adb shell "echo 1 > /sys/module/mtk_tpd/parameters/sleep_on_blank"`, puis eteindre et rallumer l'ecran (a refaire a chaque demarrage, corrige dans le build suivant) ; installee avant le 13/11 : `adb shell locksettings set-disabled true` |
 | Pas de son du tout (ampli muet) | corrige dans le build qui suit le 14/11 ; avant : `adb root`, `adb shell chmod 0666 /dev/gpios_ioctl`, puis dans LibreHU-service, onglet Audio, activer puis couper la sourdine (jusqu'au redemarrage) |
-| Reseau Wi-Fi introuvable | choisir sa langue et sa region dans les Parametres, redemarrer |
+| Reseau Wi-Fi introuvable | regler le fuseau horaire (ou la langue avec sa region) dans les Parametres, redemarrer ; ou `adb root`, `adb shell setprop persist.librehu.wificountry FR`, redemarrer |
 
 Rapports : LibreHU Helper (installe avec la ROM). Il contient le numero de serie de l'autoradio : le partager en prive.
 
