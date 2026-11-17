@@ -21,3 +21,12 @@ on early-boot && property:persist.vendor.connsys.chipid=0x0000
 # appel ; elle suit la persist, que change le reglage Micro de LibreHU-service.
 on property:persist.audiohal.third_ecnr_lib.enable=*
     setprop vendor.audiohal.third_ecnr_lib.enable ${persist.audiohal.third_ecnr_lib.enable}
+
+# Stockage securise de Trusty sous le noyau 4.19 : le rc du vendor stock lance storageproxyd avec
+# « -r /dev/block/mmcblk0rpmb » (peripherique bloc du 4.9). Depuis Linux 4.15 la zone RPMB de l'eMMC est le
+# peripherique caractere /dev/mmcblk0rpmb : storageproxyd sortait en erreur (« unable (2) to open rpmb device
+# '/dev/block/mmcblk0rpmb': No such file or directory ») et init le relancait toutes les 5 s (journaux du 17/11/2026).
+# Lien vers le noeud du 4.19, sans toucher au rc du vendor. « on fs » vient apres la creation des noeuds par ueventd
+# (coldboot) : sous 4.9, le vrai /dev/block/mmcblk0rpmb existe deja et le lien echoue sans effet.
+on fs
+    symlink /dev/mmcblk0rpmb /dev/block/mmcblk0rpmb

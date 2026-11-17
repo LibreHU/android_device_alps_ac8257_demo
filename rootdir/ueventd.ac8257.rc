@@ -33,3 +33,10 @@
 /dev/i2c-3                0666   system     system
 /dev/i2c-4                0666   system     system
 /dev/i2c-5                0666   system     system
+
+# Zone RPMB de l'eMMC sous le noyau 4.19 : depuis Linux 4.15 (« mmc: block: Convert RPMB to a character device »),
+# c'est un peripherique CARACTERE /dev/mmcblk0rpmb (drivers/mmc/core/block.c), plus le bloc /dev/block/mmcblk0rpmb du
+# 4.9. storageproxyd (stockage securise de Trusty, user system, rc du vendor stock non modifie) l'ouvre en lecture /
+# ecriture via le lien pose par rootdir/etc/init/librehu.rc. Sans regle : 0600 root root. Sous 4.9 ce noeud n'existe
+# pas (la regle ne sert a rien).
+/dev/mmcblk0rpmb          0660   system     system
