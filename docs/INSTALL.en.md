@@ -109,7 +109,7 @@ uncrypt's block map); fixed afterwards. By hand: the new zip from TWRP, **withou
 | Symptom | What to do |
 |---|---|
 | Stays on the maker's logo | vbmeta still verifies: flash it with both flags (section 3) |
-| The zip stops on "vbmeta : verification active" | same, then the zip again (nothing was written) |
+| The zip stops on "vbmeta: verification on" | same, then the zip again (nothing was written) |
 | Boot menu, then fastboot | init stopped; without cutting the power: `fastboot oem reboot-recovery`, then in TWRP `adb pull /sys/fs/pstore` and send the log |
 | Touch outside the screen | `adb logcat -s LibreHU-Touch` and `adb shell head -c 19 /proc/gt9xx_config` (panel id), to send |
 | Green video (Android Auto, players) | fixed in the builds after 13/11 (`1ec65bc` and older: a standby, ignition off then on, brings the picture back; or `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, then restart LibreHU-service) |
