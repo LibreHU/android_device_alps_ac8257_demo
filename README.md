@@ -61,7 +61,10 @@ Faire d'abord une sauvegarde complete de l'eMMC (SP Flash Tool, onglet Readback,
 | `ROM_3` | `EMMC_BOOT_2` | 0x0 | 0x400000 | 2e zone de boot (souvent vide) |
 | `ROM_4` | `EMMC_USER` | 0x1D1A000000 | 0x4000000 | fin de disque (otp, flashinfo, sgpt) |
 
-Adresses du scatter `MT6761_Android_scatter.txt` de l'appareil.
+Adresses du scatter `MT6761_Android_scatter.txt` de l'appareil (eMMC 128 Go de 244252672 secteurs). Autre taille
+d'eMMC : `ROM_4` = les 64 derniers Mio, adresse = `cat /sys/block/mmcblk0/size` × 512 − 0x4000000. Scatters par
+taille d'eMMC (16 a 256 Go) et par table de boot (10 Mio d'origine / 32 Mio de `librehu_boot32_twrp.zip`) :
+[`scatter/`](scatter/README.md).
 
 **Flasher `twrp_ujc201.img` (post-traite), jamais le `recovery.img` brut du build.**
 Depuis Android (root), l'onglet Zips de LibreHU Apps peut aussi l'ecrire dans `recovery` (zip `twrp-ujc201` de
