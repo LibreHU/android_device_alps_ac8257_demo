@@ -68,6 +68,11 @@
 #    Jancar, lui aussi com.android.systemui (Android 9, android.uid.system), etait installe a la place de celui de
 #    LineageOS (« Failed to scan /system/product/priv-app/SystemUI: ... already installed »). Comme en 16.0, celui du
 #    systeme passe avant (l'ivi-systemui est alors ignore). Sa liste de permissions privilegiees le suit.
+#
+# 9. system/vold (lineage-patches/system_vold) : cles USB d'un Mac, comme en 16.0. vold ne fait un volume public que
+#    des partitions FAT / NTFS / exFAT / Linux, et le blkid d'e2fsprogs ne connait pas APFS. Partitions MBR 0xaf et
+#    GPT Apple HFS+ / APFS acceptees, APFS reconnu a sa signature « NXSB », hfs / hfsplus montes au nom de media_rw,
+#    apfs en lecture seule. Monte seulement si le noyau connait le systeme de fichiers (/proc/filesystems).
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -150,6 +155,8 @@ apply_patch frameworks/av services/audiopolicy/engine/common/src/EngineBase.cpp 
     "$PATCHES/frameworks_av/0001-librehu-missing-volume-groups.patch" "groupes de volume absents du vendor"
 apply_patch frameworks/base packages/SystemUI/Android.bp librehuSystemUiInSystem \
     "$PATCHES/frameworks_base/0002-librehu-systemui-system-priv-app.patch" "SystemUI avant l'ivi-systemui du vendor"
+apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
+    "$PATCHES/system_vold/0001-librehu-mac-volumes.patch" "cles USB d'un Mac (HFS, HFS+, APFS)"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk

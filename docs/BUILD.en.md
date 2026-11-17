@@ -165,6 +165,10 @@ device/alps/ac8257_demo/tools/patch_lineage_sources.sh
     `device.mk`): picture and touch turn together.
   - `frameworks/base` (`tools/lineage-patches`): Jancar backlight inverted (`lcd-backlight` 0 = maximum, 179 =
     minimum); `LightsService` converts Android's brightness (`ro.librehu.backlight_inverted`).
+  - `system/vold` (`tools/lineage-patches`): USB drives from a Mac. MBR type 0xaf and Apple HFS+ / APFS GPT partitions
+    become public volumes, APFS is recognised by its signature (blkid does not know it), HFS / HFS+ are mounted for
+    `media_rw` like FAT, APFS read-only; mounted only when the kernel has the filesystem. NTFS (ntfs-3g) and exFAT
+    were already in LineageOS's vold.
 
   Without this script the build stops at `lunch` (messages in [troubleshooting](#troubleshooting)).
 - WebView: its prebuilt APK (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 MB) is a Git LFS file;
