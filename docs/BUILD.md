@@ -161,6 +161,10 @@ device/alps/ac8257_demo/tools/patch_lineage_sources.sh
     image et tactile tournent ensemble.
   - `frameworks/base` (`tools/lineage-patches`) : rétroéclairage Jancar inversé (`lcd-backlight` 0 = maximum, 179 =
     minimum) ; `LightsService` convertit la luminosité d'Android (`ro.librehu.backlight_inverted`).
+  - `system/vold` (`tools/lineage-patches`) : clés USB d'un Mac. Partitions MBR 0xaf et GPT Apple HFS+ / APFS
+    acceptées comme volumes publics, APFS reconnu à sa signature (blkid ne le connaît pas), HFS / HFS+ montés au nom
+    de `media_rw` comme le FAT, APFS en lecture seule ; monté seulement si le noyau a le système de fichiers.
+    NTFS (ntfs-3g) et exFAT étaient déjà dans le vold de LineageOS 16.
 
   Sans ce script, le build s'arrête dès `lunch` (messages dans le [dépannage](#dépannage)).
 - WebView : son APK précompilé (`external/chromium-webview/prebuilt/arm64/webview.apk`, 243 Mo) est un fichier

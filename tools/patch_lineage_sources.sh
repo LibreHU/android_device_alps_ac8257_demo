@@ -50,6 +50,12 @@
 #    jette le son du telephone et le met en pause (A2dpSinkStreamHandler, SRC_STR_START / SRC_PLAY). Comme
 #    a2dp_sink_automatically_request_audio_focus d'Android 10, le focus est pris quand le telephone lance la lecture,
 #    si ro.librehu.a2dp_sink_auto_focus vaut true (device.mk). Logcat du 14/11/2026 : musique Bluetooth muette.
+#
+# 6. system/vold (lineage-patches/system_vold) : cles USB d'un Mac. vold ne fait un volume public que des partitions
+#    FAT / NTFS / exFAT / Linux, et le blkid d'e2fsprogs ne connait pas APFS. Partitions MBR 0xaf et GPT Apple HFS+ /
+#    APFS acceptees, APFS reconnu a sa signature « NXSB », hfs / hfsplus montes au nom de media_rw (comme vfat),
+#    apfs en lecture seule. Monte seulement si le noyau connait le systeme de fichiers (/proc/filesystems).
+#    NTFS (ntfs-3g, FUSE) et exFAT (noyau + mkfs/fsck.exfat) : deja dans le vold de LineageOS 16.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -105,7 +111,7 @@ else
     echo "patch_lineage_sources: genfscon fuseblk retire de device/lineage/sepolicy/common/private/genfs_contexts"
 fi
 
-# 3, 4, 5. frameworks, Bluetooth : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
+# 3, 4, 5, 6. frameworks, Bluetooth, vold : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
 apply_patch() {
     local proj=$1 witness=$2 mark=$3 p=$4 what=$5
     [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
@@ -127,5 +133,7 @@ apply_patch frameworks/base services/core/java/com/android/server/lights/LightsS
     "$PATCHES/frameworks_base/0001-librehu-backlight-inverted.patch" "retroeclairage inverse"
 apply_patch packages/apps/Bluetooth src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java librehu.a2dp_sink_auto_focus \
     "$PATCHES/packages_apps_Bluetooth/0001-librehu-a2dp-sink-auto-focus.patch" "focus audio de la musique Bluetooth"
+apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
+    "$PATCHES/system_vold/0001-librehu-mac-volumes.patch" "cles USB d'un Mac (HFS, HFS+, APFS)"
 
 exit $TODO

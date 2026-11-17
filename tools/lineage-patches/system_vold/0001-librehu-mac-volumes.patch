@@ -1,0 +1,103 @@
+From: LibreHU
+Subject: [PATCH] vold: Mac drives (HFS, HFS+, APFS) as public volumes
+
+USB drives formatted on a Mac were ignored: vold only turns FAT / NTFS / exFAT / Linux partitions
+into public volumes, and blkid does not know APFS. Now (librehu.mac_volumes):
+- Disk: MBR type 0xaf and the GPT types of Apple HFS+ (48465300-...) and APFS (7C3457EF-...)
+  give a public volume;
+- PublicVolume: an unnamed filesystem starting with an APFS container ("NXSB" after the 32-byte
+  object header) is "apfs"; hfs / hfsplus are mounted owned by media_rw (uid, gid, umask 0007,
+  like vfat; a journaled HFS+ is mounted read-only by the kernel), apfs read-only.
+They mount only when the kernel lists the filesystem in /proc/filesystems (LibreHU kernels:
+HFS / HFS+ everywhere, APFS in the 4.19 lto32 ones).
+---
+--- a/model/Disk.cpp	2026-11-17 17:16:23.540015215 +0000
++++ b/model/Disk.cpp	2026-11-17 17:16:39.871916078 +0000
+@@ -81,6 +81,9 @@
+ static const char* kGptLinuxFilesystem = "0FC63DAF-8483-4772-8E79-3D69D8477DE4";
+ static const char* kGptAndroidMeta = "19A710A2-B3CA-11E4-B026-10604B889DCF";
+ static const char* kGptAndroidExpand = "193D1EA4-B3CA-11E4-B075-10604B889DCF";
++// librehu.mac_volumes: Mac drives (HFS+ and APFS partitions), mounted by PublicVolume when the kernel knows them
++static const char* kGptAppleHfs = "48465300-0000-11AA-AA11-00306543ECAC";
++static const char* kGptAppleApfs = "7C3457EF-0000-11AA-AA11-00306543ECAC";
+ 
+ enum class Table {
+     kUnknown,
+@@ -388,6 +391,7 @@
+                     case 0x0c:  // W95 FAT32 (LBA)
+                     case 0x0e:  // W95 FAT16 (LBA)
+                     case 0x83:  // Linux EXT4/F2FS/...
++                    case 0xaf:  // HFS / HFS+ (librehu.mac_volumes)
+                         createPublicVolume(partDevice);
+                         break;
+                 }
+@@ -398,7 +402,9 @@
+                 auto partGuid = *it;
+ 
+                 if (android::base::EqualsIgnoreCase(typeGuid, kGptBasicData)
+-                        || android::base::EqualsIgnoreCase(typeGuid, kGptLinuxFilesystem)) {
++                        || android::base::EqualsIgnoreCase(typeGuid, kGptLinuxFilesystem)
++                        || android::base::EqualsIgnoreCase(typeGuid, kGptAppleHfs)
++                        || android::base::EqualsIgnoreCase(typeGuid, kGptAppleApfs)) {
+                     createPublicVolume(partDevice);
+                 } else if (android::base::EqualsIgnoreCase(typeGuid, kGptAndroidExpand)) {
+                     createPrivateVolume(partDevice, partGuid);
+--- a/model/PublicVolume.cpp	2026-11-17 17:16:23.541873512 +0000
++++ b/model/PublicVolume.cpp	2026-11-17 17:16:45.695433880 +0000
+@@ -36,6 +36,8 @@
+ #include <sys/types.h>
+ #include <sys/sysmacros.h>
+ #include <sys/wait.h>
++#include <string.h>
++#include <unistd.h>
+ 
+ using android::base::StringPrintf;
+ 
+@@ -57,6 +59,18 @@
+ PublicVolume::~PublicVolume() {
+ }
+ 
++// librehu.mac_volumes: blkid (e2fsprogs) does not know APFS. An APFS container starts with an object header
++// (32 bytes) followed by the magic "NXSB" (nx_superblock_t, Apple File System Reference).
++static bool LibrehuIsApfs(const std::string& devPath) {
++    char buf[36];
++    int fd = TEMP_FAILURE_RETRY(open(devPath.c_str(), O_RDONLY | O_CLOEXEC));
++    if (fd < 0) return false;
++    bool apfs = TEMP_FAILURE_RETRY(pread(fd, buf, sizeof(buf), 0)) == (ssize_t)sizeof(buf) &&
++                memcmp(buf + 32, "NXSB", 4) == 0;
++    close(fd);
++    return apfs;
++}
++
+ status_t PublicVolume::readMetadata() {
+     status_t res = ReadMetadataUntrusted(mDevPath, &mFsType, &mFsUuid, &mFsLabel);
+ 
+@@ -100,6 +114,11 @@
+ 
+ status_t PublicVolume::doMount() {
+     readMetadata();
++    if (mFsType.empty() && LibrehuIsApfs(mDevPath)) {
++        mFsType = "apfs";
++        auto listener = getListener();
++        if (listener) listener->onVolumeMetadataChanged(getId(), mFsType, mFsUuid, mFsLabel);
++    }
+ 
+     if (!IsFilesystemSupported(mFsType)) {
+         LOG(ERROR) << getId() << " unsupported filesystem " << mFsType;
+@@ -161,6 +180,16 @@
+     } else if (mFsType == "vfat") {
+         ret = vfat::Mount(mDevPath, mRawPath, false, false, false,
+                 AID_MEDIA_RW, AID_MEDIA_RW, 0007, true);
++    } else if (mFsType == "hfsplus" || mFsType == "hfs") {
++        // librehu.mac_volumes: owned by media_rw like vfat; a journaled HFS+ is mounted read-only by the kernel
++        std::string opts = StringPrintf("uid=%d,gid=%d,umask=0007", AID_MEDIA_RW, AID_MEDIA_RW);
++        ret = ::mount(mDevPath.c_str(), mRawPath.c_str(), mFsType.c_str(),
++                MS_NODEV | MS_NOSUID | MS_NOEXEC | MS_NOATIME, opts.c_str());
++    } else if (mFsType == "apfs") {
++        // librehu.mac_volumes: read-only (the driver's write support is experimental)
++        std::string opts = StringPrintf("uid=%d,gid=%d", AID_MEDIA_RW, AID_MEDIA_RW);
++        ret = ::mount(mDevPath.c_str(), mRawPath.c_str(), "apfs",
++                MS_RDONLY | MS_NODEV | MS_NOSUID | MS_NOEXEC | MS_NOATIME, opts.c_str());
+     } else {
+         ret = ::mount(mDevPath.c_str(), mRawPath.c_str(), mFsType.c_str(), 0, NULL);
+     }
