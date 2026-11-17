@@ -314,8 +314,14 @@ Toujours ouverts :
   le HAL audio MediaTek du stock les gere-t-il ? A essayer (sur le stock, c'est la pile Bluetooth de Jancar qui
   passait les appels).
 
-- **RIL** : modem MediaTek (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`) avec la telephonie AOSP de LineageOS :
-  appels et donnees a verifier.
+- **RIL** : modem MediaTek integre au SoC des cartes « +4G » (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`) avec
+  la telephonie AOSP de LineageOS. `librehu_modem` (`librehu/boot/`) lit `/sys/kernel/ccci/md_en` au demarrage : sans
+  modem, `ro.radio.noril=1` (appareil Wi-Fi seul, plus d'ANR de l'appli Telephone) ; `persist.librehu.radio=on|off`
+  force le choix. `system.prop` remet `vendor.rild.libpath=mtk-ril.so`, `vendor.rild.libargs=-d /dev/ttyC0` et
+  `ro.telephony.sim.count=2`, que le system stock posait. A verifier sur une unite 4G : SIM, donnees, SMS, appels
+  sortants. Appels entrants : le modem MediaTek attend l'accord du framework (`setCallIndication` de
+  `vendor.mediatek.hardware.radio`), que la telephonie AOSP ne donne pas (meme cas que les GSI) ; VoLTE (IMS MediaTek)
+  non gere.
 - **Applis Jancar absentes** (`com.jancar.*`, `com.autochips.*`) : leurs fonctions passent par les applis LibreHU ;
   ce qu'aucune appli LibreHU ne couvre encore manquera.
 - **Rotation et affichage** : l'ecran est en 1280 x 720 paysage sur le stock ; a verifier au premier demarrage.

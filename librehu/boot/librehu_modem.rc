@@ -1,0 +1,14 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Telephonie seulement s'il y a un modem (voir librehu_modem.sh) : apres load_persist_props (persist.librehu.radio
+# lu), avant le demarrage de system_server qui lit ro.radio.noril une seule fois. Meme declencheur que
+# librehu_wificountry.rc.
+on load_persist_props_action
+    exec_start librehu_modem
+
+service librehu_modem /system/bin/librehu_modem
+    user root
+    group root
+    oneshot
+    disabled

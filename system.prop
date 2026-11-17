@@ -1,0 +1,11 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Ajoute tel quel au build.prop de system (build/make/core/Makefile : $(TARGET_DEVICE_DIR)/system.prop).
+#
+# RIL du vendor stock (mtkfusionrild, cartes « +4G ») : proprietes que le system stock posait (getprop du stock du
+# 10/11/2026) et que LineageOS n'avait pas. Bibliotheque RIL chargee et ses arguments (port AT du modem, /dev/ttyC0,
+# pilote CCCI), nombre d'emplacements SIM. Sans modem, rien ne lance le RIL : sans effet (voir librehu_modem.sh).
+vendor.rild.libpath=mtk-ril.so
+vendor.rild.libargs=-d /dev/ttyC0
+ro.telephony.sim.count=2
