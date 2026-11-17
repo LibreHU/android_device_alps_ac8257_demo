@@ -116,6 +116,18 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
     librehu_wificountry
 
+# Telephonie (cartes « +4G » : modem MediaTek integre au SoC, pilote CCCI du noyau, RIL du vendor stock).
+# - librehu_modem (librehu/boot/librehu_modem.sh) : sans modem detecte (/sys/kernel/ccci/md_en), ro.radio.noril=1,
+#   sinon l'appli Telephone attend sans fin le service radio que le vendor declare (ANR a chaque demarrage) ;
+#   persist.librehu.radio=on|off force le choix.
+# - Proprietes du RIL que le system stock posait et que LineageOS n'a pas (getprop du stock du 10/11/2026 compare a
+#   celui de LineageOS du 17/11/2026) : mtkfusionrild (vendor) charge la bibliotheque de vendor.rild.libpath avec les
+#   arguments de vendor.rild.libargs ; deux emplacements SIM (persist.radio.multisim.config=dsds, du vendor). Dans
+#   system.prop (copie telle quelle dans le build.prop) : la valeur de vendor.rild.libargs a une espace, qu'une liste
+#   make comme PRODUCT_PROPERTY_OVERRIDES couperait en deux.
+PRODUCT_PACKAGES += \
+    librehu_modem
+
 # Ethernet (adaptateurs USB RTL8152/8153, ASIX..., pilotes integres au noyau LibreHU) : sans la fonctionnalite
 # android.hardware.ethernet (le system stock la declarait, celui de LineageOS rien), le service Ethernet d'Android
 # n'est lance que si l'hote USB est declare, et l'interface eth0 n'est pas prise comme reseau.

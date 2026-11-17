@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # librehu_boot : petits services de demarrage de la ROM lances en root par l'init (librehu/ksugrant : root de
-# KernelSU Next accorde a LibreHU-service ; librehu/boot : pays du Wi-Fi d'apres la langue). Domaine propre pour la
+# KernelSU Next accorde a LibreHU-service ; librehu/boot : pays du Wi-Fi d'apres la langue, telephonie seulement
+# s'il y a un modem). Domaine propre pour la
 # meme raison que mcu_ready (l'init d'Android 9 refuse un service sans transition de domaine, meme en permissif) ;
 # permissif a lui seul en attendant le passage en enforcing (userdebug seulement).
 type librehu_boot, domain, coredomain;

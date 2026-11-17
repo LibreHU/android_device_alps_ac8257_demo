@@ -300,8 +300,14 @@ Still open:
   (`hfp_enable`, `hfp_set_sampling_rate` parameters, BT SCO devices of `audio_policy_configuration.xml`); does the
   stock MediaTek audio HAL handle them? To be tried (on the stock, Jancar's Bluetooth stack handled calls).
 
-- **RIL**: MediaTek modem (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`) with LineageOS's AOSP telephony: calls
-  and data to be checked.
+- **RIL**: MediaTek modem built into the SoC of the "+4G" boards (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`)
+  with LineageOS's AOSP telephony. `librehu_modem` (`librehu/boot/`) reads `/sys/kernel/ccci/md_en` at boot: without
+  a modem, `ro.radio.noril=1` (Wi-Fi only device, no more Phone app ANR); `persist.librehu.radio=on|off` forces the
+  choice. `system.prop` sets back `vendor.rild.libpath=mtk-ril.so`, `vendor.rild.libargs=-d /dev/ttyC0` and
+  `ro.telephony.sim.count=2`, which the stock system set. To be checked on a 4G unit: SIM, data, SMS, outgoing calls.
+  Incoming calls: the MediaTek modem waits for the framework's approval (`setCallIndication` of
+  `vendor.mediatek.hardware.radio`), which AOSP telephony does not give (same case as GSIs); VoLTE (MediaTek IMS) not
+  handled.
 - **Jancar apps missing** (`com.jancar.*`, `com.autochips.*`): their features go through the LibreHU apps; what no
   LibreHU app covers yet will be missing.
 - **Rotation and display**: the screen is 1280 x 720 landscape on the stock; to be checked at first boot.

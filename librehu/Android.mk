@@ -129,3 +129,12 @@ LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
 LOCAL_SRC_FILES := boot/librehu_wificountry.sh
 LOCAL_INIT_RC := boot/librehu_wificountry.rc
 include $(BUILD_PREBUILT)
+
+# Telephonie seulement s'il y a un modem : ro.radio.noril sans modem integre detecte (boot/)
+include $(CLEAR_VARS)
+LOCAL_MODULE := librehu_modem
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
+LOCAL_SRC_FILES := boot/librehu_modem.sh
+LOCAL_INIT_RC := boot/librehu_modem.rc
+include $(BUILD_PREBUILT)
