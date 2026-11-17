@@ -113,7 +113,7 @@ Data.
 | Symptome | Que faire |
 |---|---|
 | Reste sur le logo du constructeur | vbmeta verifie encore : le flasher avec les deux drapeaux (section 3) |
-| Le zip s'arrete sur « vbmeta : verification active » | pareil, puis le zip a nouveau (rien n'a ete ecrit) |
+| Le zip s'arrete sur « vbmeta: verification on » | pareil, puis le zip a nouveau (rien n'a ete ecrit) |
 | Menu de demarrage, puis fastboot | l'init s'est arrete ; sans couper le courant : `fastboot oem reboot-recovery`, puis dans TWRP `adb pull /sys/fs/pstore` et envoyer le journal |
 | Tactile hors de l'ecran | `adb logcat -s LibreHU-Touch` et `adb shell head -c 19 /proc/gt9xx_config` (identifiant de la dalle), a envoyer |
 | Video verte (Android Auto, lecteurs) | corrige dans les builds d'apres le 13/11 (`1ec65bc` et avant : une veille, contact coupe puis remis, ramene l'image ; ou `adb root`, `adb shell chown system:system /dev/backcardrv`, `adb shell chmod 0660 /dev/backcardrv`, `adb shell stop backcar_daemon`, `adb shell start backcar_daemon`, puis redemarrer LibreHU-service) |
