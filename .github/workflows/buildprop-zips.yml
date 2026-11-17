@@ -1,0 +1,45 @@
+name: build.prop zips (assets of twrp-build-4)
+
+# Rebuilds the TWRP zips of tools/buildprop_fix (build.sh) and replaces the two assets attached to the
+# twrp-build-4 release, under the names the docs and the site link to: ujc201_buildprop_fix2.zip and
+# ujc201_buildprop_restore2.zip. Runs when those scripts (or this file) change on twrp, or by hand.
+on:
+  push:
+    branches: [twrp]
+    paths:
+      - 'tools/buildprop_fix/**'
+      - '.github/workflows/buildprop-zips.yml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/twrp'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the zips
+        run: sh tools/buildprop_fix/build.sh
+
+      - name: Check the zips (archive, update-binary syntax under dash)
+        run: |
+          for z in tools/buildprop_fix/out/*.zip; do
+            unzip -tq "$z"
+            unzip -p "$z" META-INF/com/google/android/update-binary > /tmp/ub
+            sh -n /tmp/ub
+            echo "$z: $(stat -c %s "$z") bytes, $(sha256sum "$z" | cut -d' ' -f1)"
+          done
+
+      - name: Replace the assets of twrp-build-4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd tools/buildprop_fix/out
+          cp ujc201_buildprop_fix.zip ujc201_buildprop_fix2.zip
+          cp ujc201_buildprop_restore.zip ujc201_buildprop_restore2.zip
+          gh release upload twrp-build-4 ujc201_buildprop_fix2.zip ujc201_buildprop_restore2.zip \
+            --clobber --repo "$GITHUB_REPOSITORY"
+          gh release view twrp-build-4 --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | "\(.name) \(.size) \(.updatedAt)"'
