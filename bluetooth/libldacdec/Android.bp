@@ -1,0 +1,42 @@
+// Copyright (C) 2026 LibreHU
+// SPDX-License-Identifier: Apache-2.0
+//
+// LDAC decoder for the A2DP sink of LineageOS 17.1: system/bt stack/a2dp/a2dp_vendor_ldac_decoder.cc dlopen()s
+// libldacBT_dec.so (Sony's decoder API) and, when it loads, offers LDAC to the phone besides AAC and SBC. Built from
+// libldacdec (README.LibreHU.md) and ldacBT_dec_android.c (the rest of the API, frame checks).
+
+// libldacdec's own ldacBT_decode() renamed, wrapped by ldacBT_dec_android.c
+cc_library_static {
+    name: "libldacdec_librehu",
+    srcs: ["libldacdec.c"],
+    c_std: "gnu11",
+    cflags: [
+        "-DldacBT_decode=libldacdec_decode_frame",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+    ],
+}
+
+cc_library_shared {
+    name: "libldacBT_dec",
+    srcs: [
+        "ldacBT_dec_android.c",
+        "bit_allocation.c",
+        "bit_reader.c",
+        "huffCodes.c",
+        "imdct.c",
+        "spectrum.c",
+        "utility.c",
+    ],
+    whole_static_libs: ["libldacdec_librehu"],
+    c_std: "gnu11",
+    cflags: [
+        "-O2",
+        "-Wall",
+        "-Wextra",
+    ],
+    // calls inside the library stay inside it: libbluetooth also loads Sony's encoder (libldacBT_enc), which exports
+    // functions of the same names
+    ldflags: ["-Wl,-Bsymbolic"],
+}

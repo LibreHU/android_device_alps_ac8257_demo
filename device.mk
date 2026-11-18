@@ -91,6 +91,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
     librehu_touchcal
 
+# Musique Bluetooth en LDAC (en plus d'AAC et SBC) : la pile d'Android 10 decode le LDAC en A2DP sink si elle trouve
+# libldacBT_dec.so (bibliotheque de Sony jamais publiee) ; bluetooth/libldacdec la construit a partir du decodeur
+# libldacdec (retro-ingenierie) et de sa couche d'adaptation (bluetooth/libldacdec/README.LibreHU.md).
+PRODUCT_PACKAGES += \
+    libldacBT_dec
+
 # Root de KernelSU Next accorde d'office a toutes les applis LibreHU (librehu/ksugrant : org.librehu.* et
 # ViPER4Android) : KernelSU n'affiche pas de demande, une appli sans profil est refusee en silence. LibreHU-service :
 # tactile, boutons, passage de main de l'ARM2 (video verte) et reglages du service sans passer par le gestionnaire. Un
