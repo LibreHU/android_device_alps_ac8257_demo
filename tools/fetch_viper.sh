@@ -6,8 +6,9 @@
 # Pilote ViPERFX_RE (https://github.com/likelikeslike/ViPERFX_RE, module officiel non-AIDL, Android 9) dans
 # prebuilt/viper/ : libv4a_re_armeabi-v7a.so, libv4a_re_arm64-v8a.so, LICENSE (GPL-2.0), SOURCE, version, SHA256SUMS.
 # Pris par tools/make_flashable_zip.py (le zip TWRP l'installe ou le met a jour dans /vendor, voir
-# tools/flashable/update-binary.sh) et par tools/vendor_add_viper.sh. Meme version que l'appli ViPER4Android LibreHU de
-# la ROM (2.1.1) : le pilote refuse l'etat complet d'une appli d'une autre version (effets coches mais non appliques).
+# tools/flashable/update-binary.sh) et par tools/vendor_add_viper.sh. Avec l'appli ViPER4Android LibreHU de la ROM
+# (2.1.2) : le pilote refuse l'etat complet d'une appli dont la structure viper::ViPERParams differe (2.1.0 et avant :
+# effets coches mais non appliques) ; celle des versions 2.1.1 et 2.1.2 est la meme.
 #   tools/fetch_viper.sh
 #
 
@@ -15,8 +16,8 @@ set -e
 
 MY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT="$MY_DIR/../prebuilt/viper"
-VER=v2.1.1
-SHA=c8f769f9d9f470e47f8278d69615c899d54af3916d10291d853fbd299ee847a2
+VER=v2.1.2
+SHA=16155702c772c4ba68b2dd0bd8c0b3cc5c0d2811b8e9bf4fca99ebd1343342f3
 URL="https://github.com/likelikeslike/ViPERFX_RE/releases/download/$VER/ViPER4Android-RE-$VER.zip"
 LIBS="libv4a_re_armeabi-v7a.so libv4a_re_arm64-v8a.so"
 
