@@ -10,7 +10,7 @@
 #   - bibliotheque "v4a_re" et effet "v4a_standard_re" (UUID 90380da3-...) declares dans /etc/audio_effects.xml.
 # Sous Android 9 Treble, les effets sont charges par le HAL audio du vendor : le pilote doit etre dans vendor (les
 # espaces de noms de l'editeur de liens interdisent a un processus vendor de charger une bibliotheque de /system).
-# A utiliser avec l'appli ViPER4Android LibreHU de la meme version (2.1.1). Pilote pris par tools/fetch_viper.sh
+# A utiliser avec l'appli ViPER4Android LibreHU 2.1.1 ou plus (meme structure de reglages que le pilote 2.1.2). Pilote pris par tools/fetch_viper.sh
 # (prebuilt/viper), comme le zip TWRP de la ROM.
 #
 # Modifie seulement l'image locale (debugfs), jamais l'unite. Une copie d'origine est gardee (vendor.img.orig).
