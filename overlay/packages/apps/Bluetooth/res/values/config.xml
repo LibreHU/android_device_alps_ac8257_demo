@@ -14,7 +14,6 @@
          la voiture de reference) -->
     <bool name="profile_supported_a2dp">false</bool>
     <bool name="profile_supported_hs_hfp">false</bool>
-    <bool name="profile_supported_hid_host">false</bool>
     <bool name="profile_supported_pbap">false</bool>
     <bool name="profile_supported_map">false</bool>
     <bool name="profile_supported_hdp">false</bool>
@@ -30,6 +29,11 @@
     <bool name="profile_supported_pbapclient">true</bool>
     <bool name="profile_supported_pan">true</bool>
     <bool name="profile_supported_mapmce">true</bool>
+
+    <!-- Telecommandes, claviers, souris et manettes Bluetooth (HID host, HID sur GATT pour le BLE) : la voiture de
+         reference le coupe, mais rien d'autre ne les connecte (18/11/2026 : une telecommande TV BLE s'appairait, puis
+         Android ne tentait que HFP et A2DP, sans HID). Le noyau a UHID et les pilotes de manettes. -->
+    <bool name="profile_supported_hid_host">true</bool>
 
     <!-- Musique Bluetooth : l'autoradio prend le focus audio quand le telephone lance la lecture (A2dpSinkStreamHandler,
          SRC_STR_START et SRC_PLAY, shouldRequestFocus). A false (valeur d'Android 10), seuls une TV ou un objet
