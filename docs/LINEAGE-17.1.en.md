@@ -4,10 +4,12 @@
 
 Branch **`lineage-17.1`**: the `lineage-16.0` tree (LineageOS 16.0, Android 9) ported to LineageOS 17.1
 (Android 10). A real ROM built from the LineageOS sources. The vendor stays the unit's own (Android 9, VNDK 28,
-Treble) and the kernel the LibreHU one (`stable-4.9.337`).
+Treble) and the kernel the LibreHU one: `experimental-4.19.325`, variant `a10`, since 18/11/2026 (one kernel per
+ROM: 16.0 keeps `stable-4.9.337`).
 
-**State (16/11/2026): first try on the unit on 15/11 (kernel 4.9.337): Android did not finish booting (audioserver
-crashing in a loop, the vendor's SystemUI), fixed in the next build, to try again.** `lineage-16.0` stays the everyday
+**State (18/11/2026): the tries of 18/11 (kernel 4.9, then 4.19) did not finish booting: system_server and SystemUI
+died every 8 s. Android 10's Codec2 asks ION for any heap (`~0`) and got `ion_mm_heap_for_pa2mva`, a buffer of no
+memory. Fixed in both kernels on 18/11; next build with 4.19 `a10`, to try again.** `lineage-16.0` stays the everyday
 ROM.
 
 ## What changes from `lineage-16.0`
@@ -106,8 +108,9 @@ one kept: the repository's 10 GB of cache are shared), releases `lineage-17.1-<d
 - SELinux compilation at boot: Android 10 platform + Android 9 vendor policy through the 28.0 mapping. With
   `androidboot.selinux=permissive` (LibreHU boot image), a compilation failure is still fatal (reboot to the
   bootloader): first thing to look at if the unit does not boot.
-- Compatibility matrix (FCM 3): kernel 4.9.337 covered. The experimental 4.19 kernel is not ("internal problem"
-  dialog likely, not blocking).
+- Compatibility matrix (FCM 3): Android 10's lists only the 4.4, 4.9 and 4.14 kernels
+  (`hardware/interfaces/compatibility_matrices/Android.bp`). With 4.19, `Build.isBuildConsistent()` fails: an
+  "internal problem" dialog is expected at boot, not blocking.
 - Activity starts from the background restricted by Android 10: to watch for LibreHU-service (reverse camera,
   sources).
 

@@ -12,16 +12,17 @@ Image recompressee (gzip -9), DTB inchange (memoire reservee identique aux noyau
 
 Pas de `dtbo.img` : la partition `dtbo` stock est gardee.
 
-`kernel-librehu` et `modules/` (non versionnes) : **noyau LibreHU** de la branche `stable-4.9.337` de
-[android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (sources GPL
-Autochips, correctifs linux-stable jusqu'a 4.9.337, KernelSU Next), `Image.gz-dtb` de sa release
-`latest-stable-4.9.337`, et ses six modules de connectivite (`wmt_drv`, `wmt_chrdev_wifi`, `wlan_drv_gen4m`,
+`kernel-librehu` et `modules/` (non versionnes) : **noyau LibreHU** de la branche `experimental-4.19.325` de
+[android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (Linux
+4.19.325, pilotes Autochips portes, KernelSU Next), variante `a10` (Android 10) depuis le 18/11/2026 : `Image.gz-dtb_a10`
+de sa release `latest-experimental-4.19.325`, et ses six modules de connectivite (`librehu_connectivity_ksu_a10.zip`) (`wmt_drv`, `wmt_chrdev_wifi`, `wlan_drv_gen4m`,
 `bt_drv`, `gps_drv`, `fmradio_drv`, avec `SHA256SUMS`, `kernel_version` et `release.txt`), ecrits par
 `tools/fetch_kernel.sh`. Les modules vont dans l'image vendor (`tools/vendor_add_conn_modules.sh`), ce noyau
 refusant ceux du stock.
 
 `boot-librehu-bootmenu.img` et `boot-librehu.img` (non versionnes) : **images de boot** de la meme release
-(`boot_ac8257_bootmenu.img`, avec le menu TWRP / Android / Fastboot, et `boot_ac8257.img`), ecrites par
+(`boot_ac8257_bootmenu_a10.img`, avec le menu TWRP / Android / Fastboot, et `boot_ac8257_a10.img` ; pas les
+variantes `-lto32` de 32 Mio), ecrites par
 `tools/fetch_kernel.sh` apres verification (en-tete Android, 10 Mio au plus, pied AVB, noyau = celui des modules).
 `BoardConfig.mk` prend la premiere telle quelle (`TARGET_NO_KERNEL` + `BOARD_PREBUILT_BOOTIMAGE` ;
 `LIBREHU_BOOT_IMAGE=plain` pour la seconde) : elles ont l'en-tete, la ligne de commande et le **pied AVB du boot

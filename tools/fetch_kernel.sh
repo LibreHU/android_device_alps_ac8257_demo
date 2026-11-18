@@ -3,29 +3,38 @@
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Telecharge le noyau LibreHU de la branche stable-4.9.337 de android_kernel_autochips_ac8257_4.9 (la seule suivie
-# depuis le 01/11/2026 : correctifs linux-stable jusqu'a 4.9.337, KernelSU Next, veille, frequences CPU / GPU...)
-# depuis sa release latest-<branche>, compilee par la CI du depot du noyau :
-#   - Image.gz-dtb -> prebuilt/kernel-librehu, pris par BoardConfig.mk a la place du noyau stock (prebuilt/kernel) ;
-#   - ses modules Wi-Fi / BT / GPS / FM recompiles avec lui (librehu_connectivity_ksu.zip) -> prebuilt/modules/, a
+# Telecharge le noyau LibreHU de LineageOS 17.1 : branche experimental-4.19.325 de android_kernel_autochips_ac8257_4.9,
+# variante a10 (config ac8257_a10.config, pour Android 10) depuis le 18/11/2026. Un noyau par ROM : 16.0 (Android 9)
+# avec stable-4.9.337, 17.1 (Android 10) avec 4.19. Depuis la release latest-<branche>, compilee par la CI du depot
+# du noyau :
+#   - Image.gz-dtb_a10 -> prebuilt/kernel-librehu, pris par BoardConfig.mk a la place du noyau stock (prebuilt/kernel) ;
+#   - ses modules Wi-Fi / BT / GPS / FM recompiles avec lui (librehu_connectivity_ksu_a10.zip) -> prebuilt/modules/, a
 #     mettre dans l'image vendor par tools/vendor_add_conn_modules.sh : ce noyau refuse ceux du vendor stock (CRC des
 #     symboles differents) ;
-#   - ses images de boot (boot_ac8257_bootmenu.img, boot_ac8257.img) -> prebuilt/boot-librehu-bootmenu.img et
-#     prebuilt/boot-librehu.img, prises par BoardConfig.mk (BOARD_PREBUILT_BOOTIMAGE) : en-tete, ligne de commande et
-#     pied AVB du boot stock, sans lequel le LK refuse l'image. Seul ajout : androidboot.selinux=permissive a la ligne
-#     de commande de l'en-tete (voir plus bas ; LIBREHU_SELINUX=enforcing pour ne pas l'ajouter).
+#   - ses images de boot de 10 Mio (boot_ac8257_bootmenu_a10.img, boot_ac8257_a10.img) ->
+#     prebuilt/boot-librehu-bootmenu.img et prebuilt/boot-librehu.img, prises par BoardConfig.mk
+#     (BOARD_PREBUILT_BOOTIMAGE) : en-tete, ligne de commande et pied AVB du boot stock, sans lequel le LK refuse
+#     l'image. Seul ajout : androidboot.selinux=permissive a la ligne de commande de l'en-tete (voir plus bas ;
+#     LIBREHU_SELINUX=enforcing pour ne pas l'ajouter).
+# Les variantes -lto32 (images de 32 Mio, connectivite integree au noyau, sans modules) ne vont pas dans la ROM : la
+# partition boot d'origine fait 10 Mio. Qui a agrandi la sienne flashe librehu_kernel32_twrp_a10.zip par-dessus.
 # Empreintes verifiees (celles que GitHub donne pour les fichiers de la release), et le noyau de chaque image doit
 # etre celui des modules.
-# Le correctif de l'identifiant de puce Wi-Fi (persist.vendor.connsys.chipid 0x0000 sur un /data vide, boucle de
-# redemarrages des que le Wi-Fi s'allume) est dans stable-4.9.337 depuis le 13/11/2026 (branche de test fusionnee).
+# Le correctif ION d'Android 10 (Codec2 demande n'importe quel heap, ~0 : il recevait ion_mm_heap_for_pa2mva, un
+# buffer sans memoire, et system_server mourait a chaque demarrage) est dans les deux branches depuis le 18/11/2026.
 # Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
-#   tools/fetch_kernel.sh [branche]
+#   tools/fetch_kernel.sh [branche [variante]]     (defaut : experimental-4.19.325 a10 ; stable-4.9.337 sans variante)
 #
 
 set -e
 
 MY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BRANCH="${1:-stable-4.9.337}"
+BRANCH="${1:-experimental-4.19.325}"
+# les releases 4.19 publient une variante par fichier (suffixe _a9 / _a10), celles de 4.9 aucune
+case "$BRANCH" in
+    *4.19*) VARIANT="${2:-a10}" ;;
+    *) VARIANT="${2:-}" ;;
+esac
 REPO=LibreHU/android_kernel_autochips_ac8257_4.9
 OUT="$MY_DIR/../prebuilt"
 
@@ -33,16 +42,25 @@ T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 
 curl -fsSL -o "$T/release.json" "https://api.github.com/repos/$REPO/releases/tags/latest-$BRANCH"
-python3 - "$T" <<'PY'
+python3 - "$T" "$VARIANT" <<'PY'
 import json, sys
-t = sys.argv[1]
+t, v = sys.argv[1], sys.argv[2]
 r = json.load(open(f"{t}/release.json"))
 assets = {a["name"]: a for a in r["assets"]}
+# nom local (celui de la suite du script) -> nom dans la release, avec la variante s'il y en a une
+sfx = f"_{v}" if v else ""
+names = {
+    "Image.gz-dtb": f"Image.gz-dtb{sfx}",
+    "librehu_connectivity_ksu.zip": f"librehu_connectivity_ksu{sfx}.zip",
+    "boot_ac8257.img": f"boot_ac8257{sfx}.img",
+    "boot_ac8257_bootmenu.img": f"boot_ac8257_bootmenu{sfx}.img",
+    "release.txt": "release.txt",
+}
 with open(f"{t}/assets", "w") as f:
-    for n in ("Image.gz-dtb", "librehu_connectivity_ksu.zip", "boot_ac8257.img", "boot_ac8257_bootmenu.img", "release.txt"):
-        a = assets.get(n)
+    for n, rn in names.items():
+        a = assets.get(rn)
         if a is None:
-            sys.exit(f"{n} absent de la release {r['tag_name']}")
+            sys.exit(f"{rn} absent de la release {r['tag_name']}")
         d = a.get("digest") or ""
         # pas de str.removeprefix : Python 3.8 (Ubuntu 20.04) ne l'a pas
         f.write(f"{n} {a['browser_download_url']} {d[len('sha256:'):] if d.startswith('sha256:') else d}\n")
@@ -120,6 +138,6 @@ cp "$T/boot_ac8257_bootmenu.img" "$OUT/boot-librehu-bootmenu.img"
 rm -rf "$OUT/modules"
 mv "$OUT/modules.new" "$OUT/modules"
 
-echo "noyau : $(sed -n 's/^version=//p' "$OUT/modules/release.txt") ($BRANCH)"
+echo "noyau : $(sed -n 's/^version=//p' "$OUT/modules/release.txt") ($BRANCH${VARIANT:+ $VARIANT})"
 echo "  $(cat "$OUT/modules/kernel_version")"
 sha256sum "$OUT/kernel-librehu" "$OUT/boot-librehu.img" "$OUT/boot-librehu-bootmenu.img" "$OUT"/modules/*.ko

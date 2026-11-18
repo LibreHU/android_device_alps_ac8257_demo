@@ -38,8 +38,8 @@ TARGET_BOARD_PLATFORM := ac8257
 # Display (1280 x 720 en paysage, ro.sf.lcd_density=160 du stock)
 TARGET_SCREEN_DENSITY := 160
 
-# Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche stable-4.9.337 : linux-stable 4.9.337,
-# KernelSU Next, correctif de l'identifiant de puce Wi-Fi) : image de boot de sa CI
+# Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche experimental-4.19.325, variante a10 depuis le
+# 18/11/2026 : Linux 4.19.325, KernelSU Next ; la 16.0 garde stable-4.9.337) : image de boot de sa CI
 # (BOARD_PREBUILT_BOOTIMAGE ci-dessous), avec ses modules Wi-Fi / BT / GPS / FM a mettre dans l'image vendor
 # (tools/vendor_add_conn_modules.sh : il refuse ceux du stock). Voir prebuilt/README.md.
 BOARD_BOOTIMG_HEADER_VERSION := 1
@@ -127,7 +127,7 @@ BOARD_VNDK_VERSION := current
 
 # APEX aplatis (dossiers dans /system/apex, sans image ni dm-verity par APEX au demarrage) : valeur par defaut
 # d'Android 10 pour un appareil qui n'herite pas de updatable_apex.mk (core/board_config.mk), donnee ici
-# explicitement. Un appareil lance avec Android 9, noyau 4.9 de LibreHU.
+# explicitement. Un appareil lance avec Android 9, noyau 4.19 (a10) de LibreHU.
 TARGET_FLATTEN_APEX := true
 
 # Recovery : on garde TWRP (branche twrp) ; LineageOS ne construit ni n'installe de recovery (et ne fait donc pas de

@@ -117,7 +117,8 @@ jobs:
         working-directory: /mnt/lineage/device/alps/ac8257_demo
         run: |
           librehu/fetch_apks.sh
-          # LibreHU kernel stable-4.9.337: boot images with the stock AVB footer, androidboot.selinux=permissive added
+          # LibreHU kernel experimental-4.19.325, variant a10: 10 MiB boot images with the stock AVB footer,
+          # androidboot.selinux=permissive added
           tools/fetch_kernel.sh
           # ViPERFX_RE driver of the ROM's ViPER4Android app (same version), for the TWRP zip: installed or updated in /vendor
           tools/fetch_viper.sh

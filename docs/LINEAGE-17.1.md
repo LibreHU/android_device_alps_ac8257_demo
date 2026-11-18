@@ -4,10 +4,13 @@
 
 Branche **`lineage-17.1`** : le même arbre que `lineage-16.0` (LineageOS 16.0, Android 9), porté sur LineageOS 17.1
 (Android 10). Une vraie ROM construite depuis les sources LineageOS. Le vendor reste celui de l'unité (Android 9,
-VNDK 28, Treble) et le noyau celui de LibreHU (`stable-4.9.337`).
+VNDK 28, Treble) et le noyau celui de LibreHU : `experimental-4.19.325`, variante `a10`, depuis le 18/11/2026 (un
+noyau par ROM : la 16.0 garde `stable-4.9.337`).
 
-**État (16/11/2026) : premier essai sur l'unité le 15/11 (noyau 4.9.337) : Android ne finissait pas de démarrer
-(audioserver en boucle, SystemUI du vendor), corrigé dans le build suivant, à réessayer.** La branche `lineage-16.0`
+**État (18/11/2026) : les essais du 18/11 (noyau 4.9, puis 4.19) ne finissaient pas de démarrer : system_server et
+SystemUI mouraient toutes les 8 s. Codec2 d'Android 10 demande n'importe quel heap ION (`~0`) et recevait
+`ion_mm_heap_for_pa2mva`, un buffer sans mémoire. Corrigé dans les deux noyaux le 18/11 ; build suivant avec le 4.19
+`a10`, à réessayer.** La branche `lineage-16.0`
 reste la ROM de tous les jours.
 
 ## Ce qui change par rapport à `lineage-16.0`
@@ -111,8 +114,9 @@ la main. Séparée de celle de `lineage-16.0` : groupe de concurrence `lineage-1
 - Compilation SELinux au démarrage : plateforme Android 10 + politique du vendor Android 9 par le mapping 28.0.
   Avec `androidboot.selinux=permissive` (image de boot LibreHU), un échec de compilation reste fatal (redémarrage en
   bootloader) : c'est le premier point à regarder si l'unité ne démarre pas.
-- Matrice de compatibilité (FCM 3) : noyau 4.9.337 couvert. Le noyau 4.19 expérimental ne l'est pas (dialogue
-  « problème interne » probable, non bloquant).
+- Matrice de compatibilité (FCM 3) : celle d'Android 10 ne liste que les noyaux 4.4, 4.9 et 4.14
+  (`hardware/interfaces/compatibility_matrices/Android.bp`). Avec le 4.19, `Build.isBuildConsistent()` échoue :
+  dialogue « problème interne » attendu au démarrage, non bloquant.
 - Démarrage d'activités depuis l'arrière-plan restreint par Android 10 : à surveiller pour LibreHU-service (caméra de
   recul, sources).
 
