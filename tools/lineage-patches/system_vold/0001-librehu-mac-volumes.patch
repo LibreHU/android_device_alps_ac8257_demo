@@ -6,7 +6,9 @@ into public volumes, and blkid does not know APFS. Now (librehu.mac_volumes):
 - Disk: MBR type 0xaf and the GPT types of Apple HFS+ (48465300-...) and APFS (7C3457EF-...)
   give a public volume;
 - PublicVolume: an unnamed filesystem starting with an APFS container ("NXSB" after the 32-byte
-  object header) is "apfs"; hfs / hfsplus are mounted owned by media_rw (uid, gid, umask 0007,
+  object header) is "apfs", with the container UUID (nx_uuid) as volume UUID: without a UUID a
+  mounted public volume has no VolumeRecord and SystemUI crashes in StorageNotification; hfs /
+  hfsplus are mounted owned by media_rw (uid, gid, umask 0007,
   like vfat; a journaled HFS+ is mounted read-only by the kernel), apfs read-only.
 They mount only when the kernel lists the filesystem in /proc/filesystems (LibreHU kernels:
 HFS / HFS+ everywhere, APFS in the 4.19 lto32 ones).
@@ -43,7 +45,7 @@ HFS / HFS+ everywhere, APFS in the 4.19 lto32 ones).
                  } else if (android::base::EqualsIgnoreCase(typeGuid, kGptAndroidExpand)) {
                      createPrivateVolume(partDevice, partGuid);
 --- a/model/PublicVolume.cpp	2026-11-17 17:16:23.541873512 +0000
-+++ b/model/PublicVolume.cpp	2026-11-17 17:16:45.695433880 +0000
++++ b/model/PublicVolume.cpp	2026-11-18 12:48:53.377016037 +0000
 @@ -36,6 +36,8 @@
  #include <sys/types.h>
  #include <sys/sysmacros.h>
@@ -53,38 +55,48 @@ HFS / HFS+ everywhere, APFS in the 4.19 lto32 ones).
  
  using android::base::StringPrintf;
  
-@@ -57,6 +59,18 @@
+@@ -57,6 +59,26 @@
  PublicVolume::~PublicVolume() {
  }
  
 +// librehu.mac_volumes: blkid (e2fsprogs) does not know APFS. An APFS container starts with an object header
-+// (32 bytes) followed by the magic "NXSB" (nx_superblock_t, Apple File System Reference).
-+static bool LibrehuIsApfs(const std::string& devPath) {
-+    char buf[36];
++// (32 bytes) followed by the magic "NXSB" (nx_superblock_t, Apple File System Reference); its UUID (nx_uuid)
++// is at byte 72. The UUID is needed: a mounted public volume without one has no VolumeRecord, and SystemUI's
++// StorageNotification.onVolumeMounted() then crashes on rec.isSnoozed() (UJC201, 18/11/2026).
++static bool LibrehuReadApfs(const std::string& devPath, std::string* uuid) {
++    unsigned char buf[88];
 +    int fd = TEMP_FAILURE_RETRY(open(devPath.c_str(), O_RDONLY | O_CLOEXEC));
 +    if (fd < 0) return false;
 +    bool apfs = TEMP_FAILURE_RETRY(pread(fd, buf, sizeof(buf), 0)) == (ssize_t)sizeof(buf) &&
 +                memcmp(buf + 32, "NXSB", 4) == 0;
 +    close(fd);
++    if (apfs) {
++        const unsigned char* u = buf + 72;
++        *uuid = StringPrintf("%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
++                u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8], u[9], u[10], u[11], u[12], u[13],
++                u[14], u[15]);
++    }
 +    return apfs;
 +}
 +
  status_t PublicVolume::readMetadata() {
      status_t res = ReadMetadataUntrusted(mDevPath, &mFsType, &mFsUuid, &mFsLabel);
  
-@@ -100,6 +114,11 @@
+@@ -100,6 +122,13 @@
  
  status_t PublicVolume::doMount() {
      readMetadata();
-+    if (mFsType.empty() && LibrehuIsApfs(mDevPath)) {
++    std::string apfsUuid;
++    if (mFsType.empty() && LibrehuReadApfs(mDevPath, &apfsUuid)) {
 +        mFsType = "apfs";
++        if (mFsUuid.empty()) mFsUuid = apfsUuid;
 +        auto listener = getListener();
 +        if (listener) listener->onVolumeMetadataChanged(getId(), mFsType, mFsUuid, mFsLabel);
 +    }
  
      if (!IsFilesystemSupported(mFsType)) {
          LOG(ERROR) << getId() << " unsupported filesystem " << mFsType;
-@@ -161,6 +180,16 @@
+@@ -161,6 +190,16 @@
      } else if (mFsType == "vfat") {
          ret = vfat::Mount(mDevPath, mRawPath, false, false, false,
                  AID_MEDIA_RW, AID_MEDIA_RW, 0007, true);
