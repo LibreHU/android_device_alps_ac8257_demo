@@ -1,5 +1,5 @@
 #!/sbin/sh
-# LibreHU - LineageOS 17.1 (experimentale) pour l'UJC201 (ac8257_demo) : installateur TWRP fait par tools/make_flashable_zip.py.
+# LibreHU - LineageOS 18.1 (Android 11, portage experimental) pour l'UJC201 (ac8257_demo) : installateur TWRP fait par tools/make_flashable_zip.py.
 # Ecrit system (image brute en morceaux de 1 Gio, empreinte relue sur toute la partition), boot (image du noyau LibreHU
 # avec androidboot.selinux=permissive ; « bootmenu » ou « plain » dans le nom du zip, sinon le type deja installe) et les
 # modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois), et installe ou
@@ -69,7 +69,7 @@ esac
 part() { [ -n "$UJC_TEST" ] && echo "$BYNAME/$1" && return; [ -e $BYNAME/$1 ] && echo $BYNAME/$1 && return; echo /dev/block/by-name/$1; }
 info() { unzip -p "$ZIPFILE" info/$1 2>/dev/null; }
 
-ui_print "LibreHU - LineageOS 17.1 EXPERIMENTAL (UJC201)"
+ui_print "LibreHU - LineageOS 18.1 PORT, Android 11 (UJC201)"
 ui_print "--------------------------------"
 ui_print "build: $(info build)"
 

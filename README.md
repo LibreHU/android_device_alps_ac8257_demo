@@ -1,5 +1,10 @@
 # LineageOS 17.1 pour l'UJC201 (Jancar, Autochips AC8257) — branche experimentale
 
+> **Branche `lineage-18.1` : portage LineageOS 18.1 (Android 11), cree le 19/11/2026 depuis `lineage-17.1`.**
+> Premiere CI (`.github/workflows/lineage-18.1-build.yml`) : correctifs LibreHU d'Android 10 en avertissements
+> tant qu'ils ne sont pas portes, noyau 4.19 `a11-lto32`, flux `lineage-18.1-ota` ; rien n'est publie avant que
+> tous les correctifs s'appliquent. Jamais essaye sur l'unite.
+
 *English: [README.en.md](README.en.md)*
 
 **Branche `lineage-17.1` : LineageOS 17.1 (Android 10), EXPERIMENTALE, jamais essayee sur l'unite.** Differences
