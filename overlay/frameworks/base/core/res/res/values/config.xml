@@ -20,4 +20,9 @@
          Android, RNDIS ou NCM, que Linux nomme usb0). Android 9 ne prend que "eth\d" par defaut : le partage d'un
          telephone Android etait ignore. Meme valeur que le defaut d'Android 15 ; zip usb-tethering pour le stock. -->
     <string name="config_ethernet_iface_regex" translatable="false">(eth|usb)\\d+</string>
+    <!-- Wi-Fi bi-bande (puce MediaTek connac gen4m : 2,4 et 5 GHz, association vue en 5 GHz canal 100). Android 9 et 10
+         repondent a WifiManager.is5GHzBandSupported() / isDualBandSupported() avec ce seul reglage
+         (WifiServiceImpl.isDualBandSupported, android10-release), faux par defaut dans AOSP : applis et point d'acces
+         (bande 5 GHz) croyaient la puce limitee au 2,4 GHz. -->
+    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
 </resources>
