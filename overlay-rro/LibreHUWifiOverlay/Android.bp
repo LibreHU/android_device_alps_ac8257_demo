@@ -1,0 +1,7 @@
+// LibreHU : Wi-Fi bi-bande (2,4 et 5 GHz) declare a Android 11 et plus. config_wifi_dual_band_support (framework-res,
+// Android 9 et 10) n'existe plus : remplace par config_wifi5ghzSupport dans com.android.wifi.resources
+// (frameworks/opt/net/wifi/service/res en 11, module Wifi en 12+), faux par defaut. Personnalisation prevue par RRO.
+runtime_resource_overlay {
+    name: "LibreHUWifiOverlay",
+    product_specific: true,
+}
