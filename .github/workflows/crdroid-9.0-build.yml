@@ -92,6 +92,11 @@ jobs:
           <manifest>
             <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo" remote="github" revision="crdroid-9.0" />
             <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="crdroid-9.0" />
+            <!-- crDroid 9.0: frameworks/base (crDroid, 2021) has the IMms of before the LineageOS security backport
+                 a1b8cfe (2024-07-08, callingUser): packages/services/Mms of LineageOS lineage-16.0 pinned to its parent
+                 b86301f (run 44482608693: MmsService does not override addMultimediaMessageDraft(String,Uri)). -->
+            <remove-project name="LineageOS/android_packages_services_Mms" />
+            <project path="packages/services/Mms" name="LineageOS/android_packages_services_Mms" remote="github" revision="b86301f3fa6a721dd0b7133d715d88963af9cddd" upstream="refs/heads/lineage-16.0" />
           </manifest>
           XML
           for i in 1 2 3 4; do
