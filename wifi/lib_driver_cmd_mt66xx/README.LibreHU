@@ -1,0 +1,7 @@
+lib_driver_cmd_mt66xx : bibliotheque privee de wpa_supplicant pour les puces Wi-Fi MediaTek (commandes « DRIVER ... » :
+COUNTRY, SETSUSPENDMODE, RXFILTER..., envoyees au pilote gen4m par l'ioctl SIOCDEVPRIVATE+1, struct
+priv_driver_cmd_s { char buf[512]; int used_len; int total_len; } : drivers/misc/mediatek/connectivity/wlan/core/gen4m/
+os/linux/gl_wext_priv.c du noyau LibreHU). Ecrite par MediaTek, double licence GPL-2.0 / BSD (en-tete des sources).
+Copie de github.com/turtleletortue/android_device_retroid_pocket2, mtk/lib_driver_cmd_mt66xx, commit 6a2dbe6df724
+(2022-09-29), sans modification. Sert a construire en CI le wpa_supplicant de LineageOS 17.1 avec le HAL
+android.hardware.wifi.supplicant@1.2 (WPA3 / SAE, OWE) a la place de celui du vendor Android 9 (HAL 1.1).
