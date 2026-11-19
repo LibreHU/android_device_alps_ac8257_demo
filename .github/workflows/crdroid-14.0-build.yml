@@ -69,13 +69,6 @@ jobs:
           sudo mkdir -p "$SRC" && sudo chown "$USER" "$SRC"
           df -h / /mnt
 
-      # 20 GiB for Android 14: soong bootstrap of Android 13 was killed in 13 GiB of RAM + 8 GiB of swap (run
-      # 44481810437, oom_kill 1); Android 10 used 1.1 GiB of swap at most (run 43227394988).
-      - name: Swap (20 GiB)
-        run: |
-          sudo fallocate -l 20G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile
-          free -g
-
       - name: Build packages (LineageOS wiki; Android 14's build scripts are Python 3, python2 kept for old tools)
         run: |
           sudo apt-get update -qq
@@ -149,6 +142,14 @@ jobs:
           done
           du -sh .repo; rm -rf .repo/project-objects .repo/projects
           du -sh /mnt/lineage; df -h / /mnt
+
+      # After the sync and the removal of its Git objects (a swap file made before filled the disk during the sync
+      # of Android 14, runs 44502025840 / 44502056961). 20 GiB for Android 14: soong bootstrap of Android 13 was killed in 13 GiB of RAM + 8 GiB of swap (run
+      # 44481810437, oom_kill 1); Android 10 used 1.1 GiB of swap at most (run 43227394988).
+      - name: Swap (20 GiB)
+        run: |
+          sudo fallocate -l 20G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile
+          free -g
 
       - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh)
         working-directory: /mnt/lineage/device/alps/ac8257_demo
