@@ -91,6 +91,9 @@ def main():
     # updater app from another ROM or version.
     ap.add_argument("--rom", default="lineage", choices=("lineage", "crdroid"))
     ap.add_argument("--chunk-mib", type=int, default=1024)
+    # WPA3 supplicant (HAL 1.2) of the CI, after its VNDK 28 check: wifi/ in the zip, installed in /vendor by update-binary
+    # (tools/flashable/wifi-wpa3.sh) unless LibreHU/no-wpa3 is in the internal storage
+    ap.add_argument("--wifi", default="")
     a = ap.parse_args()
     chunk = a.chunk_mib << 20
     boots = {"boot.img": "boot-librehu.img", "boot-bootmenu.img": "boot-librehu-bootmenu.img"}
@@ -152,6 +155,11 @@ def main():
                 z.write(os.path.join(mods, n), f"modules/{n}")
         for n in VIPER_FILES:
             z.write(os.path.join(viper, n), f"viper/{n}")
+        if a.wifi:
+            for n in ("bin/wpa_supplicant", "lib64/android.hardware.wifi.supplicant@1.2.so", "SHA256SUMS",
+                      "vendor_needed.txt", "version"):
+                z.write(os.path.join(a.wifi, n), f"wifi/{n}")
+            z.write(os.path.join(HERE, "flashable", "wifi-wpa3.sh"), "wifi/wifi-wpa3.sh")
         # noyau -lto32 (image de 32 Mio) : zip de migration de la partition boot 10 -> 32 Mio (release du noyau),
         # lance par update-binary quand la partition fait encore 10 Mio
         b32 = os.path.join(a.prebuilt, "boot32", "librehu_boot32_twrp.zip")
