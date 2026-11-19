@@ -99,6 +99,8 @@ jobs:
         if-no-files-found: ignore
 
     - name: LibreHU zips embedded in the image (boot partition 10 -> 32 MiB and back, Advanced menu)
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: bash device-tree/tools/fetch_librehu_zips.sh
 
     - name: Post-process (ecran, barre d'etat, theme, signature AVB stock)
