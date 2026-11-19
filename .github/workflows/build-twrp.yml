@@ -98,6 +98,9 @@ jobs:
         path: workspace/build.log
         if-no-files-found: ignore
 
+    - name: LibreHU zips embedded in the image (boot partition 10 -> 32 MiB and back, Advanced menu)
+      run: bash device-tree/tools/fetch_librehu_zips.sh
+
     - name: Post-process (ecran, barre d'etat, theme, signature AVB stock)
       run: |
         OUT=workspace/out/target/product/${DEVICE_NAME}

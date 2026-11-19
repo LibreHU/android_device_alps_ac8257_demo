@@ -3,7 +3,8 @@
 ujc201_theme.py - ajouts au theme TWRP (landscape) pour le Jancar UJC201, partages par
 apply_twrp_patches.py (source) et ujc201_postprocess.py (image deja compilee).
 
-  - Advanced : entrees Power info / USB / MCU info / touches au volant. Elles passent par action_page +
+  - Advanced : entrees Power info / USB / MCU info / touches au volant, et partition boot 32 Mio (zips LibreHU
+    embarques dans /system/etc/librehu, flashes par la page de confirmation de TWRP). Elles passent par action_page +
     terminalcommand : la sortie du script s'affiche dans la console (l'action "cmd" n'affiche rien).
   - Page graphique "ujc201_vehicle" (tableau de bord : tension, CPU, ACC / frein / feux, MCU, volant) et
     zone droite de la barre d'etat : valeurs = proprietes systeme ujc201.<nom> posees par touchfix, lues par
@@ -32,6 +33,17 @@ def term_item(name, cmd, title):
     return ('\t\t\t\t<listitem name="%s">\n\t\t\t\t\t<actions>\n%s\t\t\t\t\t</actions>\n\t\t\t\t</listitem>\n'
             % (name, term_actions(cmd, title, 'advanced', 6)))
 
+# Zips TWRP de LibreHU embarques dans l'image (CI : release latest-experimental-4.19.325 du noyau), flashes comme un
+# zip choisi dans Install : file d'attente puis page de confirmation (glisser pour flasher) de TWRP
+ZIP_DIR = '/system/etc/librehu'
+
+def zip_item(name, zipname):
+    return ('\t\t\t\t<listitem name="%s">\n\t\t\t\t\t<actions>\n'
+            '\t\t\t\t\t\t<action function="set">tw_filename=%s/%s</action>\n'
+            '\t\t\t\t\t\t<action function="queuezip"></action>\n'
+            '\t\t\t\t\t\t<action function="page">flash_confirm</action>\n'
+            '\t\t\t\t\t</actions>\n\t\t\t\t</listitem>\n' % (name, ZIP_DIR, zipname))
+
 def adv_block(dash):
     s = '\t\t\t\t' + BEGIN + '\n'
     if dash:
@@ -43,6 +55,8 @@ def adv_block(dash):
     s += term_item('Steering wheel keys: show / test', '/system/bin/wheelkeys show', 'Steering wheel keys')
     s += term_item('USB: Host mode (USB drive)', '/system/bin/usbmode host', 'USB: Host mode')
     s += term_item('USB: PC mode (ADB / MTP)', '/system/bin/usbmode device', 'USB: PC mode')
+    s += zip_item('Boot partition: grow to 32 MiB (Android 10+)', 'librehu_boot32_twrp.zip')
+    s += zip_item('Boot partition: back to 10 MiB', 'librehu_boot32_restore_twrp.zip')
     return s + '\t\t\t\t' + END + '\n'
 
 # ---------------------------------------------------------------- page graphique (coordonnees du theme 1920x1200)

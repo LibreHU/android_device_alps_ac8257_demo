@@ -4,3 +4,4 @@ tools/bootmenu/ui_data.h
 *.img
 tools/buildprop_fix/out/
 tools/audio/twrp/out/
+recovery/root/system/etc/librehu/
