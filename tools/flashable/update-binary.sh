@@ -92,6 +92,43 @@ if [ $(( ${FLAGS:-0} & 2 )) != 2 ]; then
 fi
 ui_print "vbmeta: verification disabled (flags $FLAGS): OK"
 
+# --- canal de mise a jour (19/11/2026) : une mise a jour par l'appli de mise a jour (zip « @... ») ne passe que sur la
+# meme ROM (info/rom : lineage ou crdroid) et la meme version (info/lineage_version : ro.lineage.build.version pour
+# LineageOS, ro.crdroid.version pour crDroid). Chaque ROM et chaque version a son flux (release <branche>-ota du depot :
+# lineage-17.1-ota, crdroid-13.0-ota...) ; ce controle arrete en plus le zip d'un autre flux. Un flash a la main dans
+# TWRP reste libre (changement de ROM ou de version voulu). Rien n'est ecrit avant ce point.
+OTA=${OTA:-0}
+case "$3" in @*) OTA=1;; esac
+ZROM=$(info rom); [ -n "$ZROM" ] || ZROM=lineage
+ZVER=$(info lineage_version)
+if [ "$OTA" = 1 ]; then
+	[ -n "$ZVER" ] || abort "zip without a ROM version (info/lineage_version): update refused"
+	SYSRO=${UJC_TMP:-/tmp}/librehu_sysro
+	mkdir -p $SYSRO
+	CUR=; CURROM=
+	if mount -t ext4 -o ro $(part system) $SYSRO 2>/dev/null; then
+		for bp in $SYSRO/system/build.prop $SYSRO/build.prop; do
+			[ -f $bp ] || continue
+			if grep -q '^ro.crdroid.version=' $bp; then
+				CURROM=crdroid; CUR=$(sed -n 's/^ro.crdroid.version=//p' $bp | head -n 1)
+			else
+				CURROM=lineage; CUR=$(sed -n 's/^ro.lineage.build.version=//p' $bp | head -n 1)
+			fi
+			break
+		done
+		umount $SYSRO 2>/dev/null
+	fi
+	rmdir $SYSRO 2>/dev/null
+	[ -n "$CURROM" ] || abort "installed system unreadable: update refused (flash the zip by hand in TWRP)"
+	if [ "$CURROM" != "$ZROM" ] || [ "$CUR" != "$ZVER" ]; then
+		ui_print "Update $ZROM $ZVER over $CURROM ${CUR:-?}: refused,"
+		ui_print "each ROM and version has its own update channel."
+		ui_print "To change ROM or version: flash the zip by hand in TWRP."
+		abort "update channel: installed $CURROM ${CUR:-?}, zip $ZROM $ZVER"
+	fi
+	ui_print "update channel: $CURROM $CUR -> $ZROM $ZVER: OK"
+fi
+
 rm -rf $TMPD; mkdir -p $TMPD
 unzip -o -q "$ZIPFILE" 'info/*' 'boot*.img' 'modules/*' -d $TMPD || abort "cannot extract the zip"
 
