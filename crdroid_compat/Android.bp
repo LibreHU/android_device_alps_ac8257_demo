@@ -1,0 +1,6 @@
+// LibreHU (crdroid-12.1) : hardware/lineage/interfaces/health/aidl/default/Android.bp depend de
+// health_charging_control_defaults, que le vendor de crDroid 12.1 ne definit pas (CI, run 44482621167 :
+// « depends on undefined module »). Defaults vides : HAL health sans controle de charge, inutile ici.
+cc_defaults {
+    name: "health_charging_control_defaults",
+}
