@@ -195,6 +195,15 @@ jobs:
           rm -f /home/runner/unsigned.zip
           (cd /home/runner/flash && sha256sum * > SHA256SUMS && cat SHA256SUMS)
 
+      # Images of every successful build, kept 14 days, uploaded before the release step: a failed release (HTTP 403
+      # of run 44473470443) no longer loses them.
+      - uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'success'
+        with:
+          name: lineage-images
+          path: /home/runner/flash
+          retention-days: 14
+
       # Release GitHub de chaque build de la branche (zip signe, images, empreintes) et flux de l'appli Updater de
       # LineageOS : updater.json de la release « lineage-16.0-ota », remplace a chaque build (format de
       # packages/apps/Updater, Utils.parseJsonUpdate : datetime = ro.build.date.utc, romtype, version).
@@ -242,13 +251,6 @@ jobs:
           name: lineage-build-log
           path: /home/runner/build.log
           if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@v4
-        if: steps.build.outcome == 'success'
-        with:
-          name: lineage-images
-          path: /home/runner/flash
-          retention-days: 14
 
       - name: Result
         if: always()
