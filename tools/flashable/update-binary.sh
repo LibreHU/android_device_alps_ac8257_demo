@@ -390,6 +390,21 @@ elif ! viper_install; then
 	ui_print "  zip viper4android-re (LibreHU Apps)"
 fi
 
+# --- WPA3 (SAE) et OWE : wpa_supplicant avec le HAL 1.2 (wifi/ du zip, construit et verifie contre le VNDK 28 par la CI) a la
+# place de celui du vendor Android 9 (HAL 1.1) ; tools/flashable/wifi-wpa3.sh, originaux sauvegardes une fois dans
+# LibreHU/backup/wifi-hal11-orig. Rien si LibreHU/no-wpa3 est dans la memoire interne (laisse par le zip
+# librehu_wifi_wpa3_restore_twrp.zip). Un echec ici n'arrete pas l'installation et laisse le Wi-Fi d'origine.
+if unzip -o -q "$ZIPFILE" 'wifi/*' -d $TMPD 2>/dev/null && [ -f $TMPD/wifi/version ]; then
+	if [ -f $SDCARD/LibreHU/no-wpa3 ]; then
+		ui_print "WPA3: LibreHU/no-wpa3 in internal storage, original supplicant left alone"
+	elif [ -z "$BK" ]; then
+		ui_print "WPA3: no internal storage, no backup possible: not installed"
+	else
+		. $TMPD/wifi/wifi-wpa3.sh
+		wifi_wpa3_install $TMPD/wifi || ui_print "WPA3: not installed (see above), Wi-Fi unchanged"
+	fi
+fi
+
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then
 	ui_print " "
