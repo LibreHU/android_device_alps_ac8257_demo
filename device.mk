@@ -10,6 +10,10 @@ LOCAL_PATH := device/alps/ac8257_demo
 # Lance avec Android 9 (ro.product.first_api_level=28) : Treble complet, vendor stock
 PRODUCT_SHIPPING_API_LEVEL := 28
 
+# Android 12+ : les APK prebuilt LibreHU declarent des <uses-library> optionnelles (androidx.window.*) inconnues
+# du build (run 44502045895 : « mismatch in the <uses-library> tags ») ; verification coupee.
+PRODUCT_BROKEN_VERIFY_USES_LIBRARIES := true
+
 # Vendor stock d'Android 9 sous un system Android 10 : ses bibliotheques sont liees aux bibliotheques VNDK de la
 # version 28, que le system garde a cote des siennes (/system/lib*/vndk-28, vndk-sp-28 ; prebuilts/vndk/v28, choisies
 # par le linker d'apres ro.vndk.version=28 du vendor). Sans elles, les HAL du vendor ne se chargent pas.
