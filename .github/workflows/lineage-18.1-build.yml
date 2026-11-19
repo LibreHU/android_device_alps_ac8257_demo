@@ -196,26 +196,31 @@ jobs:
           # Android 11 on the Android 9 vendor: the VNDK 28 libraries must be in /system (PRODUCT_EXTRA_VNDK_VERSIONS).
           ls -d $P/system/lib64/vndk-28 $P/system/lib/vndk-28 $P/system/lib64/vndk-sp-28 || {
             echo "::error::no VNDK 28 libraries in /system: the vendor HALs would not load"; exit 1; }
-          # Own update channel: a 18.1 build only (the LineageOS Updater installs only the same
-          # ro.lineage.build.version, Utils.canInstall), whose Updater reads the lineage-18.1-ota feed, never another.
+          # Own update channel (19/11/2026): this branch publishes LineageOS 18.1 (Android 11) only, and its Updater reads the lineage-18.1-ota
+          # feed, never another one (overlay/packages/apps/Updater, both resource paths); the zip carries info/rom and
+          # info/lineage_version, so that the installer refuses an update from another ROM or version.
           V=$(sed -n 's/^ro.lineage.build.version=//p' $P/system/build.prop)
           [ "$V" = 18.1 ] || { echo "::error::ro.lineage.build.version=$V, not 18.1: not published by this branch"; exit 1; }
-          U=$(find $P/system -name Updater.apk | head -n 1)
+          if grep -q '^ro.crdroid.version=' $P/system/build.prop; then
+            echo "::error::crDroid build.prop in a LineageOS branch: not published"; exit 1
+          fi
+          ROM=lineage; ZV=$V
+          U=$(find $P/system $P/system_ext $P/product -name Updater.apk 2>/dev/null | head -n 1)
+          [ -n "$U" ] || { echo "::error::no Updater.apk in the build"; exit 1; }
           python3 -I -c '
           import sys, zipfile
           d = zipfile.ZipFile(sys.argv[1]).read("resources.arsc")
           has = lambda t: t.encode() in d or t.encode("utf-16-le") in d
-          ok = has("releases/download/lineage-18.1-ota/updater.json") and not has("lineage-16.0-ota")
-          sys.exit(0 if ok else 1)' "$U" || {
-            echo "::error::$U: updater_server_url is not the lineage-18.1-ota feed"; exit 1; }
-          echo "Updater: feed lineage-18.1-ota ($U), ro.lineage.build.version=$V"
+          sys.exit(0 if has("releases/download/lineage-18.1-ota/updater.json") else 1)' "$U" || {
+            echo "::error::$U: updater_server_url is not the lineage-18.1-ota feed (overlay/packages/apps/Updater)"; exit 1; }
+          echo "Updater: $U reads the lineage-18.1-ota feed; ROM $ROM, version $ZV"
           # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), boot32 migration zip,
           # ViPERFX_RE driver; info/lineage_version lets the installer refuse an update from another version.
           D=$(date -u +%Y%m%d)
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
             /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/unsigned.zip \
             --build "lineage-18.1 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)" \
-            --lineage-version "$V"
+            --rom $ROM --lineage-version "$ZV"
           # Signature du paquet entier (signapk -w) avec la cle de la ROM (test-keys : celle de otacerts.zip) : l'appli
           # Updater de LineageOS refuse un paquet que RecoverySystem.verifyPackage ne verifie pas. TWRP l'installe
           # comme avant. Le nom n'impose plus d'image de boot : le zip garde celle qui est installee (update-binary).
@@ -227,36 +232,72 @@ jobs:
           rm -f /home/runner/unsigned.zip
           (cd /home/runner/flash && sha256sum * > SHA256SUMS && cat SHA256SUMS)
 
-      # Release GitHub de chaque build de la branche (zip signe, images, empreintes) et flux de l'appli Updater de
-      # LineageOS 18.1 : updater.json de la release « lineage-18.1-ota », remplace a chaque build (format de
-      # packages/apps/Updater, Utils.parseJsonUpdate : datetime = ro.build.date.utc, romtype, version). Les builds
-      # 16.0 lisent « lineage-16.0-ota », que ce workflow ne touche jamais : une 18.1 n'est pas proposee a une 16.0.
-      - name: GitHub release and LineageOS updater feed
-        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/lineage-18.1' && steps.sources.outputs.complete == 'true'
+      # Images of every successful build, kept 14 days (before the release step: a failed release does not lose them).
+      - uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'success'
+        with:
+          name: lineage-18.1-images
+          path: /home/runner/flash
+          retention-days: 14
+
+      # Release GitHub de chaque build reussi de la branche (zip signe, images, empreintes) et flux de son appli de mise a
+      # jour : updater.json de la release « lineage-18.1-ota », remplace a chaque build. Ce workflow n'ecrit que ce flux, aucun
+      # autre workflow ne l'ecrit : chaque ROM et chaque version a le sien (lineage-16.0-ota, lineage-17.1-ota, ...,
+      # crdroid-9.0-ota, ...), l'appli de chaque systeme ne lit que le sien (overlay) et l'installateur refuse le zip
+      # d'une autre ROM ou version (info/rom, info/lineage_version). Format du flux : LineageOS (packages/apps/Updater, Utils.parseJsonUpdate).
+      # Tant qu'un correctif LibreHU manque (portage), la release est publiee marquee INCOMPLETE (elle ne demarre pas) et
+      # le flux n'est pas touche : aucune unite n'est mise a jour vers un build qui ne demarre pas.
+      - name: GitHub release and updater feed (lineage-18.1-ota)
+        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/lineage-18.1'
         env:
           GH_TOKEN: ${{ github.token }}
+          COMPLETE: ${{ steps.sources.outputs.complete }}
         working-directory: /home/runner/flash
         run: |
           Z=$(ls LibreHU-LineageOS-18.1-*.zip)
           TAG=lineage-18.1-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}
+          case "$TAG" in lineage-18.1-*) ;; *) echo "::error::tag $TAG"; exit 1;; esac
           DT=$(sed -n 's/^ro.build.date.utc=//p' build.prop)
           TYPE=$(sed -n 's/^ro.lineage.releasetype=//p' build.prop)
-          VER=$(sed -n 's/^ro.lineage.build.version=//p' build.prop)
-          # Only 18.1 entries in the 18.1 feed (checked again before anything is published).
-          [ "$VER" = 18.1 ] || { echo "::error::ro.lineage.build.version=$VER: not published to lineage-18.1-ota"; exit 1; }
-          case "$TAG" in lineage-18.1-*) ;; *) echo "::error::tag $TAG"; exit 1;; esac
+          # LineageOS Updater (Utils.canInstall): version = ro.lineage.build.version of the installed system
+          FV=$(sed -n 's/^ro.lineage.build.version=//p' build.prop)
+          if [ "$COMPLETE" = true ]; then STATE=""; NOTE=""; else
+            STATE="INCOMPLETE - "
+            NOTE="INCOMPLETE : des correctifs LibreHU ne s'appliquent pas encore a ces sources, ce build ne demarre pas sur l'unite. "
+          fi
           gh release create "$TAG" "$Z" boot-librehu-bootmenu.img boot-librehu.img system.img.zst build.prop SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title "LineageOS 18.1 PORTAGE, $(date -u +%d/%m/%Y) (${GITHUB_SHA::7})" \
-            --notes "LineageOS 18.1 (Android 11) PORTAGE EXPERIMENTAL pour l'UJC201, arbre ${GITHUB_SHA::7} (branche lineage-18.1). Portage jamais essaye sur l'unite : sauvegarde TWRP (system, boot, data) avant, et effacer data. Installation : docs/BUILD.md. Zip signe (test-keys) : TWRP. Le vendor reste celui de l'unite."
-          printf '{"response":[{"datetime":%s,"filename":"%s","id":"%s","romtype":"%s","size":%s,"url":"%s","version":"%s"}]}\n' \
-            "$DT" "$Z" "$(sha256sum "$Z" | cut -d' ' -f1)" "${TYPE:-UNOFFICIAL}" "$(stat -c %s "$Z")" \
-            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$Z" "$VER" > updater.json
+            --title "${STATE}LineageOS 18.1 (Android 11) PORTAGE, $(date -u +%d/%m/%Y) (${GITHUB_SHA::7})" \
+            --notes "${NOTE}LineageOS 18.1 (Android 11) pour l'UJC201, PORTAGE jamais essaye sur l'unite, arbre ${GITHUB_SHA::7} (branche lineage-18.1). Sauvegarde TWRP (system, boot, data) avant, effacer data. Zip signe (test-keys) : TWRP. Mises a jour : flux lineage-18.1-ota (appli de mise a jour de ce systeme seulement)."
+          if [ "$COMPLETE" != true ]; then
+            echo "::warning::lineage-18.1: release $TAG published as INCOMPLETE, updater feed lineage-18.1-ota not touched"
+            exit 0
+          fi
+          python3 -I - "lineage" "$Z" "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$Z" "$DT" "$FV" "${TYPE:-UNOFFICIAL}" \
+            "https://github.com/$GITHUB_REPOSITORY/tree/lineage-18.1" > updater.json <<'PY'
+          import hashlib, json, os, sys
+          fmt, z, url, dt, ver, typ, dtree = sys.argv[1:8]
+          md5, sha = hashlib.md5(), hashlib.sha256()
+          with open(z, "rb") as f:
+              for b in iter(lambda: f.read(1 << 20), b""):
+                  md5.update(b)
+                  sha.update(b)
+          size = os.path.getsize(z)
+          if fmt == "lineage":
+              e = {"datetime": int(dt), "filename": z, "id": sha.hexdigest(), "romtype": typ, "size": size, "url": url,
+                   "version": ver}
+          else:
+              e = {"maintainer": "LibreHU CI", "oem": "Jancar", "device": "ac8257_demo", "filename": z, "download": url,
+                   "timestamp": int(dt), "md5": md5.hexdigest(), "sha256": sha.hexdigest(), "size": size, "version": ver,
+                   "buildtype": "Unofficial", "forum": "https://github.com/LibreHU", "gapps": "", "firmware": "", "modem": "",
+                   "bootloader": "", "recovery": "", "paypal": "", "telegram": "", "dt": dtree}
+          print(json.dumps({"response": [e]}))
+          PY
           cat updater.json
           gh release view lineage-18.1-ota --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create lineage-18.1-ota --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "LineageOS 18.1 (experimentale) : flux de mises a jour" \
-              --notes "updater.json lu par l'appli Mises a jour de LineageOS (overlay de packages/apps/Updater) ; remplace a chaque build."
+              --title "LineageOS 18.1 (Android 11) : flux de mises a jour" \
+              --notes "updater.json lu par l'appli de mise a jour de LineageOS 18.1 (Android 11) (branche lineage-18.1) et par elle seule ; remplace a chaque build complet."
           gh release upload lineage-18.1-ota updater.json --clobber --repo "$GITHUB_REPOSITORY"
 
       # The images are out: the output goes, room for the ccache archive (its save failed on a full disk, run
@@ -271,13 +312,6 @@ jobs:
           name: lineage-18.1-build-log
           path: /home/runner/build.log
           if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@v4
-        if: steps.build.outcome == 'success'
-        with:
-          name: lineage-18.1-images
-          path: /home/runner/flash
-          retention-days: 14
 
       - name: Result
         if: always()
