@@ -192,7 +192,11 @@ jobs:
               echo "$(tail -n 1 /home/runner/build.log | cut -c1-160) | $(free -m | awk '/^Mem/{r=$3} /^Swap/{s=$3} END{print "RAM " r " MiB, swap " s " MiB"}'), disk $(df -h / | awk 'NR==2{print $4}') free"
             done ) &
           # signapk : signature du zip (OTA de l'appli Updater, verifiee par RecoverySystem.verifyPackage).
-          m -j"$(nproc)" systemimage signapk > /home/runner/build.log 2>&1
+          # Port branch: a failure is retried once at -j4 (run 44481802424, Android 11: v8 objects built before their
+          # torque-generated sources, a parallelism race); the log keeps both attempts.
+          m -j"$(nproc)" systemimage signapk > /home/runner/build.log 2>&1 || {
+            echo "=== retry at -j4 ===" >> /home/runner/build.log
+            m -j4 systemimage signapk >> /home/runner/build.log 2>&1; }
         continue-on-error: true
 
       - name: What failed
