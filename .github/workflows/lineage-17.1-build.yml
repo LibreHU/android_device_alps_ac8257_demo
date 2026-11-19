@@ -172,53 +172,6 @@ jobs:
           # oom_kill > 0: a build process was killed for memory (the FAILED line above names it)
           grep -H . /sys/fs/cgroup/lineage-build/memory.events /sys/fs/cgroup/lineage-build/memory.peak 2>/dev/null || true
 
-      # WPA3 (19/11/2026, stage 1, nothing installed): wpa_supplicant of LineageOS 17.1 with the supplicant HAL 1.2
-      # and the MediaTek private library (wifi/lib_driver_cmd_mt66xx), built apart from the system image; then a check
-      # that every library and symbol it needs exists on the unit (stock Android 9 vendor, VNDK 28:
-      # tools/wifi/check_vendor_abi.py). Artifact lineage-17.1-wifi-hal12. A failure here does not stop the ROM.
-      - name: WPA3 supplicant (HAL 1.2), build and VNDK 28 check
-        id: wifi
-        if: steps.build.outcome == 'success'
-        continue-on-error: true
-        working-directory: /mnt/lineage
-        run: |
-          source build/envsetup.sh
-          lunch lineage_ac8257_demo-userdebug
-          m -j"$(nproc)" wpa_supplicant > /home/runner/wifi-build.log 2>&1 || {
-            grep -n -E "FAILED:|error:" /home/runner/wifi-build.log | head -40; tail -n 40 /home/runner/wifi-build.log; exit 1; }
-          P=$OUT_DIR/target/product/ac8257_demo
-          W=/home/runner/wifi; mkdir -p $W/bin $W/lib64
-          cp $P/vendor/bin/hw/wpa_supplicant $W/bin/
-          H=$(find $OUT_DIR/soong/.intermediates/hardware/interfaces/wifi/supplicant/1.2/android.hardware.wifi.supplicant@1.2 \
-                -path '*android_vendor*arm64*shared*' -name 'android.hardware.wifi.supplicant@1.2.so' | grep -v unstripped | head -n 1)
-          [ -n "$H" ] && cp "$H" $W/lib64/
-          ls -la $W/bin $W/lib64
-          file $W/bin/wpa_supplicant
-          strings $W/bin/wpa_supplicant | grep -E "^wpa_supplicant v|supplicant@1\.[0-9]" | sort -u
-          OK=0
-          python3 device/alps/ac8257_demo/tools/wifi/check_vendor_abi.py /mnt/lineage $P $W/bin/wpa_supplicant $W/lib64/*.so \
-            > $W/vendor_abi.txt && OK=1
-          cat $W/vendor_abi.txt
-          [ "$OK" = 1 ] || { echo "::warning::WPA3 supplicant: symbols missing from VNDK 28 (vendor_abi.txt), no zip"; exit 1; }
-          # libraries the unit's vendor must have (checked again by the installer before it changes anything)
-          sed -n 's/^   NEEDED \(.*\): not in VNDK 28 nor LLNDK.*/\1/p' $W/vendor_abi.txt | sort -u > $W/vendor_needed.txt
-          echo "lineage-17.1 $(date -u +%Y%m%d) ${GITHUB_SHA::7}" > $W/version
-          (cd $W && sha256sum bin/wpa_supplicant lib64/android.hardware.wifi.supplicant@1.2.so > SHA256SUMS)
-          python3 device/alps/ac8257_demo/tools/make_wifi_zips.py $W /home/runner/wifi-zips
-          (cd /home/runner/wifi-zips && cp $W/vendor_abi.txt . && sha256sum *.zip vendor_abi.txt > SHA256SUMS && cat SHA256SUMS)
-          touch $W/ABI_OK
-
-      - uses: actions/upload-artifact@v4
-        if: steps.build.outcome == 'success'
-        with:
-          name: lineage-17.1-wifi-hal12
-          path: |
-            /home/runner/wifi
-            /home/runner/wifi-zips
-            /home/runner/wifi-build.log
-          retention-days: 30
-          if-no-files-found: ignore
-
       - name: Images to flash (system.img zstd, boot images)
         if: steps.build.outcome == 'success'
         run: |
@@ -256,7 +209,7 @@ jobs:
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
             /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/unsigned.zip \
             --build "lineage-17.1 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)" \
-            --lineage-version "$V" $( [ -f /home/runner/wifi/ABI_OK ] && echo --wifi /home/runner/wifi )
+            --lineage-version "$V"
           # Signature du paquet entier (signapk -w) avec la cle de la ROM (test-keys : celle de otacerts.zip) : l'appli
           # Updater de LineageOS refuse un paquet que RecoverySystem.verifyPackage ne verifie pas. TWRP l'installe
           # comme avant. Le nom n'impose plus d'image de boot : le zip garde celle qui est installee (update-binary).
@@ -307,24 +260,6 @@ jobs:
               --title "LineageOS 17.1 (experimentale) : flux de mises a jour" \
               --notes "updater.json lu par l'appli Mises a jour de LineageOS (overlay de packages/apps/Updater) ; remplace a chaque build."
           gh release upload lineage-17.1-ota updater.json --clobber --repo "$GITHUB_REPOSITORY"
-
-      # WPA3 zips (installer and way back) of this build, release wifi-wpa3-17.1, replaced at each build that passes the
-      # VNDK 28 check; LibreHU-flashablesZips republishes them in LibreHU Apps (its hourly CI follows this release).
-      - name: WPA3 zips release (wifi-wpa3-17.1)
-        if: steps.wifi.outcome == 'success' && github.ref == 'refs/heads/lineage-17.1'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        working-directory: /home/runner/wifi-zips
-        run: |
-          T=wifi-wpa3-17.1
-          gh release view $T --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create $T --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "WPA3 pour LineageOS 17.1 (wpa_supplicant HAL 1.2)" \
-              --notes "Zips TWRP construits par la CI de lineage-17.1 : librehu_wifi_wpa3_twrp.zip (installe le wpa_supplicant HAL 1.2 dans /vendor, originaux sauvegardes dans /sdcard/LibreHU/backup/wifi-hal11-orig) et librehu_wifi_wpa3_restore_twrp.zip (retour au supplicant d'origine). Remplaces a chaque build. EXPERIMENTAL."
-          gh release edit $T --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --notes "Build ${GITHUB_SHA::7} du $(date -u +%d/%m/%Y). librehu_wifi_wpa3_twrp.zip : wpa_supplicant HAL 1.2 (WPA3 / SAE, OWE) dans /vendor, originaux sauvegardes dans /sdcard/LibreHU/backup/wifi-hal11-orig. librehu_wifi_wpa3_restore_twrp.zip : retour au supplicant d'origine (HAL 1.1). LineageOS 17.1 seulement. EXPERIMENTAL : rapport de compatibilite vendor_abi.txt."
-          gh release upload $T librehu_wifi_wpa3_twrp.zip librehu_wifi_wpa3_restore_twrp.zip vendor_abi.txt SHA256SUMS \
-            --clobber --repo "$GITHUB_REPOSITORY"
 
       # The images are out: the output goes, room for the ccache archive (its save failed on a full disk, run
       # 43227394988).
