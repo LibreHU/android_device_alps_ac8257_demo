@@ -10,6 +10,9 @@ LOCAL_PATH := device/alps/ac8257_demo
 # Lance avec Android 9 (ro.product.first_api_level=28) : Treble complet, vendor stock
 PRODUCT_SHIPPING_API_LEVEL := 28
 
+# Wi-Fi bi-bande pour Android 11+ (overlay-rro/LibreHUWifiOverlay : config_wifi5ghzSupport de com.android.wifi.resources)
+PRODUCT_PACKAGES += LibreHUWifiOverlay
+
 # Vendor stock d'Android 9 sous un system Android 10 : ses bibliotheques sont liees aux bibliotheques VNDK de la
 # version 28, que le system garde a cote des siennes (/system/lib*/vndk-28, vndk-sp-28 ; prebuilts/vndk/v28, choisies
 # par le linker d'apres ro.vndk.version=28 du vendor). Sans elles, les HAL du vendor ne se chargent pas.
