@@ -1,5 +1,12 @@
 # LineageOS 17.1 pour l'UJC201 (Jancar, Autochips AC8257) — branche experimentale
 
+> **Branche `lineage-21.0` : portage LineageOS 21.0 (Android 14), cree le 19/11/2026 depuis `lineage-17.1`.**
+> Premiere CI (`.github/workflows/lineage-21.0-build.yml`) : correctifs LibreHU d'Android 10 en avertissements
+> tant qu'ils ne sont pas portes, noyau 4.19 `a11-lto32`, flux `lineage-21.0-ota` ; rien n'est publie avant que
+> tous les correctifs s'appliquent. Jamais essaye sur l'unite.
+> Android 14 : le vendor stock Android 9 (FCM 3, sepolicy 28.0, VNDK 28) n'est plus pris en charge par AOSP 14 :
+> le build doit s'arreter la-dessus, branche gardee pour la mesure.
+
 *English: [README.en.md](README.en.md)*
 
 **Branche `lineage-17.1` : LineageOS 17.1 (Android 10), EXPERIMENTALE, jamais essayee sur l'unite.** Differences

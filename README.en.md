@@ -1,5 +1,12 @@
 # LineageOS 17.1 for the UJC201 (Jancar, Autochips AC8257) — experimental branch
 
+> **Branch `lineage-21.0`: LineageOS 21.0 (Android 14) port, created on 19/11/2026 from `lineage-17.1`.**
+> First CI (`.github/workflows/lineage-21.0-build.yml`): the LibreHU fixes of Android 10 are warnings until they
+> are ported, 4.19 kernel `a11-lto32`, feed `lineage-21.0-ota`; nothing is published before every fix applies.
+> Never tried on the unit.
+> Android 14: AOSP 14 no longer supports the stock Android 9 vendor (FCM 3, sepolicy 28.0, VNDK 28): the build
+> should stop on it, branch kept to measure it.
+
 *Français : [README.md](README.md)*
 
 **Branch `lineage-17.1`: LineageOS 17.1 (Android 10), EXPERIMENTAL, never tried on the unit.** Differences with
