@@ -143,7 +143,7 @@ BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(DEVICE_PATH)/sepolicy/private
 # essai du build de la CI, 12/11/2026). tools/patch_lineage_sources.sh retire la ligne LineageOS apres repo sync ;
 # sans lui, le build s'arrete ici plutot que de produire un system qui ne demarre pas.
 ifneq ($(filter-out 0,$(shell grep -s -c '^genfscon fuseblk ' device/lineage/sepolicy/common/private/genfs_contexts)),)
-$(error genfscon fuseblk de LineageOS en conflit avec le vendor Jancar : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-9.0 : genfscon fuseblk de LineageOS en conflit avec le vendor Jancar : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 # Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (et, vbmeta en VERIFICATION_DISABLED, aucun
 # androidboot.vbmeta.*) : fs_mgr de LineageOS croit alors l'unite verrouillee, refuse le vbmeta modifie par fastboot,
@@ -151,15 +151,15 @@ endif
 # "ERROR_VERIFICATION isn't allowed when the device is LOCKED"). tools/patch_lineage_sources.sh : unite deverrouillee
 # sauf vbmeta.device_state=locked explicite.
 ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/fs_mgr.cpp),0)
-$(error fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-9.0 : fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 # Dalle en portrait montee en paysage et retroeclairage inverse (tools/lineage-patches, appliques par le meme script) :
 # sans eux, image et tactile en portrait (premier demarrage du 12/11/2026) et luminosite a l'envers.
 ifeq ($(shell grep -s -c 'librehuDisplayRotation' frameworks/native/services/inputflinger/InputReader.cpp),0)
-$(error frameworks/native sans la rotation de la dalle : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-9.0 : frameworks/native sans la rotation de la dalle : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 ifeq ($(shell grep -s -c 'librehu.backlight_inverted' frameworks/base/services/core/java/com/android/server/lights/LightsService.java),0)
-$(error frameworks/base sans le retroeclairage inverse : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-9.0 : frameworks/base sans le retroeclairage inverse : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 
 # Security patch (vendor stock)

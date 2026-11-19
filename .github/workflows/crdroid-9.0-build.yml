@@ -1,15 +1,21 @@
-name: LineageOS 16.0 build (lineage_ac8257_demo)
+name: crDroid 5 (Android 9) build (lineage_ac8257_demo, crDroid port)
 
+# crDROID BRANCH (19/11/2026, from lineage-16.0): crDroid 5 (Android 9), built from the crDroid manifest
+# (github.com/crdroidandroid/android). The LibreHU source fixes (tools/patch_lineage_sources.sh) were written
+# for LineageOS: a fix that no longer applies is a warning (LIBREHU_PATCH_SOFT=1) so that the build goes on and
+# shows the next errors; nothing is published until all of them apply (and the crDroid Updater reads another
+# JSON format than LineageOS's: the feed is still the LineageOS one). No ccache (the Actions cache stays for
+# 16.0 / 17.1).
 # The ROM's /system built by GitHub Actions, to find the build errors before a build at home (docs/BUILD.md does
 # the same steps). Only `systemimage`: the vendor image is the user's own (never published) and the boot image is
-# the LibreHU kernel's CI image. Runs on a push to lineage-16.0 whose message holds "[build]", or by hand.
+# the LibreHU kernel's CI image. Runs on a push to crdroid-9.0 whose message holds "[build]", or by hand.
 # Disk (146 GB, /mnt on the same disk): the runner's toolchains are removed, and the Git objects of the checkout
 # after the sync; sources in /mnt, output and ccache in /.
 # Outputs: the build log always; when it builds: a TWRP zip (tools/make_flashable_zip.py), system.img (sparse,
 # zstd) and the LibreHU boot images for fastboot.
 on:
   push:
-    branches: [lineage-16.0]
+    branches: [crdroid-9.0]
   workflow_dispatch:
 
 jobs:
@@ -17,7 +23,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]')
     # On the job, not the workflow: a push without "[build]" (skipped job) does not cancel a build in progress.
     concurrency:
-      group: lineage-build
+      group: crdroid-9.0-build
       cancel-in-progress: true
     # Releases (zip signe et images) et flux de mises a jour de l'appli Updater de LineageOS.
     permissions:
@@ -28,7 +34,7 @@ jobs:
       SRC: /mnt/lineage
       OUT_DIR: /home/runner/out
       CCACHE_DIR: /home/runner/.ccache
-      USE_CCACHE: "1"
+      USE_CCACHE: "0"
       CCACHE_EXEC: /usr/bin/ccache
       WITHOUT_CHECK_API: "true"
       # No VNDK ABI dumps (header-abi-dumper on every source file of the VNDK libraries, ~1 h on the runner): a
@@ -75,16 +81,17 @@ jobs:
           git config --global user.email "ci@librehu.invalid"
           git config --global color.ui false
 
-      - name: Sources (LineageOS 16.0, this tree, the vendor repository)
+      - name: Sources (crDroid 5 (Android 9), this tree, the vendor repository)
+        id: sources
         working-directory: /mnt/lineage
         run: |
-          repo init -u https://github.com/LineageOS/android.git -b lineage-16.0 --depth=1 -g default,-darwin,-mips --no-clone-bundle
+          repo init -u https://github.com/crdroidandroid/android.git -b 9.0 --git-lfs --depth=1 -g default,-darwin,-mips --no-clone-bundle
           mkdir -p .repo/local_manifests
           cat > .repo/local_manifests/ujc201.xml <<XML
           <?xml version="1.0" encoding="UTF-8"?>
           <manifest>
-            <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo" remote="github" revision="lineage-16.0" />
-            <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="lineage-16.0" />
+            <project name="LibreHU/android_device_alps_ac8257_demo" path="device/alps/ac8257_demo" remote="github" revision="crdroid-9.0" />
+            <project name="LibreHU/android_vendor_jancar_ac8257_demo" path="vendor/jancar/ac8257_demo" remote="github" revision="crdroid-9.0" />
           </manifest>
           XML
           for i in 1 2 3 4; do
@@ -101,7 +108,14 @@ jobs:
           # vbmeta changed by fastboot and vendor was not mounted), and LineageOS's genfscon
           # fuseblk goes (it conflicts with the Jancar vendor policy: init could not compile SELinux). BoardConfig.mk
           # stops the build if this was not done.
-          device/alps/ac8257_demo/tools/patch_lineage_sources.sh
+          # crDroid branch: a fix that no longer applies is a warning, the build goes on (top of this file).
+          LIBREHU_PATCH_SOFT=1 device/alps/ac8257_demo/tools/patch_lineage_sources.sh
+          if LIBREHU_PATCH_SOFT=1 device/alps/ac8257_demo/tools/patch_lineage_sources.sh --check; then
+            echo "complete=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::LibreHU source fixes incomplete for crDroid 5 (Android 9): nothing will be published"
+            echo "complete=false" >> "$GITHUB_OUTPUT"
+          fi
           # The Git objects of the checkout go: room for the output (run 43227394988 stopped at 94 %, 94181/99724, on
           # "No space left on device"). The build reads no Git metadata: prebuilt kernel (TARGET_NO_KERNEL), no OTA
           # package, and repo is not run again; .repo/manifests and .repo/repo stay.
@@ -119,13 +133,6 @@ jobs:
           # ViPERFX_RE driver of the ROM's ViPER4Android app (same version), for the TWRP zip: installed or updated in /vendor
           tools/fetch_viper.sh
           ls -la prebuilt
-
-      - name: ccache
-        uses: actions/cache/restore@v4
-        with:
-          path: /home/runner/.ccache
-          key: lineage-ccache-${{ github.sha }}
-          restore-keys: lineage-ccache-
 
       - name: Build systemimage
         id: build
@@ -184,44 +191,44 @@ jobs:
           D=$(date -u +%Y%m%d)
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
             /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/unsigned.zip \
-            --build "lineage-16.0 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)"
+            --build "crdroid-9.0 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)"
           # Signature du paquet entier (signapk -w) avec la cle de la ROM (test-keys : celle de otacerts.zip) : l'appli
           # Updater de LineageOS refuse un paquet que RecoverySystem.verifyPackage ne verifie pas. TWRP l'installe
           # comme avant. Le nom n'impose plus d'image de boot : le zip garde celle qui est installee (update-binary).
           K=/mnt/lineage/build/make/target/product/security
           /mnt/lineage/prebuilts/jdk/jdk9/linux-x86/bin/java -Xmx2g -Djava.library.path=$OUT_DIR/host/linux-x86/lib64 \
             -jar $OUT_DIR/host/linux-x86/framework/signapk.jar -w $K/testkey.x509.pem $K/testkey.pk8 \
-            /home/runner/unsigned.zip /home/runner/flash/LibreHU-LineageOS-16.0-ac8257_demo-$D-${GITHUB_SHA::7}.zip
+            /home/runner/unsigned.zip /home/runner/flash/LibreHU-crDroid-9.0-ac8257_demo-$D-${GITHUB_SHA::7}.zip
           rm -f /home/runner/unsigned.zip
           (cd /home/runner/flash && sha256sum * > SHA256SUMS && cat SHA256SUMS)
 
       # Release GitHub de chaque build de la branche (zip signe, images, empreintes) et flux de l'appli Updater de
-      # LineageOS : updater.json de la release « lineage-16.0-ota », remplace a chaque build (format de
+      # LineageOS : updater.json de la release « crdroid-9.0-ota », remplace a chaque build (format de
       # packages/apps/Updater, Utils.parseJsonUpdate : datetime = ro.build.date.utc, romtype, version).
       - name: GitHub release and LineageOS updater feed
-        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/lineage-16.0'
+        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/crdroid-9.0' && steps.sources.outputs.complete == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         working-directory: /home/runner/flash
         run: |
-          Z=$(ls LibreHU-LineageOS-16.0-*.zip)
-          TAG=lineage-16.0-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}
+          Z=$(ls LibreHU-crDroid-9.0-*.zip)
+          TAG=crdroid-9.0-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}
           DT=$(sed -n 's/^ro.build.date.utc=//p' build.prop)
           TYPE=$(sed -n 's/^ro.lineage.releasetype=//p' build.prop)
           VER=$(sed -n 's/^ro.lineage.build.version=//p' build.prop)
           gh release create "$TAG" "$Z" boot-librehu-bootmenu.img boot-librehu.img system.img.zst build.prop SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title "LineageOS 16.0, $(date -u +%d/%m/%Y) (${GITHUB_SHA::7})" \
-            --notes "LineageOS 16.0 pour l'UJC201, arbre ${GITHUB_SHA::7}. Installation et mises a jour : docs/BUILD.md (section 8). Zip signe (test-keys) : TWRP ou l'appli Mises a jour de LineageOS. Le vendor reste celui de l'unite."
+            --title "crDroid 5 (Android 9), $(date -u +%d/%m/%Y) (${GITHUB_SHA::7})" \
+            --notes "PORTAGE crDroid, jamais essaye sur l'unite. crDroid 5 (Android 9) pour l'UJC201, arbre ${GITHUB_SHA::7}. Installation et mises a jour : docs/BUILD.md (section 8). Zip signe (test-keys) : TWRP ou l'appli Mises a jour de LineageOS. Le vendor reste celui de l'unite."
           printf '{"response":[{"datetime":%s,"filename":"%s","id":"%s","romtype":"%s","size":%s,"url":"%s","version":"%s"}]}\n' \
             "$DT" "$Z" "$(sha256sum "$Z" | cut -d' ' -f1)" "${TYPE:-UNOFFICIAL}" "$(stat -c %s "$Z")" \
             "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$Z" "${VER:-16.0}" > updater.json
           cat updater.json
-          gh release view lineage-16.0-ota --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create lineage-16.0-ota --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "LineageOS 16.0 : flux de mises a jour" \
+          gh release view crdroid-9.0-ota --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create crdroid-9.0-ota --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+              --title "crDroid 5 (Android 9) : flux de mises a jour" \
               --notes "updater.json lu par l'appli Mises a jour de LineageOS (overlay de packages/apps/Updater) ; remplace a chaque build."
-          gh release upload lineage-16.0-ota updater.json --clobber --repo "$GITHUB_REPOSITORY"
+          gh release upload crdroid-9.0-ota updater.json --clobber --repo "$GITHUB_REPOSITORY"
 
       # The images are out: the output goes, room for the ccache archive (its save failed on a full disk, run
       # 43227394988).
@@ -229,24 +236,17 @@ jobs:
         if: always()
         run: rm -rf "$OUT_DIR"; df -h /
 
-      - name: Save ccache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: /home/runner/.ccache
-          key: lineage-ccache-${{ github.sha }}
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lineage-build-log
+          name: crdroid-9.0-build-log
           path: /home/runner/build.log
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         if: steps.build.outcome == 'success'
         with:
-          name: lineage-images
+          name: crdroid-9.0-images
           path: /home/runner/flash
           retention-days: 14
 

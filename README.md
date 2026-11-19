@@ -1,5 +1,10 @@
 # LineageOS 16.0 pour l'UJC201 (Jancar, Autochips AC8257)
 
+> **Branche `crdroid-9.0` : portage crDroid 5 (Android 9), cree le 19/11/2026 depuis `lineage-16.0`.** Sources crDroid
+> (`crdroidandroid/android`, branche `9.0`), CI `.github/workflows/crdroid-9.0-build.yml` : correctifs LibreHU en
+> avertissements tant qu'ils ne s'appliquent pas, rien de publie avant. L'appli Updater de crDroid lit un autre
+> format JSON que celle de LineageOS : flux a refaire avant la premiere publication. Jamais essaye sur l'unite.
+
 *English: [README.en.md](README.en.md)*
 
 Arbre de device **LineageOS 16.0 (Android 9)** de l'autoradio Jancar UJC201 (`ac8257_demo`, SoC Autochips AC8257,

@@ -1,5 +1,7 @@
 #!/bin/bash
 #
+# Branche crdroid-9.0 (crDroid 5 (Android 9)) : sources crDroid (fork de LineageOS), memes correctifs que lineage-16.0.
+#
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
@@ -63,11 +65,20 @@ PATCHES=$(cd "$(dirname "$0")" && pwd)/lineage-patches
 FSMGR=$TOP/system/core/fs_mgr/fs_mgr.cpp
 GENFS=$TOP/device/lineage/sepolicy/common/private/genfs_contexts
 CHECK=0
+SOFT=${LIBREHU_PATCH_SOFT:-0}
+# fail <code> <message> : arret (code), ou avertissement en mode souple (LIBREHU_PATCH_SOFT=1, branches crDroid)
+fail() {
+    echo "patch_lineage_sources: $2" >&2
+    if [ "$SOFT" = 1 ]; then echo "::warning::patch_lineage_sources: $2"; TODO=1; return 0; fi
+    exit "$1"
+}
+# mode souple : une commande qui echoue (fichier deplace dans ces sources) n'arrete pas le script
+[ "$SOFT" = 1 ] && set +e
 [ "$1" = "--check" ] && CHECK=1
 TODO=0
 
 for f in "$FSMGR" "$GENFS"; do
-    [ -f "$f" ] || { echo "patch_lineage_sources: $f introuvable (lancer depuis la racine des sources)" >&2; exit 2; }
+    [ -f "$f" ] || { fail 2 "$f introuvable (lancer depuis la racine des sources)"; return 0 2>/dev/null || true; }
 done
 
 # 1. fs_mgr : vbmeta.device_state (librehu_device_state = premiere version du 12/11, insuffisante : retiree)
@@ -79,11 +90,11 @@ elif [ $CHECK = 1 ]; then
 else
     if grep -q 'librehu_device_state' "$FSMGR"; then
         sed -i '/^    \/\/ LibreHU (UJC201) : le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille, avec$/,/^    }$/d' "$FSMGR"
-        grep -q 'librehu_device_state' "$FSMGR" && { echo "patch_lineage_sources: ancienne correction de $FSMGR non retiree" >&2; exit 3; }
+        grep -q 'librehu_device_state' "$FSMGR" && { fail 3 "ancienne correction de $FSMGR non retiree"; return 0 2>/dev/null || true; }
     fi
     if [ "$(grep -c '^bool fs_mgr_is_device_unlocked() {$' "$FSMGR")" != 1 ]; then
-        echo "patch_lineage_sources: fs_mgr_is_device_unlocked() introuvable dans $FSMGR (sources changees ?)" >&2
-        exit 3
+        fail 3 "fs_mgr_is_device_unlocked() introuvable dans $FSMGR (sources changees ?)"
+        return 0 2>/dev/null || true
     fi
     sed -i '/^bool fs_mgr_is_device_unlocked() {$/r /dev/stdin' "$FSMGR" <<'EOF'
     // LibreHU (UJC201) : le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille et, avec le
@@ -96,7 +107,7 @@ else
         return true;
     }
 EOF
-    grep -q 'librehu_vbmeta_state' "$FSMGR" || { echo "patch_lineage_sources: correction de $FSMGR impossible" >&2; exit 3; }
+    grep -q 'librehu_vbmeta_state' "$FSMGR" || { fail 3 "correction de $FSMGR impossible"; return 0 2>/dev/null || true; }
     echo "patch_lineage_sources: system/core/fs_mgr/fs_mgr.cpp : unite deverrouillee sauf vbmeta.device_state=locked"
 fi
 
@@ -114,7 +125,7 @@ fi
 # 3, 4, 5, 6. frameworks, Bluetooth, vold : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
 apply_patch() {
     local proj=$1 witness=$2 mark=$3 p=$4 what=$5
-    [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
+    [ -f "$TOP/$proj/$witness" ] || { fail 2 "$TOP/$proj/$witness introuvable"; return 0 2>/dev/null || true; }
     if grep -q "$mark" "$TOP/$proj/$witness"; then
         echo "patch_lineage_sources: $proj deja corrige ($what)"
     elif [ $CHECK = 1 ]; then
@@ -122,7 +133,7 @@ apply_patch() {
         TODO=1
     else
         patch -p1 -N -s --dry-run -d "$TOP/$proj" < "$p" >/dev/null \
-            || { echo "patch_lineage_sources: $p ne s'applique pas sur $proj (sources changees ?)" >&2; exit 3; }
+            || { fail 3 "$p ne s'applique pas sur $proj (sources changees ?)"; return 0 2>/dev/null || true; }
         patch -p1 -N -s -d "$TOP/$proj" < "$p"
         echo "patch_lineage_sources: $proj corrige ($what)"
     fi
@@ -136,4 +147,6 @@ apply_patch packages/apps/Bluetooth src/com/android/bluetooth/a2dpsink/A2dpSinkS
 apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
     "$PATCHES/system_vold/0001-librehu-mac-volumes.patch" "cles USB d'un Mac (HFS, HFS+, APFS)"
 
+# mode souple sans --check : le build continue meme s'il manque un correctif (deja signale)
+[ "$SOFT" = 1 ] && [ $CHECK = 0 ] && exit 0
 exit $TODO
