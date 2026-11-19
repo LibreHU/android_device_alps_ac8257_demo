@@ -1,5 +1,10 @@
 # LineageOS 17.1 for the UJC201 (Jancar, Autochips AC8257) — experimental branch
 
+> **Branch `lineage-19.1`: LineageOS 19.1 (Android 12L) port, created on 19/11/2026 from `lineage-17.1`.**
+> First CI (`.github/workflows/lineage-19.1-build.yml`): the LibreHU fixes of Android 10 are warnings until they
+> are ported, 4.19 kernel `a11-lto32`, feed `lineage-19.1-ota`; nothing is published before every fix applies.
+> Never tried on the unit.
+
 *Français : [README.md](README.md)*
 
 **Branch `lineage-17.1`: LineageOS 17.1 (Android 10), EXPERIMENTAL, never tried on the unit.** Differences with

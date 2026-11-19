@@ -8,6 +8,9 @@
 # d'origine. Sans argument : corrige ; --check : dit seulement s'il reste quelque chose a corriger (code 1 si oui).
 # Codes : 0 = sources corrigees, 1 = reste a corriger (--check), 2 = fichier introuvable, 3 = sources inattendues.
 # Version de la branche lineage-17.1 : la branche lineage-16.0 a la sienne (correctifs 2 et 5 differents).
+# Branche lineage-19.1 (Android 12L) : portage depuis lineage-17.1 (19/11/2026), correctifs encore ceux d'Android
+# 10. LIBREHU_PATCH_SOFT=1 (CI) : un correctif qui ne s'applique plus (ou dont le fichier a change de place) est un
+# avertissement, le build continue ; --check rend toujours 1 tant qu'il en manque un.
 #
 # 1. system/core/fs_mgr : fs_mgr ne croit l'unite deverrouillee que si androidboot.verifiedbootstate vaut "orange".
 #    Le LK de Jancar annonce "green" meme deverrouille (getprop de l'unite sous le stock :
@@ -82,16 +85,24 @@ FSAVB=$TOP/system/core/fs_mgr/libfs_avb/util.cpp
 GENFS=$TOP/device/lineage/sepolicy/common/private/genfs_contexts
 VENDOR=$TOP/vendor/jancar/ac8257_demo
 CHECK=0
+SOFT=${LIBREHU_PATCH_SOFT:-0}
+# fail <code> <message> : arret (code), ou avertissement en mode souple (LIBREHU_PATCH_SOFT=1)
+fail() {
+    echo "patch_lineage_sources: $2" >&2
+    if [ "$SOFT" = 1 ]; then echo "::warning::patch_lineage_sources: $2"; TODO=1; return 0; fi
+    exit "$1"
+}
 [ "$1" = "--check" ] && CHECK=1
 TODO=0
 
 for f in "$FSMGR" "$FSAVB" "$GENFS" "$VENDOR/Android.mk"; do
-    [ -f "$f" ] || { echo "patch_lineage_sources: $f introuvable (lancer depuis la racine des sources)" >&2; exit 2; }
+    [ -f "$f" ] || fail 2 "$f introuvable (lancer depuis la racine des sources)"
 done
 
 # 1. fs_mgr : vbmeta.device_state, dans les deux copies du test (fichier, premiere ligne de la fonction)
 patch_unlock() {
     local file=$1 func=$2 rel=${1#$TOP/}
+    [ -f "$file" ] || { fail 2 "$rel introuvable"; return 0; }
     if grep -q 'librehu_vbmeta_state' "$file"; then
         echo "patch_lineage_sources: $rel deja corrige"
         return
@@ -102,8 +113,8 @@ patch_unlock() {
         return
     fi
     if [ "$(grep -c "^$func\$" "$file")" != 1 ]; then
-        echo "patch_lineage_sources: « $func » introuvable dans $rel (sources changees ?)" >&2
-        exit 3
+        fail 3 "« $func » introuvable dans $rel (sources changees ?)"
+        return 0
     fi
     sed -i "/^$func\$/r /dev/stdin" "$file" <<'EOF'
     // LibreHU (UJC201) : le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille et, avec le
@@ -116,24 +127,25 @@ patch_unlock() {
         return true;
     }
 EOF
-    grep -q 'librehu_vbmeta_state' "$file" || { echo "patch_lineage_sources: correction de $rel impossible" >&2; exit 3; }
+    grep -q 'librehu_vbmeta_state' "$file" || { fail 3 "correction de $rel impossible"; return 0; }
     echo "patch_lineage_sources: $rel : unite deverrouillee sauf vbmeta.device_state=locked"
 }
 patch_unlock "$FSMGR" 'bool fs_mgr_is_device_unlocked() {'
 patch_unlock "$FSAVB" 'bool IsDeviceUnlocked() {'
 
 # 2. sepolicy : la ligne fuseblk de LineageOS doit rester conditionnelle (TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR)
-if grep -q '^ifelse(board_excludes_fuseblk_sepolicy' "$GENFS"; then
+if [ ! -f "$GENFS" ]; then
+    : # deja signale
+elif grep -q '^ifelse(board_excludes_fuseblk_sepolicy' "$GENFS"; then
     echo "patch_lineage_sources: device/lineage/sepolicy : fuseblk laisse au vendor (TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR)"
 elif grep -q '^genfscon fuseblk ' "$GENFS"; then
-    echo "patch_lineage_sources: $GENFS etiquette fuseblk sans condition (sources changees ?) : conflit avec le vendor Jancar" >&2
-    exit 3
+    fail 3 "$GENFS etiquette fuseblk sans condition (sources changees ?) : conflit avec le vendor Jancar"
 fi
 
 # 3, 4. frameworks : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
 apply_patch() {
     local proj=$1 witness=$2 mark=$3 p=$4 what=$5
-    [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
+    [ -f "$TOP/$proj/$witness" ] || { fail 2 "$TOP/$proj/$witness introuvable ($what)"; return 0; }
     if grep -q "$mark" "$TOP/$proj/$witness"; then
         echo "patch_lineage_sources: $proj deja corrige ($what)"
     elif [ $CHECK = 1 ]; then
@@ -141,7 +153,7 @@ apply_patch() {
         TODO=1
     else
         patch -p1 -N -s --dry-run -d "$TOP/$proj" < "$p" >/dev/null \
-            || { echo "patch_lineage_sources: $p ne s'applique pas sur $proj (sources changees ?)" >&2; exit 3; }
+            || { fail 3 "$(basename "$p") ne s'applique pas sur $proj ($what, sources d'Android 12L)"; return 0; }
         patch -p1 -N -s -d "$TOP/$proj" < "$p"
         echo "patch_lineage_sources: $proj corrige ($what)"
     fi
@@ -161,7 +173,7 @@ apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk
 VBP=$VENDOR/Android.bp
-if grep -q '^LOCAL_MODULE := autochips$' "$VMK"; then
+if [ -f "$VMK" ] && grep -q '^LOCAL_MODULE := autochips$' "$VMK"; then
     if [ $CHECK = 1 ]; then
         echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.mk definit encore autochips en module Make"
         TODO=1
@@ -184,9 +196,11 @@ if ! grep -qs 'name: "autochips"' "$VBP"; then
         echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.bp sans le module Soong autochips"
         TODO=1
     else
-        [ -f "$VENDOR/proprietary/framework/autochips.jar" ] || {
-            echo "patch_lineage_sources: $VENDOR/proprietary/framework/autochips.jar introuvable" >&2; exit 2; }
-        [ -f "$VBP" ] && { echo "patch_lineage_sources: $VBP existe deja sans autochips (depot vendor change ?)" >&2; exit 3; }
+        if [ ! -f "$VENDOR/proprietary/framework/autochips.jar" ]; then
+            fail 2 "$VENDOR/proprietary/framework/autochips.jar introuvable"
+        elif [ -f "$VBP" ]; then
+            fail 3 "$VBP existe deja sans autochips (depot vendor change ?)"
+        else
         cat > "$VBP" <<'EOF'
 // LibreHU : ecrit par device/alps/ac8257_demo/tools/patch_lineage_sources.sh (LineageOS 17.1), pas dans le depot.
 // autochips.jar est dans PRODUCT_BOOT_JARS : Android 10 construit l'image de demarrage dans Soong, qui ne trouve que
@@ -198,7 +212,10 @@ dex_import {
 }
 EOF
         echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.bp : autochips en dex_import"
+        fi
     fi
 fi
 
+# mode souple sans --check : le build continue meme s'il manque un correctif (deja signale)
+[ "$SOFT" = 1 ] && [ $CHECK = 0 ] && exit 0
 exit $TODO
