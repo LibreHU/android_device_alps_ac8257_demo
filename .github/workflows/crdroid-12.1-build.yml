@@ -137,7 +137,14 @@ jobs:
             l=external/chromium-webview/$f
             if [ -d external/chromium-webview/patches ] && [ ! -e $l ]; then
               ls -la external/chromium-webview external/chromium-webview/patches | head -20
-              rm -f $l; cp external/chromium-webview/patches/$f $l && echo "$l: copied from the patches project"
+              rm -f $l
+              if [ -f external/chromium-webview/patches/$f ]; then
+                cp external/chromium-webview/patches/$f $l && echo "$l: copied from the patches project"
+              elif [ $f = Android.mk ] && [ -f external/chromium-webview/patches/os_pickup.mk ]; then
+                # the patches project (revision main) moved the webview module to os_pickup.mk (run 44502051155:
+                # « non-existent modules in PRODUCT_PACKAGES: webview »)
+                cp external/chromium-webview/patches/os_pickup.mk $l && echo "$l: os_pickup.mk of the patches project"
+              fi
             fi
           done
           du -sh .repo; rm -rf .repo/project-objects .repo/projects
