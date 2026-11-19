@@ -133,6 +133,16 @@ jobs:
             'if sys.argv[1:2] == ["manifest"]: sys.stdout.write(open(os.path.join(d, "..", "librehu-manifest.xml")).read()); sys.exit(0)' \
             'os.execv(sys.executable, [sys.executable, os.path.join(d, "repo.orig")] + sys.argv[1:])' > .repo/repo/repo
           chmod +x .repo/repo/repo
+          # crDroid 10.0: packages/apps/ManagedProvisioning comes from LineageOS lineage-17.1 (2023 security backport) and
+          # calls DevicePolicyManager.finalizeWorkProfileProvisioning, which the frameworks/base of crDroid 10.0 (2021)
+          # does not have (run 44482612557: « cannot find symbol »). Work profiles are not used on the head unit: the call
+          # is dropped when the API is missing.
+          F=packages/apps/ManagedProvisioning/src/com/android/managedprovisioning/finalization/PrimaryProfileFinalizationHelper.java
+          if [ -f $F ] && grep -q 'finalizeWorkProfileProvisioning' $F && \
+              ! grep -q 'finalizeWorkProfileProvisioning' frameworks/base/core/java/android/app/admin/DevicePolicyManager.java; then
+            perl -0pi -e 's/\n\s*devicePolicyManager\.finalizeWorkProfileProvisioning\(\s*mManagedUserHandle,\s*mMigratedAccount\);//' $F
+            ! grep -q 'finalizeWorkProfileProvisioning' $F && echo "ManagedProvisioning: finalizeWorkProfileProvisioning dropped (crDroid 10.0 frameworks)"
+          fi
           # LineageOS 20+ / crDroid 13+: external/chromium-webview/{Android.mk,CleanSpec.mk} are repo linkfiles of the
           # patches project (run 44482623755: « external/chromium-webview/Android.mk: No such file or directory »):
           # a broken one is replaced by a copy of the file of the patches project.
