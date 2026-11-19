@@ -14,16 +14,24 @@ Pas de `dtbo.img` : la partition `dtbo` stock est gardee.
 
 `kernel-librehu` et `modules/` (non versionnes) : **noyau LibreHU** de la branche `experimental-4.19.325` de
 [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (Linux
-4.19.325, pilotes Autochips portes, KernelSU Next), variante `a10` (Android 10) depuis le 18/11/2026 : `Image.gz-dtb_a10`
-de sa release `latest-experimental-4.19.325`, et ses six modules de connectivite (`librehu_connectivity_ksu_a10.zip`) (`wmt_drv`, `wmt_chrdev_wifi`, `wlan_drv_gen4m`,
-`bt_drv`, `gps_drv`, `fmradio_drv`, avec `SHA256SUMS`, `kernel_version` et `release.txt`), ecrits par
-`tools/fetch_kernel.sh`. Les modules vont dans l'image vendor (`tools/vendor_add_conn_modules.sh`), ce noyau
-refusant ceux du stock.
+4.19.325, pilotes Autochips portes, KernelSU Next), variante `a10-lto32` (Android 10, ThinLTO) depuis le 19/11/2026
+(`a10` le 18/11) : `Image.gz-dtb_a10-lto32` de sa release `latest-experimental-4.19.325`. Wi-Fi / BT / GPS / FM sont
+integres a ce noyau : `modules/` n'a aucun `.ko`, seulement `SHA256SUMS` (vide), `BUILTIN`, `kernel_version` (banniere
+de l'Image) et `release.txt` ; l'installateur du zip et `tools/vendor_add_conn_modules.sh` ne touchent alors pas a
+`/vendor/lib/modules`. Ecrits par `tools/fetch_kernel.sh` (`tools/fetch_kernel.sh stable-4.9.337` : noyau 4.9 de
+10 Mio et ses six modules de connectivite).
 
-`boot-librehu-bootmenu.img` et `boot-librehu.img` (non versionnes) : **images de boot** de la meme release
-(`boot_ac8257_bootmenu_a10.img`, avec le menu TWRP / Android / Fastboot, et `boot_ac8257_a10.img` ; pas les
-variantes `-lto32` de 32 Mio), ecrites par
-`tools/fetch_kernel.sh` apres verification (en-tete Android, 10 Mio au plus, pied AVB, noyau = celui des modules).
+`boot-librehu-bootmenu.img` et `boot-librehu.img` (non versionnes) : **images de boot de 32 Mio** de la meme release
+(`boot_ac8257_bootmenu_a10-lto32.img`, avec le menu TWRP / Android / Fastboot, et `boot_ac8257_a10-lto32.img`),
+ecrites par `tools/fetch_kernel.sh` apres verification (en-tete Android, 32 Mio exactement, pied AVB, noyau = celui de
+l'Image). La partition boot d'origine fait 10 Mio : `BoardConfig.mk` declare 32 Mio
+(`BOARD_BOOTIMAGE_PARTITION_SIZE`), et le zip de la ROM migre la partition d'abord si besoin.
+
+`boot32/librehu_boot32_twrp.zip` (non versionne) : zip de la release du noyau qui passe la partition boot de 10 a
+32 Mio (dtbo / tee deplaces, vendor 2048 -> 2033 Mio, sauvegardes dans `/sdcard/LibreHU/boot32`, retour :
+`librehu_boot32_restore_twrp.zip`). `tools/make_flashable_zip.py` le met dans le zip de la ROM (empreinte dans
+`info/SHA256SUMS`) ; l'installateur le lance quand la partition fait encore 10 Mio, puis fait redemarrer TWRP (son
+noyau ne relit la table qu'au demarrage) et se reprogramme. Le TWRP LibreHU l'a aussi en entree de menu (Avance).
 `BoardConfig.mk` prend la premiere telle quelle (`TARGET_NO_KERNEL` + `BOARD_PREBUILT_BOOTIMAGE` ;
 `LIBREHU_BOOT_IMAGE=plain` pour la seconde) : elles ont l'en-tete, la ligne de commande et le **pied AVB du boot
 stock** (`AVBf`, vbmeta chaine du boot), sans lequel le LK refuse l'image, deverrouille ou non (l'unite redemarre au

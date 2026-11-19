@@ -117,8 +117,9 @@ jobs:
         working-directory: /mnt/lineage/device/alps/ac8257_demo
         run: |
           librehu/fetch_apks.sh
-          # LibreHU kernel experimental-4.19.325, variant a10: 10 MiB boot images with the stock AVB footer,
-          # androidboot.selinux=permissive added
+          # LibreHU kernel experimental-4.19.325, variant a10-lto32: 32 MiB boot images with the stock AVB footer,
+          # androidboot.selinux=permissive added, connectivity built in (no module), and librehu_boot32_twrp.zip
+          # (prebuilt/boot32) that the ROM zip runs when the boot partition is still 10 MiB
           tools/fetch_kernel.sh
           # ViPERFX_RE driver of the ROM's ViPER4Android app (same version), for the TWRP zip: installed or updated in /vendor
           tools/fetch_viper.sh
@@ -200,7 +201,7 @@ jobs:
           sys.exit(0 if ok else 1)' "$U" || {
             echo "::error::$U: updater_server_url is not the lineage-17.1-ota feed"; exit 1; }
           echo "Updater: feed lineage-17.1-ota ($U), ro.lineage.build.version=$V"
-          # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), modules of the same kernel,
+          # TWRP zip (tools/make_flashable_zip.py): system, boot (selinux permissive), boot32 migration zip,
           # ViPERFX_RE driver; info/lineage_version lets the installer refuse an update from another version.
           D=$(date -u +%Y%m%d)
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \

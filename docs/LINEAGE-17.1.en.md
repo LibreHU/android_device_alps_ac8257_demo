@@ -4,8 +4,9 @@
 
 Branch **`lineage-17.1`**: the `lineage-16.0` tree (LineageOS 16.0, Android 9) ported to LineageOS 17.1
 (Android 10). A real ROM built from the LineageOS sources. The vendor stays the unit's own (Android 9, VNDK 28,
-Treble) and the kernel the LibreHU one: `experimental-4.19.325`, variant `a10`, since 18/11/2026 (one kernel per
-ROM: 16.0 keeps `stable-4.9.337`).
+Treble) and the kernel the LibreHU one: `experimental-4.19.325`, variant `a10-lto32` since 19/11/2026 (`a10` on
+18/11; one kernel per ROM: 16.0 keeps `stable-4.9.337`). This kernel needs a **32 MiB boot partition**: the zip
+migrates it by itself (see Install).
 
 **State (18/11/2026): the tries of 18/11 (kernel 4.9, then 4.19) did not finish booting: system_server and SystemUI
 died every 8 s. Android 10's Codec2 asks ION for any heap (`~0`) and got `ion_mm_heap_for_pa2mva`, a buffer of no
@@ -85,6 +86,15 @@ one kept: the repository's 10 GB of cache are shared), releases `lineage-17.1-<d
 
 1. Full TWRP backup (system, boot, data): that is the way back.
 2. Zip in TWRP as for 16.0 ([INSTALL.en.md](INSTALL.en.md)); `vbmeta` stays as it is (verification disabled).
+   **32 MiB boot partition** (19/11/2026): the `a10-lto32` kernel does not fit in the original 10 MiB. If the
+   partition is still 10 MiB, the zip first runs `librehu_boot32_twrp.zip` (included, from the kernel release:
+   4.4 GB free in the internal storage, backups in `/sdcard/LibreHU/boot32`, vendor shrunk to 2033 MiB), then TWRP
+   restarts and the zip installs itself again (OpenRecoveryScript; update by the app: recovery command). Nothing of
+   LineageOS is written before the migration. Zip in `/tmp`, on a USB stick or sideloaded: install it again by hand
+   after the restart. The migration also runs on its own from LibreHU TWRP (Advanced > Boot partition: grow to
+   32 MiB); way back: `librehu_boot32_restore_twrp.zip` ("back to 10 MiB" entry). After the migration, a 10 MiB
+   boot image (16.0, kernel 4.9) is flashed only with the LibreHU 4.19 TWRP zips (they move the AVB footer to the
+   end of the partition) or after going back to 10 MiB.
 3. **Wiping data** (Wipe > Format Data) is advised: moving from 16.0 to 17.1 with the data was never tried (the
    installer says so when it finds Android 9 data).
 4. After the try, send `adb logcat -b all -d`, `adb shell dmesg`, `adb shell getprop` and, after a reboot, the

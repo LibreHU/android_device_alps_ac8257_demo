@@ -26,6 +26,10 @@ command -v debugfs >/dev/null || { echo "debugfs manquant (paquet e2fsprogs)" >&
 [ -f "$IMG" ] || { echo "$IMG introuvable : lancer d'abord tools/get_vendor_img.sh" >&2; exit 1; }
 [ -f "$MODS/SHA256SUMS" ] && [ -f "$MY_DIR/../prebuilt/kernel-librehu" ] || {
     echo "prebuilt/modules ou prebuilt/kernel-librehu absent : lancer d'abord tools/fetch_kernel.sh" >&2; exit 1; }
+if [ -f "$MODS/BUILTIN" ]; then
+    echo "noyau -lto32 : connectivite integree au noyau, aucun module a mettre dans $IMG"
+    exit 0
+fi
 (cd "$MODS" && sha256sum -c --quiet SHA256SUMS)
 
 T=$(mktemp -d)

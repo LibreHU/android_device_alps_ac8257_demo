@@ -148,6 +148,12 @@ def main():
                 z.write(os.path.join(mods, n), f"modules/{n}")
         for n in VIPER_FILES:
             z.write(os.path.join(viper, n), f"viper/{n}")
+        # noyau -lto32 (image de 32 Mio) : zip de migration de la partition boot 10 -> 32 Mio (release du noyau),
+        # lance par update-binary quand la partition fait encore 10 Mio
+        b32 = os.path.join(a.prebuilt, "boot32", "librehu_boot32_twrp.zip")
+        if os.path.isfile(b32):
+            z.write(b32, "boot32/librehu_boot32_twrp.zip")
+            boot_sums.append(f"{sha256(b32)}  boot32/librehu_boot32_twrp.zip")
 
         add_bytes("info/build", (a.build or "unknown") + "\n")
         if a.lineage_version:

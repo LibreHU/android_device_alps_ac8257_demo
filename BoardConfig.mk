@@ -74,7 +74,9 @@ endif
 
 # Partitions (table eMMC du noyau stock #72)
 BOARD_FLASH_BLOCK_SIZE := 131072 # (BOARD_KERNEL_PAGESIZE * 64)
-BOARD_BOOTIMAGE_PARTITION_SIZE := 10485760          # boot   0x00a00000
+# boot : 32 Mio depuis le 19/11/2026 (noyau 4.19 a10-lto32 ; la partition d'origine de 10 Mio est agrandie par
+# librehu_boot32_twrp.zip, que le zip de la ROM lance lui-meme)
+BOARD_BOOTIMAGE_PARTITION_SIZE := 33554432          # boot   0x02000000
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 33554432      # recovery 0x02000000
 BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472      # system 0xc0000000
 BOARD_VENDORIMAGE_PARTITION_SIZE := 2147483648      # vendor 0x80000000

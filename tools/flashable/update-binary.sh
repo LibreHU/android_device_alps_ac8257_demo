@@ -7,6 +7,8 @@
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
+# chemin d'origine (« @/cache/recovery/block.map » pour l'appli Mises a jour), pour se relancer apres la migration boot32
+ORIGZIP=$3
 ui_print() { if [ -n "$OUTFD" ] && [ -e /proc/self/fd/$OUTFD ] && [ -z "$UJC_TEST" ]; then echo "ui_print $1" > /proc/self/fd/$OUTFD; echo "ui_print" > /proc/self/fd/$OUTFD; else echo "$1"; fi; }
 abort() { ui_print "ERROR: $1"; cleanup; exit 1; }
 
@@ -124,6 +126,53 @@ fi
 
 rm -rf $TMPD; mkdir -p $TMPD
 unzip -o -q "$ZIPFILE" 'info/*' 'boot*.img' 'modules/*' -d $TMPD || abort "cannot extract the zip"
+unzip -o -q "$ZIPFILE" 'boot32/*' -d $TMPD 2>/dev/null
+
+# --- partition boot de 32 Mio (19/11/2026) : Android 10 et plus prennent le noyau 4.19 -lto32, une image de 32 Mio.
+# Partition encore a 10 Mio : migration d'abord, avec le zip librehu_boot32_twrp.zip de la release du noyau (memes
+# verifications et sauvegardes que flashe a la main : vbmeta, 4,4 Go libres, /sdcard/LibreHU/boot32), avant toute
+# ecriture de LineageOS. Le noyau de TWRP ne relit la nouvelle table qu'au redemarrage : ce zip se reprogramme
+# (OpenRecoveryScript, ou la commande de l'appli Mises a jour), puis TWRP redemarre et l'installe tout seul.
+BOOT=$(part boot)
+BIMG=$(stat -c %s $TMPD/boot-bootmenu.img 2>/dev/null)
+BPART=$(blockdev --getsize64 $BOOT 2>/dev/null); [ -z "$BPART" ] && BPART=$(stat -c %s $BOOT 2>/dev/null)
+if [ -n "$BIMG" ] && [ -n "$BPART" ] && [ "$BIMG" -gt "$BPART" ] 2>/dev/null; then
+	ui_print " "
+	ui_print "This LineageOS needs the 32 MiB boot partition (now $((BPART / 1048576)) MiB)."
+	B32Z=$TMPD/boot32/librehu_boot32_twrp.zip
+	[ -f $B32Z ] || abort "boot partition too small and no boot32 zip in this zip: nothing was written"
+	E=$(grep ' boot32/librehu_boot32_twrp.zip$' $TMPD/info/SHA256SUMS | cut -d' ' -f1)
+	[ "$(sha256sum $B32Z | cut -d' ' -f1)" = "$E" ] || abort "boot32 zip damaged (checksum): nothing was written"
+	ui_print "Step 1: boot partition 10 -> 32 MiB (librehu_boot32_twrp.zip),"
+	ui_print "then TWRP restarts and installs this zip again by itself."
+	ui_print "-----------------------------------------------------------"
+	B32X=$TMPD/boot32x; rm -rf $B32X; mkdir -p $B32X
+	unzip -o -q $B32Z META-INF/com/google/android/update-binary -d $B32X || abort "cannot extract the boot32 zip"
+	sh $B32X/META-INF/com/google/android/update-binary 3 "$OUTFD" $B32Z || abort "boot partition migration stopped (see above): LineageOS not written"
+	[ -f $SDCARD/LibreHU/boot32/MIGRATED ] || abort "boot partition migration not confirmed: LineageOS not written"
+	ui_print "-----------------------------------------------------------"
+	CACHE=${UJC_CACHE:-/cache}
+	[ -z "$UJC_TEST" ] && mount /cache 2>/dev/null
+	mkdir -p $CACHE/recovery
+	if [ "$OTA" = 1 ]; then
+		echo "--update_package=$ORIGZIP" > $CACHE/recovery/command
+		ui_print "Update scheduled again after the restart (Updater app)."
+	else
+		case "$ZIPFILE" in
+		/tmp/*|/sideload/*|/usb*|/external*)
+			ui_print "This zip is not in the internal storage: after the restart,"
+			ui_print "flash it again by hand (Install).";;
+		*)
+			echo "install $ZIPFILE" > $CACHE/recovery/openrecoveryscript
+			ui_print "Install of $(basename "$ZIPFILE") scheduled after the restart.";;
+		esac
+	fi
+	sync
+	ui_print "TWRP restarts in 5 s (new partition table)."
+	rm -rf $TMPD
+	[ -z "$UJC_TEST" ] && { sleep 5; reboot recovery; }
+	exit 0
+fi
 
 # --- sauvegardes (memoire interne)
 BK=""
@@ -179,8 +228,12 @@ sync
 [ "$(head -c $ISZ $BOOT | sha256sum | cut -d' ' -f1)" = "$E" ] || abort "boot read back different: restore $B"
 ui_print "boot: $IMG written and checked"
 
-# --- modules du meme noyau dans /vendor/lib/modules
+# --- modules du meme noyau dans /vendor/lib/modules (aucun pour un noyau -lto32 : connectivite integree, SHA256SUMS vide)
 MODS="wmt_drv wmt_chrdev_wifi bt_drv gps_drv fmradio_drv wlan_drv_gen4m"
+if [ ! -s $TMPD/modules/SHA256SUMS ]; then
+	ui_print "modules: connectivity built into the kernel, nothing to install in vendor"
+	NOMODS=1
+fi
 while read -r S M; do
 	[ "$(sha256sum $TMPD/modules/$M | cut -d' ' -f1)" = "$S" ] || abort "wrong checksum for $M"
 done < $TMPD/modules/SHA256SUMS
@@ -211,6 +264,7 @@ save_mods() {
 	done
 	[ -f $MD/.librehu_conn ] && cp $MD/.librehu_conn $1/librehu_conn.txt
 }
+if [ -z "$NOMODS" ]; then
 if [ -n "$BK" ]; then
 	# Les modules d'origine une seule fois (pas encore remplaces par LibreHU), jamais ecrases.
 	if [ ! -f $MD/.librehu_conn ] && [ ! -d $BK/conn-modules-orig ]; then
@@ -232,6 +286,7 @@ done
 chmod 0644 $MD/.librehu_conn
 [ -z "$UJC_TEST" ] && chcon u:object_r:vendor_file:s0 $MD/.librehu_conn
 ui_print "LibreHU kernel modules installed in $MD"
+fi
 
 # --- restes du zip usbnet (fait pour le noyau stock) : son init.librehu_usbnet.rc charge un r8152.ko d'un autre noyau,
 # refuse par le noyau LibreHU (« Exec format error » ; pilotes Ethernet USB integres). Sauvegardes puis retires.

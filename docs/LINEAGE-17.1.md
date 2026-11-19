@@ -4,8 +4,9 @@
 
 Branche **`lineage-17.1`** : le même arbre que `lineage-16.0` (LineageOS 16.0, Android 9), porté sur LineageOS 17.1
 (Android 10). Une vraie ROM construite depuis les sources LineageOS. Le vendor reste celui de l'unité (Android 9,
-VNDK 28, Treble) et le noyau celui de LibreHU : `experimental-4.19.325`, variante `a10`, depuis le 18/11/2026 (un
-noyau par ROM : la 16.0 garde `stable-4.9.337`).
+VNDK 28, Treble) et le noyau celui de LibreHU : `experimental-4.19.325`, variante `a10-lto32` depuis le 19/11/2026
+(`a10` le 18/11 ; un noyau par ROM : la 16.0 garde `stable-4.9.337`). Ce noyau demande une **partition boot de
+32 Mio** : le zip la migre tout seul (voir Installer).
 
 **État (18/11/2026) : les essais du 18/11 (noyau 4.9, puis 4.19) ne finissaient pas de démarrer : system_server et
 SystemUI mouraient toutes les 8 s. Codec2 d'Android 10 demande n'importe quel heap ION (`~0`) et recevait
@@ -89,6 +90,15 @@ la main. Séparée de celle de `lineage-16.0` : groupe de concurrence `lineage-1
 
 1. Sauvegarde TWRP complète (system, boot, data) : c'est le retour arrière.
 2. Zip dans TWRP comme en 16.0 ([INSTALL.md](INSTALL.md)) ; `vbmeta` reste comme il est (vérification désactivée).
+   **Partition boot de 32 Mio** (19/11/2026) : le noyau `a10-lto32` ne tient pas dans les 10 Mio d'origine. Si la
+   partition fait encore 10 Mio, le zip lance d'abord `librehu_boot32_twrp.zip` (inclus, de la release du noyau :
+   4,4 Go libres dans la mémoire interne, sauvegardes dans `/sdcard/LibreHU/boot32`, vendor réduit à 2033 Mio), puis
+   TWRP redémarre et le zip se réinstalle tout seul (OpenRecoveryScript ; mise à jour par l'appli : commande du
+   recovery). Rien de LineageOS n'est écrit avant la migration. Zip dans `/tmp`, une clé USB ou en sideload : le
+   réinstaller à la main après le redémarrage. La migration se fait aussi seule depuis TWRP LibreHU (Avancé >
+   Boot partition: grow to 32 MiB) ; retour : `librehu_boot32_restore_twrp.zip` (entrée « back to 10 MiB »). Après
+   la migration, une image de boot de 10 Mio (16.0, noyau 4.9) ne se flashe qu'avec les zips TWRP 4.19 de LibreHU
+   (ils déplacent le pied AVB en fin de partition) ou en revenant à 10 Mio.
 3. **Effacer data** (Wipe > Format Data) est conseillé : le passage d'une 16.0 à une 17.1 avec les données n'a
    jamais été essayé (l'installateur le signale s'il trouve des données d'Android 9).
 4. Après l'essai, envoyer `adb logcat -b all -d`, `adb shell dmesg`, `adb shell getprop` et, en cas de redémarrage,
