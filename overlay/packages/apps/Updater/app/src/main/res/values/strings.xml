@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<!-- Copie de overlay/packages/apps/Updater/res et app/src/main/res : l'appli Mises a jour range ses
+     ressources dans res (LineageOS 16.0 a 19.1, crDroid 10.0 a 12.1) ou app/src/main/res (LineageOS 20.0+, crDroid
+     13.0+) ; un overlay statique ne s'applique qu'au meme chemin.
+     Appli Mises a jour de LineageOS (packages/apps/Updater, Utils.getServerURL) : flux de mises a jour publie par la CI
+     du depot a chaque build de la branche crdroid-12.1 (release « crdroid-12.1-ota », updater.json ; celle de lineage-16.0 a son propre flux) au lieu de download.lineageos.org, qui ne
+     connait pas cet appareil. Une ressource et non lineage.updater.uri : une propriete non ro.* est limitee a 91
+     caracteres. Le zip est signe avec la cle de la ROM (RecoverySystem.verifyPackage) et installe par TWRP. -->
+<resources>
+    <string name="updater_server_url" translatable="false">https://github.com/LibreHU/android_device_alps_ac8257_demo/releases/download/crdroid-12.1-ota/updater.json</string>
+    <!-- Menu « Afficher l'historique des modifications » (Utils.getChangelogURL) : nouveautes de chaque build, resumees
+         pour les utilisateurs, sur le site de LibreHU, au lieu de download.lineageos.org/<appareil>/changes (404 pour
+         ac8257_demo). Sans %1$s : le nom de l'appareil passe par getString est ignore. -->
+    <string name="menu_changelog_url" translatable="false">https://librehu.github.io/lineageos.html#changes</string>
+    <!-- Mise a jour que l'appli refuse d'installer (Utils.getUpgradeBlockedURL : autre version de LineageOS) : la page
+         d'installation par TWRP au lieu du wiki de LineageOS (404 pour ac8257_demo). -->
+    <string name="blocked_update_info_url" translatable="false">https://librehu.github.io/lineageos.html#install</string>
+</resources>
