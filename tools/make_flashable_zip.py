@@ -86,6 +86,10 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--build", default="")
     ap.add_argument("--lineage-version", default="")
+    # ROM of the system image (lineage or crdroid), written to info/rom: with info/lineage_version (the ROM's own
+    # version: ro.lineage.build.version, or ro.crdroid.version for crDroid) the installer refuses an update by the
+    # updater app from another ROM or version.
+    ap.add_argument("--rom", default="lineage", choices=("lineage", "crdroid"))
     ap.add_argument("--chunk-mib", type=int, default=1024)
     a = ap.parse_args()
     chunk = a.chunk_mib << 20
@@ -156,6 +160,7 @@ def main():
             boot_sums.append(f"{sha256(b32)}  boot32/librehu_boot32_twrp.zip")
 
         add_bytes("info/build", (a.build or "unknown") + "\n")
+        add_bytes("info/rom", a.rom + "\n")
         if a.lineage_version:
             add_bytes("info/lineage_version", a.lineage_version + "\n")
         add_bytes("info/system.size", f"{size}\n")
