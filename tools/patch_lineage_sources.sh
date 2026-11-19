@@ -1,5 +1,7 @@
 #!/bin/bash
 #
+# Branche crdroid-14.0 (crDroid 10 (Android 14)) : sources crDroid (fork de LineageOS), memes correctifs que lineage-21.0.
+#
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #

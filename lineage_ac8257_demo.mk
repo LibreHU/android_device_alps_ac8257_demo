@@ -55,3 +55,6 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
     PRIVATE_BUILD_DESC="full_UJC201_64-user 9 PPR1.180610.011 1356 release-keys"
 
 BUILD_FINGERPRINT := alps/full_UJC201_64/ac8257_demo:9/PPR1.180610.011/1356:user/release-keys
+
+# crDroid : animation de demarrage a la taille de la dalle (1280 x 720 en paysage)
+TARGET_BOOT_ANIMATION_RES := 720
