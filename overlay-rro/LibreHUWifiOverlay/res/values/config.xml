@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Puce MediaTek connac gen4m bi-bande : 5 GHz (canaux DFS compris selon la region) -->
+    <bool name="config_wifi5ghzSupport">true</bool>
+</resources>
