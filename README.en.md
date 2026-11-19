@@ -1,5 +1,10 @@
 # LineageOS 17.1 for the UJC201 (Jancar, Autochips AC8257) — experimental branch
 
+> **Branch `crdroid-10.0`: crDroid 6 (Android 10) port, created on 19/11/2026 from `lineage-17.1`.** crDroid sources
+> (`crdroidandroid/android`, branch `10.0`), CI `.github/workflows/crdroid-10.0-build.yml`: LibreHU fixes are warnings
+> until they apply, nothing published before. The crDroid Updater reads another JSON format than LineageOS's:
+> feed to redo before the first release. Never tried on the unit.
+
 *Français : [README.md](README.md)*
 
 **Branch `lineage-17.1`: LineageOS 17.1 (Android 10), EXPERIMENTAL, never tried on the unit.** Differences with

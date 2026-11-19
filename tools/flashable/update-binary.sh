@@ -69,7 +69,7 @@ esac
 part() { [ -n "$UJC_TEST" ] && echo "$BYNAME/$1" && return; [ -e $BYNAME/$1 ] && echo $BYNAME/$1 && return; echo /dev/block/by-name/$1; }
 info() { unzip -p "$ZIPFILE" info/$1 2>/dev/null; }
 
-ui_print "LibreHU - LineageOS 17.1 EXPERIMENTAL (UJC201)"
+ui_print "LibreHU - crDroid 6 (Android 10), PORT (UJC201)"
 ui_print "--------------------------------"
 ui_print "build: $(info build)"
 

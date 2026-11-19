@@ -1,5 +1,7 @@
 #!/bin/bash
 #
+# Branche crdroid-10.0 (crDroid 6 (Android 10)) : sources crDroid (fork de LineageOS), memes correctifs que lineage-17.1.
+#
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
@@ -82,11 +84,20 @@ FSAVB=$TOP/system/core/fs_mgr/libfs_avb/util.cpp
 GENFS=$TOP/device/lineage/sepolicy/common/private/genfs_contexts
 VENDOR=$TOP/vendor/jancar/ac8257_demo
 CHECK=0
+SOFT=${LIBREHU_PATCH_SOFT:-0}
+# fail <code> <message> : arret (code), ou avertissement en mode souple (LIBREHU_PATCH_SOFT=1, branches crDroid)
+fail() {
+    echo "patch_lineage_sources: $2" >&2
+    if [ "$SOFT" = 1 ]; then echo "::warning::patch_lineage_sources: $2"; TODO=1; return 0; fi
+    exit "$1"
+}
+# mode souple : une commande qui echoue (fichier deplace dans ces sources) n'arrete pas le script
+[ "$SOFT" = 1 ] && set +e
 [ "$1" = "--check" ] && CHECK=1
 TODO=0
 
 for f in "$FSMGR" "$FSAVB" "$GENFS" "$VENDOR/Android.mk"; do
-    [ -f "$f" ] || { echo "patch_lineage_sources: $f introuvable (lancer depuis la racine des sources)" >&2; exit 2; }
+    [ -f "$f" ] || { fail 2 "$f introuvable (lancer depuis la racine des sources)"; return 0 2>/dev/null || true; }
 done
 
 # 1. fs_mgr : vbmeta.device_state, dans les deux copies du test (fichier, premiere ligne de la fonction)
@@ -102,8 +113,8 @@ patch_unlock() {
         return
     fi
     if [ "$(grep -c "^$func\$" "$file")" != 1 ]; then
-        echo "patch_lineage_sources: « $func » introuvable dans $rel (sources changees ?)" >&2
-        exit 3
+        fail 3 "« $func » introuvable dans $rel (sources changees ?)"
+        return 0 2>/dev/null || true
     fi
     sed -i "/^$func\$/r /dev/stdin" "$file" <<'EOF'
     // LibreHU (UJC201) : le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille et, avec le
@@ -116,7 +127,7 @@ patch_unlock() {
         return true;
     }
 EOF
-    grep -q 'librehu_vbmeta_state' "$file" || { echo "patch_lineage_sources: correction de $rel impossible" >&2; exit 3; }
+    grep -q 'librehu_vbmeta_state' "$file" || { fail 3 "correction de $rel impossible"; return 0 2>/dev/null || true; }
     echo "patch_lineage_sources: $rel : unite deverrouillee sauf vbmeta.device_state=locked"
 }
 patch_unlock "$FSMGR" 'bool fs_mgr_is_device_unlocked() {'
@@ -126,14 +137,14 @@ patch_unlock "$FSAVB" 'bool IsDeviceUnlocked() {'
 if grep -q '^ifelse(board_excludes_fuseblk_sepolicy' "$GENFS"; then
     echo "patch_lineage_sources: device/lineage/sepolicy : fuseblk laisse au vendor (TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR)"
 elif grep -q '^genfscon fuseblk ' "$GENFS"; then
-    echo "patch_lineage_sources: $GENFS etiquette fuseblk sans condition (sources changees ?) : conflit avec le vendor Jancar" >&2
-    exit 3
+    fail 3 "$GENFS etiquette fuseblk sans condition (sources changees ?) : conflit avec le vendor Jancar"
+    return 0 2>/dev/null || true
 fi
 
 # 3, 4. frameworks : fichiers de lineage-patches/ (projet, fichier temoin, marqueur, patch, objet)
 apply_patch() {
     local proj=$1 witness=$2 mark=$3 p=$4 what=$5
-    [ -f "$TOP/$proj/$witness" ] || { echo "patch_lineage_sources: $TOP/$proj/$witness introuvable" >&2; exit 2; }
+    [ -f "$TOP/$proj/$witness" ] || { fail 2 "$TOP/$proj/$witness introuvable"; return 0 2>/dev/null || true; }
     if grep -q "$mark" "$TOP/$proj/$witness"; then
         echo "patch_lineage_sources: $proj deja corrige ($what)"
     elif [ $CHECK = 1 ]; then
@@ -141,7 +152,7 @@ apply_patch() {
         TODO=1
     else
         patch -p1 -N -s --dry-run -d "$TOP/$proj" < "$p" >/dev/null \
-            || { echo "patch_lineage_sources: $p ne s'applique pas sur $proj (sources changees ?)" >&2; exit 3; }
+            || { fail 3 "$p ne s'applique pas sur $proj (sources changees ?)"; return 0 2>/dev/null || true; }
         patch -p1 -N -s -d "$TOP/$proj" < "$p"
         echo "patch_lineage_sources: $proj corrige ($what)"
     fi
@@ -175,7 +186,7 @@ if grep -q '^LOCAL_MODULE := autochips$' "$VMK"; then
             { print }
             END { if (inblk) printf "%s", buf }' "$VMK" > "$VMK.librehu"
         mv "$VMK.librehu" "$VMK"
-        grep -q '^LOCAL_MODULE := autochips$' "$VMK" && { echo "patch_lineage_sources: module Make autochips non retire" >&2; exit 3; }
+        grep -q '^LOCAL_MODULE := autochips$' "$VMK" && { fail 3 "module Make autochips non retire"; return 0 2>/dev/null || true; }
         echo "patch_lineage_sources: vendor/jancar/ac8257_demo/Android.mk : module Make autochips retire"
     fi
 fi
@@ -185,8 +196,8 @@ if ! grep -qs 'name: "autochips"' "$VBP"; then
         TODO=1
     else
         [ -f "$VENDOR/proprietary/framework/autochips.jar" ] || {
-            echo "patch_lineage_sources: $VENDOR/proprietary/framework/autochips.jar introuvable" >&2; exit 2; }
-        [ -f "$VBP" ] && { echo "patch_lineage_sources: $VBP existe deja sans autochips (depot vendor change ?)" >&2; exit 3; }
+            fail 2 "$VENDOR/proprietary/framework/autochips.jar introuvable"; return 0 2>/dev/null || true; }
+        [ -f "$VBP" ] && { fail 3 "$VBP existe deja sans autochips (depot vendor change ?)"; return 0 2>/dev/null || true; }
         cat > "$VBP" <<'EOF'
 // LibreHU : ecrit par device/alps/ac8257_demo/tools/patch_lineage_sources.sh (LineageOS 17.1), pas dans le depot.
 // autochips.jar est dans PRODUCT_BOOT_JARS : Android 10 construit l'image de demarrage dans Soong, qui ne trouve que
@@ -201,4 +212,6 @@ EOF
     fi
 fi
 
+# mode souple sans --check : le build continue meme s'il manque un correctif (deja signale)
+[ "$SOFT" = 1 ] && [ $CHECK = 0 ] && exit 0
 exit $TODO
