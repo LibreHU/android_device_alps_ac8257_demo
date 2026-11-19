@@ -110,6 +110,8 @@ jobs:
 
       - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh)
         working-directory: /mnt/lineage/device/alps/ac8257_demo
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           librehu/fetch_apks.sh
           # LibreHU kernel stable-4.9.337: boot images with the stock AVB footer, androidboot.selinux=permissive added

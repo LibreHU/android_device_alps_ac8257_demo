@@ -32,7 +32,11 @@ OUT="$MY_DIR/../prebuilt"
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 
-curl -fsSL -o "$T/release.json" "https://api.github.com/repos/$REPO/releases/tags/latest-$BRANCH"
+# API de GitHub avec le jeton de la CI quand il y en a un (GH_TOKEN / GITHUB_TOKEN) : sans jeton, 60 requetes par heure
+# et par adresse IP, partagees entre les runners (403 sinon)
+TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+curl -fsSL --retry 4 --retry-delay 20 --retry-all-errors ${TOKEN:+-H "Authorization: Bearer $TOKEN"} \
+    -o "$T/release.json" "https://api.github.com/repos/$REPO/releases/tags/latest-$BRANCH"
 python3 - "$T" <<'PY'
 import json, sys
 t = sys.argv[1]
@@ -48,7 +52,7 @@ with open(f"{t}/assets", "w") as f:
         f.write(f"{n} {a['browser_download_url']} {d[len('sha256:'):] if d.startswith('sha256:') else d}\n")
 PY
 while read -r NAME URL DIGEST; do
-    curl -fsSL -o "$T/$NAME" "$URL"
+    curl -fsSL --retry 4 --retry-delay 20 --retry-all-errors -o "$T/$NAME" "$URL"
     SUM=$(sha256sum "$T/$NAME" | cut -d' ' -f1)
     [ -z "$DIGEST" ] || [ "$DIGEST" = "$SUM" ] || { echo "$NAME : empreinte differente de celle de la release" >&2; exit 1; }
 done < "$T/assets"
