@@ -90,7 +90,8 @@ TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_COPY_OUT_VENDOR := vendor
 
 # System-as-root (ro.build.system_root_image=true du stock)
-BOARD_BUILD_SYSTEM_ROOT_IMAGE := true
+# Android 14 : BOARD_BUILD_SYSTEM_ROOT_IMAGE est obsolete (erreur du build, run 44481815797) ; plus d'image system-as-root,
+# le premier etage de l'init vient du ramdisk de l'image de boot (a revoir avec l'image de boot LibreHU).
 # Points de montage de la racine du stock absents de LineageOS : /jancar (partition jancar, fstab du vendor) et /avm.
 # La racine est en lecture seule : fs_mgr ne peut pas les creer (mkdir avant le montage), le montage de /jancar
 # echoue, mount_all renvoie FS_MGR_MNTALL_FAIL et init ne declenche pas « nonencrypted », qui lance la classe main
