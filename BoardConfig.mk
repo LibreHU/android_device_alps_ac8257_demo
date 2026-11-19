@@ -161,7 +161,7 @@ SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/private
 # TARGET_USES_PREBUILT_VENDOR_SEPOLICY, vrai ici) ; la CI verifie plat_sepolicy.cil apres le build.
 TARGET_HAS_FUSEBLK_SEPOLICY_ON_VENDOR := true
 ifeq ($(shell grep -s -c 'board_excludes_fuseblk_sepolicy' device/lineage/sepolicy/common/private/genfs_contexts),0)
-$(warning PORT lineage-19.1 : genfscon fuseblk de LineageOS sans la condition board_excludes_fuseblk_sepolicy (sources changees ?) : conflit avec le vendor Jancar)
+$(warning crdroid-12.1 : genfscon fuseblk de LineageOS sans la condition board_excludes_fuseblk_sepolicy (sources changees ?) : conflit avec le vendor Jancar)
 endif
 # Le LK de Jancar annonce androidboot.verifiedbootstate=green meme deverrouille (et, vbmeta en VERIFICATION_DISABLED,
 # aucun androidboot.vbmeta.*) : fs_mgr de LineageOS croit alors l'unite verrouillee, refuse le vbmeta modifie par
@@ -170,23 +170,23 @@ endif
 # unite deverrouillee sauf vbmeta.device_state=locked explicite, dans les deux copies du test d'Android 10 (fs_mgr.cpp
 # et libfs_avb/util.cpp).
 ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/fs_mgr.cpp),0)
-$(warning PORT lineage-19.1 : fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-12.1 : fs_mgr de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 ifeq ($(shell grep -s -c 'librehu_vbmeta_state' system/core/fs_mgr/libfs_avb/util.cpp),0)
-$(warning PORT lineage-19.1 : libfs_avb de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-12.1 : libfs_avb de LineageOS non corrige (LK Jancar : verifiedbootstate=green) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 # Dalle en portrait montee en paysage et retroeclairage inverse (tools/lineage-patches, appliques par le meme script) :
 # sans eux, image et tactile en portrait (premier demarrage du 12/11/2026) et luminosite a l'envers.
 ifeq ($(shell grep -s -c 'librehuDisplayRotation' frameworks/native/services/inputflinger/InputReader.cpp),0)
-$(warning PORT lineage-19.1 : frameworks/native sans la rotation de la dalle : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-12.1 : frameworks/native sans la rotation de la dalle : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 ifeq ($(shell grep -s -c 'librehu.backlight_inverted' frameworks/base/services/core/java/com/android/server/lights/LightsService.java),0)
-$(warning PORT lineage-19.1 : frameworks/base sans le retroeclairage inverse : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-12.1 : frameworks/base sans le retroeclairage inverse : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 # autochips.jar (PRODUCT_BOOT_JARS) en module Soong : Android 10 construit l'image de demarrage dans Soong, le module
 # Make du depot vendor donnerait « failed to find dex jar path for module "autochips" » (meme script).
 ifneq ($(shell grep -qs 'name: "autochips"' vendor/jancar/ac8257_demo/Android.bp && echo yes),yes)
-$(warning PORT lineage-19.1 : autochips.jar sans module Soong (vendor/jancar/ac8257_demo/Android.bp) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
+$(warning crdroid-12.1 : autochips.jar sans module Soong (vendor/jancar/ac8257_demo/Android.bp) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 
 # Security patch (vendor stock)
