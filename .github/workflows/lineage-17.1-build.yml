@@ -172,6 +172,43 @@ jobs:
           # oom_kill > 0: a build process was killed for memory (the FAILED line above names it)
           grep -H . /sys/fs/cgroup/lineage-build/memory.events /sys/fs/cgroup/lineage-build/memory.peak 2>/dev/null || true
 
+      # WPA3 (19/11/2026, stage 1, nothing installed): wpa_supplicant of LineageOS 17.1 with the supplicant HAL 1.2
+      # and the MediaTek private library (wifi/lib_driver_cmd_mt66xx), built apart from the system image; then a check
+      # that every library and symbol it needs exists on the unit (stock Android 9 vendor, VNDK 28:
+      # tools/wifi/check_vendor_abi.py). Artifact lineage-17.1-wifi-hal12. A failure here does not stop the ROM.
+      - name: WPA3 supplicant (HAL 1.2), build and VNDK 28 check
+        id: wifi
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        working-directory: /mnt/lineage
+        run: |
+          source build/envsetup.sh
+          lunch lineage_ac8257_demo-userdebug
+          m -j"$(nproc)" wpa_supplicant > /home/runner/wifi-build.log 2>&1 || {
+            grep -n -E "FAILED:|error:" /home/runner/wifi-build.log | head -40; tail -n 40 /home/runner/wifi-build.log; exit 1; }
+          P=$OUT_DIR/target/product/ac8257_demo
+          W=/home/runner/wifi; mkdir -p $W/bin $W/lib64
+          cp $P/vendor/bin/hw/wpa_supplicant $W/bin/
+          H=$(find $OUT_DIR/soong/.intermediates/hardware/interfaces/wifi/supplicant/1.2/android.hardware.wifi.supplicant@1.2 \
+                -path '*android_vendor*arm64*shared*' -name 'android.hardware.wifi.supplicant@1.2.so' | grep -v unstripped | head -n 1)
+          [ -n "$H" ] && cp "$H" $W/lib64/
+          ls -la $W/bin $W/lib64
+          file $W/bin/wpa_supplicant
+          strings $W/bin/wpa_supplicant | grep -E "^wpa_supplicant v|supplicant@1\.[0-9]" | sort -u
+          python3 device/alps/ac8257_demo/tools/wifi/check_vendor_abi.py /mnt/lineage $P $W/bin/wpa_supplicant $W/lib64/*.so \
+            | tee $W/vendor_abi.txt
+          (cd $W && sha256sum bin/* lib64/* > SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'success'
+        with:
+          name: lineage-17.1-wifi-hal12
+          path: |
+            /home/runner/wifi
+            /home/runner/wifi-build.log
+          retention-days: 30
+          if-no-files-found: ignore
+
       - name: Images to flash (system.img zstd, boot images)
         if: steps.build.outcome == 'success'
         run: |
