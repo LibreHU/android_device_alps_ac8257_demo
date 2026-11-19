@@ -69,10 +69,11 @@ jobs:
           sudo mkdir -p "$SRC" && sudo chown "$USER" "$SRC"
           df -h / /mnt
 
-      # 8 GiB: the build in its 13 GiB cgroup used 1.1 GiB of swap at most (run 43227394988), and the disk is short.
-      - name: Swap (8 GiB)
+      # 20 GiB for Android 14: soong bootstrap of Android 13 was killed in 13 GiB of RAM + 8 GiB of swap (run
+      # 44481810437, oom_kill 1); Android 10 used 1.1 GiB of swap at most (run 43227394988).
+      - name: Swap (20 GiB)
         run: |
-          sudo fallocate -l 8G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile
+          sudo fallocate -l 20G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile
           free -g
 
       - name: Build packages (LineageOS wiki; Android 14's build scripts are Python 3, python2 kept for old tools)
@@ -93,7 +94,7 @@ jobs:
         id: sources
         working-directory: /mnt/lineage
         run: |
-          repo init -u https://github.com/crdroidandroid/android.git -b 14.0 --git-lfs --depth=1 -g default,-darwin,-mips --no-clone-bundle
+          repo init -u https://github.com/crdroidandroid/android.git -b 14.0 --depth=1 -g default,-darwin,-mips --no-clone-bundle
           mkdir -p .repo/local_manifests
           # The vendor repository's own crdroid-14.0 branch: the same proprietary files, autochips.jar as a Soong
           # module (Android.bp).
@@ -127,6 +128,25 @@ jobs:
           # The Git objects of the checkout go: room for the output (run 43227394988 stopped at 94 %, 94181/99724, on
           # "No space left on device"). The build reads no Git metadata: prebuilt kernel (TARGET_NO_KERNEL), no OTA
           # package, and repo is not run again; .repo/manifests and .repo/repo stay.
+          # Android 12+ builds build-manifest.xml with « python3 .repo/repo/repo manifest -o - -r », which needs the Git
+          # objects removed just below (run 44481807376: GitCommandError rev-parse HEAD): the manifest is written now and
+          # repo answers « manifest » with it from then on (repo is not run again by this job).
+          repo manifest -r -o .repo/librehu-manifest.xml
+          mv .repo/repo/repo .repo/repo/repo.orig
+          printf '%s\n' '#!/usr/bin/env python3' 'import os, sys' 'd = os.path.dirname(os.path.abspath(__file__))' \
+            'if sys.argv[1:2] == ["manifest"]: sys.stdout.write(open(os.path.join(d, "..", "librehu-manifest.xml")).read()); sys.exit(0)' \
+            'os.execv(sys.executable, [sys.executable, os.path.join(d, "repo.orig")] + sys.argv[1:])' > .repo/repo/repo
+          chmod +x .repo/repo/repo
+          # LineageOS 20+ / crDroid 13+: external/chromium-webview/{Android.mk,CleanSpec.mk} are repo linkfiles of the
+          # patches project (run 44482623755: « external/chromium-webview/Android.mk: No such file or directory »):
+          # a broken one is replaced by a copy of the file of the patches project.
+          for f in Android.mk CleanSpec.mk; do
+            l=external/chromium-webview/$f
+            if [ -d external/chromium-webview/patches ] && [ ! -e $l ]; then
+              ls -la external/chromium-webview external/chromium-webview/patches | head -20
+              rm -f $l; cp external/chromium-webview/patches/$f $l && echo "$l: copied from the patches project"
+            fi
+          done
           du -sh .repo; rm -rf .repo/project-objects .repo/projects
           du -sh /mnt/lineage; df -h / /mnt
 
@@ -157,7 +177,7 @@ jobs:
           CG=/sys/fs/cgroup/lineage-build
           if [ -f /sys/fs/cgroup/cgroup.controllers ] && sudo mkdir -p $CG \
               && echo 13G | sudo tee $CG/memory.max >/dev/null \
-              && { [ ! -f $CG/memory.swap.max ] || echo 8G | sudo tee $CG/memory.swap.max >/dev/null; } \
+              && { [ ! -f $CG/memory.swap.max ] || echo 20G | sudo tee $CG/memory.swap.max >/dev/null; } \
               && echo $$ | sudo tee $CG/cgroup.procs >/dev/null; then
             echo "build cgroup: memory.max $(cat $CG/memory.max), memory.swap.max $(cat $CG/memory.swap.max 2>/dev/null)"
           else
