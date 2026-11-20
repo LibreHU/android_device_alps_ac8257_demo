@@ -24,6 +24,9 @@ jobs:
       contents: write
     runs-on: ubuntu-22.04
     timeout-minutes: 360
+    # "success" once the images artifact is uploaded: the publish job below starts from it
+    outputs:
+      images: ${{ steps.images.outcome }}
     env:
       SRC: /mnt/lineage
       OUT_DIR: /home/runner/out
@@ -212,39 +215,13 @@ jobs:
       # Images of every successful build, kept 14 days, uploaded before the release step: a failed release (HTTP 403
       # of run 44473470443) no longer loses them.
       - uses: actions/upload-artifact@v4
+        id: images
         if: steps.build.outcome == 'success'
         with:
           name: lineage-images
           path: /home/runner/flash
           retention-days: 14
 
-      # Release GitHub de chaque build de la branche (zip signe, images, empreintes) et flux de l'appli Updater de
-      # LineageOS : updater.json de la release « lineage-16.0-ota », remplace a chaque build (format de
-      # packages/apps/Updater, Utils.parseJsonUpdate : datetime = ro.build.date.utc, romtype, version).
-      - name: GitHub release and LineageOS updater feed
-        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/lineage-16.0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        working-directory: /home/runner/flash
-        run: |
-          Z=$(ls LibreHU-LineageOS-16.0-*.zip)
-          TAG=lineage-16.0-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}
-          DT=$(sed -n 's/^ro.build.date.utc=//p' build.prop)
-          TYPE=$(sed -n 's/^ro.lineage.releasetype=//p' build.prop)
-          VER=$(sed -n 's/^ro.lineage.build.version=//p' build.prop)
-          gh release create "$TAG" "$Z" boot-librehu-bootmenu.img boot-librehu.img system.img.zst build.prop SHA256SUMS \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title "LineageOS 16.0, $(date -u +%d/%m/%Y) (${GITHUB_SHA::7})" \
-            --notes "LineageOS 16.0 pour l'UJC201, arbre ${GITHUB_SHA::7}. Installation et mises a jour : docs/BUILD.md (section 8). Zip signe (test-keys) : TWRP ou l'appli Mises a jour de LineageOS. Le vendor reste celui de l'unite."
-          printf '{"response":[{"datetime":%s,"filename":"%s","id":"%s","romtype":"%s","size":%s,"url":"%s","version":"%s"}]}\n' \
-            "$DT" "$Z" "$(sha256sum "$Z" | cut -d' ' -f1)" "${TYPE:-UNOFFICIAL}" "$(stat -c %s "$Z")" \
-            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$Z" "${VER:-16.0}" > updater.json
-          cat updater.json
-          gh release view lineage-16.0-ota --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create lineage-16.0-ota --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "LineageOS 16.0 : flux de mises a jour" \
-              --notes "updater.json lu par l'appli Mises a jour de LineageOS (overlay de packages/apps/Updater) ; remplace a chaque build."
-          gh release upload lineage-16.0-ota updater.json --clobber --repo "$GITHUB_REPOSITORY"
 
       # The images are out: the output goes, room for the ccache archive (its save failed on a full disk, run
       # 43227394988).
@@ -277,3 +254,27 @@ jobs:
       - name: Result
         if: always()
         run: test "${{ steps.build.outcome }}" = success
+
+  # Release of the build and feed of the LineageOS Updater (tools/ci/publish_release.sh), apart from the build: a
+  # refused release (HTTP 403 "Resource not accessible by integration" while the build had succeeded, seen on
+  # lineage-17.1, runs 44473470443 and 44675551801) is published again with "Re-run failed jobs", which does not build
+  # again. A build of an earlier run (images artifact kept 14 days): workflow "lineage-16.0 publish an existing build".
+  publish:
+    needs: build
+    if: ${{ !cancelled() && needs.build.outputs.images == 'success' && github.ref == 'refs/heads/lineage-16.0' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: lineage-images
+          path: /home/runner/flash
+      - name: GitHub release and LineageOS updater feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/publish_release.sh 16.0 /home/runner/flash "$GITHUB_SHA"
