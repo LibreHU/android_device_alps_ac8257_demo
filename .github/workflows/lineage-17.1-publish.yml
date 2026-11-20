@@ -1,0 +1,48 @@
+name: lineage-17.1 publish an existing build
+
+# Publishes the images of an earlier "LineageOS 17.1 build" run (artifact lineage-17.1-images, kept 14 days) as a GitHub release and
+# in the feed of the LineageOS Updater (tools/ci/publish_release.sh), without building again: for a build whose
+# release was refused (HTTP 403 "Resource not accessible by integration" on the release, the build had succeeded).
+# By hand only, on the lineage-17.1 branch: Actions > "lineage-17.1 publish an existing build" > Run workflow (branch lineage-17.1),
+# run_id = the number at the end of the build run's address (…/actions/runs/<run_id>).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'ID of a successful "LineageOS 17.1 build" run (its lineage-17.1-images artifact is kept 14 days)'
+        required: true
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/lineage-17.1'
+    permissions:
+      contents: write
+      actions: read
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/ci
+      - name: Run of the build (commit, branch)
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ inputs.run_id }}
+        run: |
+          case "$RUN" in ''|*[!0-9]*) echo "::error::run_id: digits only"; exit 1;; esac
+          read -r SHA BRANCH CONCL < <(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN" \
+            --jq '"\(.head_sha) \(.head_branch) \(.conclusion)"')
+          echo "run $RUN: $BRANCH $SHA ($CONCL)"
+          [ "$BRANCH" = lineage-17.1 ] || { echo "::error::run $RUN is a build of $BRANCH, not lineage-17.1"; exit 1; }
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: lineage-17.1-images
+          path: /home/runner/flash
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: GitHub release and LineageOS updater feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/publish_release.sh 17.1 /home/runner/flash "${{ steps.run.outputs.sha }}"
