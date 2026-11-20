@@ -8,10 +8,14 @@
 For each ELF (wpa_supplicant, the vendor copy of android.hardware.wifi.supplicant@1.2.so...): every NEEDED library is
 looked up, in the order the vendor linker namespace of the unit would see it, among the other ELFs given (shipped
 with them in /vendor/lib64), the VNDK 28 snapshot (prebuilts/vndk/v28: vndk-core, vndk-sp) and the LLNDK of the
-system (libc, libm, libdl, liblog...: <out>/system/lib64). A library found nowhere is a vendor library that must
-already be on the unit: listed, to check there (ls /vendor/lib64). Then every undefined, non-weak dynamic symbol
-must be exported by one of the libraries found: a symbol missing from VNDK 28 means the binary needs a newer library
-than the unit has, and would not start. Exit 1 if a symbol is missing.
+system (libc, libm, libdl, liblog...: <out>/system/lib64 after a full build, else the LLNDK stubs this tree built for
+the vendor variant, <out dir>/soong/.intermediates/.../<lib>.llndk: only `m wpa_supplicant` ran). Any other library is
+a vendor library that must already be on the unit: listed ("not in VNDK 28 nor LLNDK"), checked again by the installer
+(ls /vendor/lib64); its symbols are taken from this tree's own vendor copy (<out>/vendor/lib64, built as a dependency:
+libkeystore-wifi-hidl, libkeystore-engine-wifi-hidl), same sources as the unit's. Then every undefined, non-weak
+dynamic symbol must be exported by one of the libraries found: a symbol missing means the binary needs a newer
+library than the unit has, and would not start. Exit 1 if a symbol is missing, or if a library cannot be looked at.
+LLNDK libraries are never listed as needed in /vendor: the system provides them.
 """
 import os
 import re
@@ -49,6 +53,24 @@ def dynsyms(path):
     return defined, undef
 
 
+def llndk_stubs(out):
+    """LLNDK library name -> stub of the vendor arm64 variant (<lib>.llndk modules of the tree)"""
+    soong = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(out)))), "soong",
+                         ".intermediates")
+    found = {}
+    for root, dirs, _ in os.walk(soong):
+        for d in list(dirs):
+            if d.endswith(".llndk") and d[:-6] + ".so" in LLNDK:
+                lib = d[:-6] + ".so"
+                for r2, _, files in os.walk(os.path.join(root, d)):
+                    if lib in files and "arm64" in r2 and "unstripped" not in r2:
+                        cand = os.path.join(r2, lib)
+                        if lib not in found or len(cand) < len(found[lib]):
+                            found[lib] = cand
+                dirs.remove(d)
+    return found
+
+
 def main():
     if len(sys.argv) < 4:
         sys.exit(__doc__)
@@ -57,6 +79,8 @@ def main():
     dirs = [("shipped", os.path.dirname(e)) for e in elfs] + \
            [("vndk-28", os.path.join(v28, "vndk-core")), ("vndk-sp-28", os.path.join(v28, "vndk-sp"))]
     llndk_dir = os.path.join(out, "system/lib64")
+    stubs = None
+    tree_vendor = os.path.join(out, "vendor/lib64")
     shipped = {os.path.basename(e): e for e in elfs}
     bad = 0
     for elf in elfs:
@@ -68,25 +92,35 @@ def main():
                 where = ("shipped", shipped[lib])
             elif lib in LLNDK and os.path.exists(os.path.join(llndk_dir, lib)):
                 where = ("llndk", os.path.join(llndk_dir, lib))
+            elif lib in LLNDK:
+                if stubs is None:
+                    stubs = llndk_stubs(out)
+                if lib not in stubs:
+                    print(f"   NEEDED {lib}: LLNDK, but no stub of it in this tree: cannot check its symbols")
+                    bad = 1
+                    continue
+                where = ("llndk stub", stubs[lib])
             else:
                 for kind, d in dirs[len(elfs):]:
                     if os.path.exists(os.path.join(d, lib)):
                         where = (kind, os.path.join(d, lib))
                         break
             if where is None:
-                print(f"   NEEDED {lib}: not in VNDK 28 nor LLNDK -> must be in /vendor/lib64 of the unit")
+                copy = os.path.join(tree_vendor, lib)
+                if not os.path.exists(copy):
+                    print(f"   NEEDED {lib}: not in VNDK 28 nor LLNDK -> must be in /vendor/lib64 of the unit, "
+                          f"and no copy in {tree_vendor} to check its symbols")
+                    bad = 1
+                    continue
+                print(f"   NEEDED {lib}: not in VNDK 28 nor LLNDK -> must be in /vendor/lib64 of the unit "
+                      f"(symbols: this tree's copy)")
+                exports |= dynsyms(copy)[0]
                 continue
             print(f"   NEEDED {lib}: {where[0]}")
             exports |= dynsyms(where[1])[0]
         missing = sorted(dynsyms(elf)[1] - exports)
-        # symbols of vendor libraries we cannot see here are not counted as missing
-        unknown_libs = [lib for lib in needed(elf) if lib not in shipped and lib not in LLNDK and
-                        not any(os.path.exists(os.path.join(d, lib)) for _, d in dirs[len(elfs):])]
-        if missing and unknown_libs:
-            print(f"   {len(missing)} undefined symbol(s) not found in the libraries above (some may come from "
-                  f"{', '.join(unknown_libs)}):")
-        elif missing:
-            print(f"   MISSING {len(missing)} symbol(s): the unit's VNDK 28 does not have them")
+        if missing:
+            print(f"   MISSING {len(missing)} symbol(s): not exported by the libraries above")
             bad = 1
         for s in missing[:60]:
             print(f"     {s}")
