@@ -1,4 +1,4 @@
-# LibreHU - WPA3 (SAE) et OWE sous LineageOS 17.1 : wpa_supplicant avec le HAL android.hardware.wifi.supplicant@1.2.
+# LibreHU - WPA3 (SAE) et OWE sous les ROM LibreHU Android 10+ : wpa_supplicant avec le HAL android.hardware.wifi.supplicant@1.2.
 # Fonctions partagees par l'installateur du zip de la ROM (tools/flashable/update-binary.sh) et les zips
 # librehu_wifi_wpa3_twrp.zip / librehu_wifi_wpa3_restore_twrp.zip (tools/make_wifi_zips.py).
 # Android 10 n'active WPA3 et OWE qu'avec le HAL 1.2 (source.android.com/docs/core/connect/wifi-wpa3-owe) ; le
