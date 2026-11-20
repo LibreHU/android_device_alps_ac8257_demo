@@ -51,11 +51,31 @@ case "$VERSION" in
 *) echo "::error::version $VERSION"; exit 1;;
 esac
 
+# Commit the new tag points to. GitHub refuses the workflow token (GITHUB_TOKEN, never given the "workflows"
+# permission) a new tag on a commit whose .github/workflows differ from the tip of its branch: HTTP 403 "Resource not
+# accessible by integration" (this repository: every refused release had a CI commit pushed on the branch while it
+# built, d66936b after c81fa57, 2d4292e after ae64541; every published one was still the tip; same pattern in
+# github.com/blinkbitcoin/shared-workflows/issues/29). The release is then tagged on the tip of the branch when only
+# CI files (.github/, tools/ci/) changed since the build commit: same ROM sources. Otherwise it stops, explained.
+BRANCH=lineage-$VERSION
+TARGET=$SHA
+CHANGED=$(gh api "repos/$R/compare/$SHA...$BRANCH" --jq 'if .status == "identical" then "" elif .status == "ahead" then ([.files[].filename] | join("\n")) else "DIVERGED" end' || echo FAILED)
+if [ -n "$CHANGED" ] && grep -q '^\.github/workflows/' <<<"$CHANGED" && ! gh release view "$TAG" --repo "$R" >/dev/null 2>&1; then
+	if ! grep -v -q -E '^(\.github/|tools/ci/)' <<<"$CHANGED"; then
+		TARGET=$(gh api "repos/$R/commits/$BRANCH" --jq .sha)
+		NOTES="$NOTES Tag sur ${TARGET::7}, pointe de $BRANCH : memes sources que ${SHA::7} (seuls des fichiers de CI ont change)."
+		echo "build commit ${SHA::7}, workflows changed since on $BRANCH (CI files only): tag on ${TARGET::7}"
+	else
+		echo "::error::workflows of $BRANCH changed since ${SHA::7} together with other files ($(tr '\n' ' ' <<<"$CHANGED")): the workflow token cannot tag ${SHA::7}. Build again from the tip of $BRANCH."
+		exit 1
+	fi
+fi
+
 publish() {
 	if gh release view "$TAG" --repo "$R" >/dev/null 2>&1; then
 		gh release upload "$TAG" "${FILES[@]}" --clobber --repo "$R"
 	else
-		gh release create "$TAG" "${FILES[@]}" --repo "$R" --target "$SHA" --prerelease --title "$TITLE" --notes "$NOTES"
+		gh release create "$TAG" "${FILES[@]}" --repo "$R" --target "$TARGET" --prerelease --title "$TITLE" --notes "$NOTES"
 	fi
 }
 retry publish
@@ -66,7 +86,7 @@ printf '{"response":[{"datetime":%s,"filename":"%s","id":"%s","romtype":"%s","si
 cat updater.json
 feed() {
 	gh release view "lineage-$VERSION-ota" --repo "$R" >/dev/null 2>&1 || \
-		gh release create "lineage-$VERSION-ota" --repo "$R" --target "$SHA" --prerelease --title "$OTA_TITLE" \
+		gh release create "lineage-$VERSION-ota" --repo "$R" --target "$TARGET" --prerelease --title "$OTA_TITLE" \
 			--notes "updater.json lu par l'appli Mises a jour de LineageOS (overlay de packages/apps/Updater) ; remplace a chaque build."
 	gh release upload "lineage-$VERSION-ota" updater.json --clobber --repo "$R"
 }
