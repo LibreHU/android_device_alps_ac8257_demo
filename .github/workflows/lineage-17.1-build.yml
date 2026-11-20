@@ -137,6 +137,10 @@ jobs:
           tools/fetch_kernel.sh
           # ViPERFX_RE driver of the ROM's ViPER4Android app (same version), for the TWRP zip: installed or updated in /vendor
           tools/fetch_viper.sh
+          # WPA3 (SAE), OWE and named Wi-Fi Direct groups: wpa_supplicant with the supplicant HAL 1.2 of release
+          # wifi-wpa3-17.1 (.github/workflows/wifi-wpa3.yml), into the zip's wifi/ (installed in /vendor by update-binary,
+          # tools/flashable/wifi-wpa3.sh). Without it the ROM is built anyway, its installer leaves the stock supplicant.
+          tools/ci/fetch_wifi_wpa3.sh /home/runner/wifi-wpa3 || echo "::warning::no WPA3 package: ROM zip without WPA3"
           ls -la prebuilt
 
       - name: ccache
@@ -231,7 +235,7 @@ jobs:
           python3 /mnt/lineage/device/alps/ac8257_demo/tools/make_flashable_zip.py $P/system.img \
             /mnt/lineage/device/alps/ac8257_demo/prebuilt /home/runner/unsigned.zip \
             --build "lineage-17.1 $D, tree ${GITHUB_SHA::7}, kernel $(sed -n 's/^version=//p' /mnt/lineage/device/alps/ac8257_demo/prebuilt/modules/release.txt)" \
-            --lineage-version "$V"
+            --lineage-version "$V" $( [ -f /home/runner/wifi-wpa3/version ] && echo --wifi /home/runner/wifi-wpa3 )
           # Signature du paquet entier (signapk -w) avec la cle de la ROM (test-keys : celle de otacerts.zip) : l'appli
           # Updater de LineageOS refuse un paquet que RecoverySystem.verifyPackage ne verifie pas. TWRP l'installe
           # comme avant. Le nom n'impose plus d'image de boot : le zip garde celle qui est installee (update-binary).
