@@ -41,6 +41,10 @@ jobs:
       SKIP_ABI_CHECKS: "true"
       LC_ALL: C
     steps:
+      # Job clock: the build gets the time left before the 360 min limit (see Build systemimage).
+      - name: Job clock
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Free the runner's disk
         run: |
           df -h / /mnt
@@ -137,7 +141,7 @@ jobs:
       - name: Build systemimage
         id: build
         working-directory: /mnt/lineage
-        timeout-minutes: 290
+        timeout-minutes: 335
         run: |
           # 6 GiB (8 for lineage-16.0): both branches' archives share the repository's 10 GB of Actions cache.
           ccache -M 6G >/dev/null; ccache -o compression=true >/dev/null 2>&1 || true
@@ -160,7 +164,17 @@ jobs:
               echo "$(tail -n 1 /home/runner/build.log | cut -c1-160) | $(free -m | awk '/^Mem/{r=$3} /^Swap/{s=$3} END{print "RAM " r " MiB, swap " s " MiB"}'), disk $(df -h / | awk 'NR==2{print $4}') free"
             done ) &
           # signapk : signature du zip (OTA de l'appli Updater, verifiee par RecoverySystem.verifyPackage).
-          m -j"$(nproc)" systemimage signapk > /home/runner/build.log 2>&1
+          # Time budget (job limit 360 min): the build stops itself 25 min before it, SIGINT then SIGKILL, so that
+          # nothing writes to out/ any more when the next steps run (with the old step timeout of 290 min, ninja kept
+          # running in its cgroup while the cleanup step removed out/: runs 44535055151, 44528817921). setarch -R: no
+          # address randomization (patchoat of Android 9 maps the boot image at a fixed address, run 44523504179).
+          # soong_ui.bash --make-mode = what m runs (m is a shell function, timeout needs a program).
+          left() { echo $(( (JOB_START + 335 * 60 - $(date +%s)) / 60 )); }
+          B() { T=$1; shift; [ "$T" -ge 1 ] 2>/dev/null || T=1; echo "build: $* ($T min left)" >> /home/runner/build.log
+            timeout --signal=INT --kill-after=3m "${T}m" setarch "$(uname -m)" -R \
+              build/soong/soong_ui.bash --make-mode "$@" >> /home/runner/build.log 2>&1; }
+          : > /home/runner/build.log
+          B "$(left)" -j"$(nproc)" systemimage signapk
         continue-on-error: true
 
       - name: What failed
@@ -265,7 +279,15 @@ jobs:
       # 43227394988).
       - name: Room for the ccache archive
         if: always()
-        run: rm -rf "$OUT_DIR"; df -h /
+        run: |
+          # every process left by the build (its cgroup) is stopped before out/ goes
+          CG=/sys/fs/cgroup/lineage-build
+          for i in 1 2 3 4 5; do
+            P=$(cat $CG/cgroup.procs 2>/dev/null | grep -v "^$$\$" | tr "\n" " ")
+            [ -z "${P// }" ] && break
+            echo "stopping build processes: $P"; sudo kill -9 $P 2>/dev/null; sleep 3
+          done
+          rm -rf "$OUT_DIR"; df -h /
 
       - name: Save ccache
         if: always()
