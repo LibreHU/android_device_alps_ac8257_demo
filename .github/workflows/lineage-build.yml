@@ -136,7 +136,7 @@ jobs:
         working-directory: /mnt/lineage
         timeout-minutes: 335
         run: |
-          ccache -M 8G >/dev/null; ccache -o compression=true >/dev/null 2>&1 || true
+          ccache -M 4G >/dev/null; ccache -o compression=true >/dev/null 2>&1 || true
           # The build in a memory cgroup of its own (13 GiB of RAM, 8 GiB of swap): short of memory, the kernel swaps
           # or kills a build process inside it, never the runner. A runner starved of memory loses its link to GitHub,
           # and the whole log with it ("The hosted runner lost communication with the server", run 43184707906).
