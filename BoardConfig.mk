@@ -207,3 +207,7 @@ BUILD_BROKEN_ENFORCE_SYSPROP_OWNER := true
 BUILD_BROKEN_USES_BUILD_COPY_HEADERS := true
 BUILD_BROKEN_VINTF_PRODUCT_COPY_FILES := true
 BUILD_BROKEN_INCORRECT_PARTITION_IMAGES := true
+
+# CI : precompilation (dexpreopt) de l'image de demarrage et de system_server seulement : build bien plus court (les
+# builds depassaient la limite de 6 h des runners GitHub, 19/11/2026) ; les applis sont compilees sur l'unite.
+WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY := true
