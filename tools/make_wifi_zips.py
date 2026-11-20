@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""TWRP zips of the WPA3 supplicant (HAL 1.2) for LineageOS 17.1, from the CI's wifi folder.
+"""TWRP zips of the WPA3 supplicant (HAL 1.2) for the LibreHU ROMs of Android 10 or newer, from the CI's wifi folder.
 
     tools/make_wifi_zips.py <wifi dir> <out dir>
 
@@ -10,8 +10,9 @@
   - librehu_wifi_wpa3_twrp.zip: installs it in /vendor (tools/flashable/wifi-wpa3.sh, originals backed up once in
     /sdcard/LibreHU/backup/wifi-hal11-orig), removes LibreHU/no-wpa3 so that the ROM zip keeps it up to date;
   - librehu_wifi_wpa3_restore_twrp.zip: puts the original supplicant (HAL 1.1) back and leaves LibreHU/no-wpa3, so that
-    the LibreHU LineageOS zip no longer installs it.
-Both refuse anything but LineageOS 17.1 (Android 10) on ac8257_demo, and a vendor still under dm-verity / AVB
+    the LibreHU ROM zips no longer install it.
+The installer refuses anything but Android 10 or newer (ro.build.version.sdk >= 29: LineageOS 17.1 and later, crDroid
+10 and later; Android 9 has no WPA3 in its framework) on ac8257_demo; both refuse a vendor still under dm-verity / AVB
 verification (vbmeta flags). Reproducible archives (fixed dates).
 """
 import os
@@ -37,14 +38,18 @@ part() { for p in /dev/block/platform/bootdevice/by-name/$1 /dev/block/by-name/$
 ui_print "LibreHU - %(title)s"
 ui_print "--------------------------------"
 case "$(getprop ro.product.device)" in ac8257_demo) ;; *) abort "device not supported (ac8257_demo only)";; esac
-# LineageOS 17.1 (Android 10) only: Android 9 has no WPA3 in its framework, Android 11+ is not tested
+# Android 10 or newer (sdk 29+): Android 9 has no WPA3 in its framework (its stock supplicant stays). Only checked by
+# the installer (%(sdkcheck)s): the way back always works.
 mkdir -p /tmp/librehu_sys
 mount -t ext4 -o ro $(part system) /tmp/librehu_sys 2>/dev/null
 BP=/tmp/librehu_sys/system/build.prop; [ -f $BP ] || BP=/tmp/librehu_sys/build.prop
 REL=$(sed -n 's/^ro.build.version.release=//p' $BP 2>/dev/null | head -n 1)
-LOS=$(sed -n 's/^ro.lineage.build.version=//p' $BP 2>/dev/null | head -n 1)
+SDK=$(sed -n 's/^ro.build.version.sdk=//p' $BP 2>/dev/null | head -n 1)
 umount /tmp/librehu_sys 2>/dev/null
-[ "$REL" = 10 ] && [ "$LOS" = 17.1 ] || abort "LineageOS 17.1 (Android 10) only (here: Android ${REL:-?}, LineageOS ${LOS:-none})"
+case "$SDK" in ''|*[!0-9]*) SDK=0;; esac
+if [ %(sdkcheck)s = 1 ] && [ $SDK -lt 29 ]; then
+	abort "Android 10 or newer only (here: Android ${REL:-?}, sdk $SDK): Android 9 has no WPA3"
+fi
 # vbmeta: verification disabled (flag 2), as for the LineageOS zip: /vendor is written
 VB=$(part vbmeta)
 FLAGS=$(dd if=$VB bs=1 skip=123 count=1 2>/dev/null | od -An -tu1 | tr -d ' ')
@@ -98,9 +103,9 @@ def main():
     os.makedirs(out, exist_ok=True)
     files = [(f"wifi/{f}", open(os.path.join(wifi, f), "rb").read(), 0o644) for f in FILES]
     write(os.path.join(out, "librehu_wifi_wpa3_twrp.zip"),
-          HEAD % {"title": "WPA3 for LineageOS 17.1 (wpa_supplicant HAL 1.2)"} + funcs + INSTALL, files)
+          HEAD % {"title": "WPA3 for Android 10+ (wpa_supplicant HAL 1.2)", "sdkcheck": 1} + funcs + INSTALL, files)
     write(os.path.join(out, "librehu_wifi_wpa3_restore_twrp.zip"),
-          HEAD % {"title": "WPA3 removed: original supplicant (HAL 1.1)"} + funcs + RESTORE, [])
+          HEAD % {"title": "WPA3 removed: original supplicant (HAL 1.1)", "sdkcheck": 0} + funcs + RESTORE, [])
 
 
 if __name__ == "__main__":
