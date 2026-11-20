@@ -189,6 +189,17 @@ ifneq ($(shell grep -qs 'name: "autochips"' vendor/jancar/ac8257_demo/Android.bp
 $(warning crdroid-12.1 : autochips.jar sans module Soong (vendor/jancar/ac8257_demo/Android.bp) : lancer device/alps/ac8257_demo/tools/patch_lineage_sources.sh depuis la racine des sources)
 endif
 
+# Wi-Fi : wpa_supplicant de LineageOS 17.1 avec le HAL android.hardware.wifi.supplicant@1.2 (WPA3 / SAE et OWE : Android 10+
+# ne les active qu'avec le 1.2, source.android.com wifi-wpa3-owe ; celui du vendor Android 9 a le 1.1) et la bibliotheque
+# privee MediaTek (wifi/lib_driver_cmd_mt66xx). Construit a part par .github/workflows/wifi-wpa3.yml (m wpa_supplicant),
+# installe dans /vendor par les zips, jamais dans une image vendor (BOARD_PREBUILT_VENDORIMAGE) ; wpa_supplicant n'est
+# pas dans PRODUCT_PACKAGES : la build de la ROM ne le compile pas.
+WPA_SUPPLICANT_VERSION := VER_0_8_X
+BOARD_WPA_SUPPLICANT_DRIVER := NL80211
+BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_mt66xx
+BOARD_HOSTAPD_DRIVER := NL80211
+BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_mt66xx
+
 # Security patch (vendor stock)
 VENDOR_SECURITY_PATCH := 2021-10-05
 
