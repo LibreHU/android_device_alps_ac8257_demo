@@ -167,3 +167,7 @@ VENDOR_SECURITY_PATCH := 2021-10-05
 
 # Proprietaires (cote system, voir proprietary-files.txt)
 -include vendor/jancar/ac8257_demo/BoardConfigVendor.mk
+
+# CI : precompilation (dexpreopt) de l'image de demarrage et de system_server seulement : build bien plus court (les
+# builds depassaient la limite de 6 h des runners GitHub, 19/11/2026) ; les applis sont compilees sur l'unite.
+WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY := true
