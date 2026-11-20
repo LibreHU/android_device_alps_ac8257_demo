@@ -11,6 +11,11 @@ on:
   push:
     branches: [lineage-16.0]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the build (release + Updater feed). Unticked: check build only, its images stay 14 days as an artifact (publish them later with the publish an existing build workflow)."
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -261,7 +266,8 @@ jobs:
   # again. A build of an earlier run (images artifact kept 14 days): workflow "lineage-16.0 publish an existing build".
   publish:
     needs: build
-    if: ${{ !cancelled() && needs.build.outputs.images == 'success' && github.ref == 'refs/heads/lineage-16.0' }}
+    # A push ([build]) always publishes; by hand, only with the publish input ticked.
+    if: ${{ !cancelled() && needs.build.outputs.images == 'success' && github.ref == 'refs/heads/lineage-16.0' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
     permissions:
       contents: write
     runs-on: ubuntu-22.04
