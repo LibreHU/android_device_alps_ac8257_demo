@@ -64,6 +64,11 @@ endif
 include $(CLEAR_VARS)
 LOCAL_MODULE := lib_driver_cmd_mt66xx
 LOCAL_PROPRIETARY_MODULE := true
+# LibreHU: CFI as wpa_supplicant (external/wpa_supplicant_8 is in PRODUCT_CFI_INCLUDE_PATHS, build/make/target/product/
+# cfi-common.mk, with the private libraries of Broadcom and Qualcomm). Without it the first indirect call to
+# wpa_driver_nl80211_driver_cmd (StaIface::getMacAddress, "MACADDR") failed the CFI check: SIGABRT in
+# __cfi_check_fail, wpa_supplicant restarted and died again, Wi-Fi never came on (LineageOS 17.1 of 21/11/2026).
+LOCAL_SANITIZE := cfi
 LOCAL_SHARED_LIBRARIES := libc libcutils
 LOCAL_CFLAGS := $(L_CFLAGS)
 LOCAL_SRC_FILES := $(WPA_SRC_FILE)
