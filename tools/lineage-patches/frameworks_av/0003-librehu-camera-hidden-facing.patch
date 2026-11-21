@@ -1,0 +1,88 @@
+--- a/services/camera/libcameraservice/common/CameraProviderManager.cpp
++++ b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+@@ -56,6 +56,38 @@
+ CameraProviderManager::HardwareServiceInteractionProxy
+ CameraProviderManager::sHardwareServiceInteractionProxy{};
+ 
++// librehuCameraHiddenFacing (LibreHU, UJC201): the Jancar camera HAL declares ids without a camera behind them (no
++// MIPI sensor for "2", "10", "11", "12" on most units: open fails with -38) and calls every camera "back" but one.
++// Apps that take "the first back / front camera" (Camera2) then open a dead one. Set by LibreHU-service, which
++// restarts cameraserver to apply them:
++//   persist.librehu.camera.hidden  ids not shown to apps, "2,10,11,12"
++//   persist.librehu.camera.facing  facing given to ids, "3:back,0:front,8:external"
++// Unset: nothing changes.
++static std::string librehuCameraProperty(const char* key) {
++    char value[PROPERTY_VALUE_MAX];
++    property_get(key, value, "");
++    return std::string(value);
++}
++
++// true when the comma list holds id (as "id" or "id:arg"); arg gets what follows the colon
++static bool librehuCameraListed(const std::string& list, const std::string& id, std::string* arg) {
++    size_t start = 0;
++    while (start < list.size()) {
++        size_t end = list.find(',', start);
++        if (end == std::string::npos) end = list.size();
++        std::string item = list.substr(start, end - start);
++        size_t first = item.find_first_not_of(" \t");
++        item = first == std::string::npos ? "" : item.substr(first, item.find_last_not_of(" \t") - first + 1);
++        size_t colon = item.find(':');
++        if (!item.empty() && item.substr(0, colon) == id) {
++            if (arg != nullptr) *arg = colon == std::string::npos ? "" : item.substr(colon + 1);
++            return true;
++        }
++        start = end + 1;
++    }
++    return false;
++}
++
+ CameraProviderManager::~CameraProviderManager() {
+ }
+ 
+@@ -1418,6 +1450,11 @@
+                 type.c_str(), mType.c_str());
+         return BAD_VALUE;
+     }
++    if (librehuCameraListed(librehuCameraProperty("persist.librehu.camera.hidden"), id, nullptr)) {
++        ALOGI("%s: Device %s: camera %s hidden (persist.librehu.camera.hidden)", __FUNCTION__,
++                name.c_str(), id.c_str());
++        return NAME_NOT_FOUND;
++    }
+     if (mManager->isValidDeviceLocked(id, major)) {
+         ALOGE("%s: Device %s: ID %s is already in use for device major version %d", __FUNCTION__,
+                 name.c_str(), id.c_str(), major);
+@@ -1577,7 +1614,10 @@
+                     mProviderName.c_str(), cameraDeviceName.c_str());
+                 return hardware::Void();
+             }
+-            addDevice(cameraDeviceName, newStatus, &id);
++            if (addDevice(cameraDeviceName, newStatus, &id) != OK) {
++                // librehuCameraHiddenFacing: not added (hidden, or refused): nothing to tell cameraserver
++                return hardware::Void();
++            }
+         } else if (newStatus == CameraDeviceStatus::NOT_PRESENT) {
+             removeDevice(id);
+         }
+@@ -1988,6 +2028,22 @@
+ 
+     mIsPublicallyHiddenSecureCamera = isPublicallyHiddenSecureCamera();
+ 
++    // librehuCameraHiddenFacing: facing given by persist.librehu.camera.facing
++    std::string librehuFacing;
++    if (librehuCameraListed(librehuCameraProperty("persist.librehu.camera.facing"), id, &librehuFacing)) {
++        uint8_t facing = 0xff;
++        if (librehuFacing == "front") facing = ANDROID_LENS_FACING_FRONT;
++        else if (librehuFacing == "back") facing = ANDROID_LENS_FACING_BACK;
++        else if (librehuFacing == "external") facing = ANDROID_LENS_FACING_EXTERNAL;
++        if (facing == 0xff) {
++            ALOGW("%s: camera %s: facing \"%s\" unknown (front, back, external)", __FUNCTION__,
++                    id.c_str(), librehuFacing.c_str());
++        } else if (mCameraCharacteristics.update(ANDROID_LENS_FACING, &facing, 1) == OK) {
++            ALOGI("%s: camera %s: facing %s (persist.librehu.camera.facing)", __FUNCTION__,
++                    id.c_str(), librehuFacing.c_str());
++        }
++    }
++
+     status_t res = fixupMonochromeTags();
+     if (OK != res) {
+         ALOGE("%s: Unable to fix up monochrome tags based for older HAL version: %s (%d)",
