@@ -132,6 +132,13 @@ la main. Séparée de celle de `lineage-16.0` : groupe de concurrence `lineage-1
   le lieur de LineageOS pour ce binaire seulement (`TARGET_LD_SHIM_LIBS`) : pas de `LD_PRELOAD`, ignoré pour un
   processus `AT_SECURE`.
 
+- Appli Caméra : le HAL Jancar déclare des caméras sans capteur (2, 10, 11, 12 sur l'unité du 21/11 : échec -38) et
+  les dit « arrière » ; l'appli (première arrière, première avant) ouvrait la 2. Patch `frameworks/av` 0003 :
+  `persist.librehu.camera.hidden` (caméras masquées, `2,10,11,12`) et `persist.librehu.camera.facing` (orientation
+  forcée, `3:back,0:front,8:external`), posés par LibreHU-service (Véhicule → Vidéo) qui redémarre `cameraserver`.
+  Sans ces propriétés, rien ne change. Carte de l'unité du 21/11 : 0 = caméra USB (avant), 3 = décodeur CVBS (AV IN 1 /
+  2 et recul CVBS, commutateur analogique), 8 et 9 = caméras qui s'ouvrent (AHD, puce 9963 pour la 8 selon Jancar).
+
 ## Points à vérifier sur l'unité
 
 - Ordre des propriétés d'Android 10 : celles du vendor stock passent **après** celles du system
