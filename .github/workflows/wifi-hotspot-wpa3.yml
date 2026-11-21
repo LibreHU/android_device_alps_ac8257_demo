@@ -121,6 +121,11 @@ jobs:
           W8=external/wpa_supplicant_8
           printf '%s\n' '# LibreHU WPA3 hotspot CI: hostapd only (wifi-hotspot-wpa3.yml)' > $W8/wpa_supplicant/Android.mk
           sed -i 's/^CONFIG_DPP=y/# CONFIG_DPP=y (LibreHU CI: off, not used by the hostapd HAL)/' $W8/hostapd/android.config
+          # Android 11 merged libhwbinder and libhidltransport into libhidlbase: in Pie, IPCThreadState and the service
+          # registration are still in them (run 44903751067: undefined android::hardware::IPCThreadState::self()...)
+          sed -i 's/^LOCAL_SHARED_LIBRARIES += libbase libhidlbase libutils$/LOCAL_SHARED_LIBRARIES += libbase libhidlbase libhidltransport libhwbinder libutils/' \
+            $W8/hostapd/Android.mk
+          grep -n 'libhidlbase libhidltransport libhwbinder' $W8/hostapd/Android.mk || { echo "::error::hostapd/Android.mk: HIDL libraries line not found"; exit 1; }
           grep -n -E "^#? ?CONFIG_(SAE|DPP|ACS|IEEE80211W)" $W8/hostapd/android.config
           (cd $W8 && git log --oneline -1 2>/dev/null; grep -m1 -E "VERSION_STR" src/common/version.h)
           # MediaTek private library and the hostapd settings (runner only)
