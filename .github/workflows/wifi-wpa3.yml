@@ -131,7 +131,10 @@ jobs:
           cp -r $GITHUB_WORKSPACE/tree17/wifi $D/
           sed -n '/^WPA_SUPPLICANT_VERSION :=/,/^BOARD_HOSTAPD_PRIVATE_LIB :=/p' $GITHUB_WORKSPACE/tree17/BoardConfig.mk > /home/runner/wpa.mk
           grep -q BOARD_WPA_SUPPLICANT_PRIVATE_LIB /home/runner/wpa.mk || { echo "::error::no Wi-Fi settings in BoardConfig.mk"; exit 1; }
-          { echo; echo "# LibreHU WPA3 CI (wifi-wpa3.yml): from lineage-17.1"; cat /home/runner/wpa.mk; } >> $D/BoardConfig.mk
+          # supplicant only: Android 10's hostapd needs android.hardware.wifi.hostapd@1.1, absent from Pie (run
+          # 44841613929: "hostapd ... missing android.hardware.wifi.hostapd@1.1"); the unit keeps its stock hostapd
+          { echo; echo "# LibreHU WPA3 CI (wifi-wpa3.yml): from lineage-17.1, supplicant only"
+            grep -v '^BOARD_HOSTAPD_' /home/runner/wpa.mk; echo "BOARD_HOSTAPD_DRIVER :="; } >> $D/BoardConfig.mk
           tail -n 8 $D/BoardConfig.mk
           # the device tree's root Android.mk takes one level of subfolders: wifi/Android.mk takes the rest
           ls $D/wifi $D/wifi/lib_driver_cmd_mt66xx
