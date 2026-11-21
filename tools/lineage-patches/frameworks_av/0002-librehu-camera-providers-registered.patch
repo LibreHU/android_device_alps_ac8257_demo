@@ -1,0 +1,29 @@
+--- a/services/camera/libcameraservice/common/CameraProviderManager.cpp
++++ b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+@@ -68,6 +68,26 @@
+                 [&ret](const hardware::hidl_vec<hardware::hidl_string> &registered) {
+                     ret = registered;
+                 });
++        // librehuCameraProvidersRegistered: only the providers of the manifest that are registered now. The
++        // manifest of an Android 9 vendor may declare a provider that no service serves (the Jancar vendor declares
++        // ICameraProvider/internal/0, its camhal3lite registers internal/1): initialize() then waited for it in
++        // getService() for ever and cameraserver never published the camera service (no camera, no reverse camera).
++        // A provider that registers later is added by onRegistration() (registerForNotifications in initialize()).
++        std::vector<hardware::hidl_string> running;
++        manager->listByInterface(provider::V2_4::ICameraProvider::descriptor,
++                [&running](const hardware::hidl_vec<hardware::hidl_string> &instances) {
++                    running.assign(instances.begin(), instances.end());
++                });
++        std::vector<hardware::hidl_string> kept;
++        for (const auto& name : ret) {
++            if (std::find(running.begin(), running.end(), name) != running.end()) {
++                kept.push_back(name);
++            } else {
++                ALOGW("%s: camera provider '%s' is in the manifest but not registered: not waited for "
++                        "(added when it registers)", __FUNCTION__, name.c_str());
++            }
++        }
++        ret = kept;
+     }
+     return ret;
+ }
