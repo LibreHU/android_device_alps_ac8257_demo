@@ -78,6 +78,15 @@
 #    des partitions FAT / NTFS / exFAT / Linux, et le blkid d'e2fsprogs ne connait pas APFS. Partitions MBR 0xaf et
 #    GPT Apple HFS+ / APFS acceptees, APFS reconnu a sa signature « NXSB », hfs / hfsplus montes au nom de media_rw,
 #    apfs en lecture seule. Monte seulement si le noyau connait le systeme de fichiers (/proc/filesystems).
+#
+# 10. frameworks/av (lineage-patches/frameworks_av, 0002) : cameraserver d'Android 10 prend la liste des fournisseurs
+#    de camera dans le manifeste VINTF (CameraProviderManager::listServices, listManifestByInterface) et attend chacun
+#    dans getService(). Le manifeste du vendor Jancar declare ICameraProvider/internal/0, que personne ne sert (son
+#    camhal3lite enregistre internal/1) : cameraserver attendait sans fin (« Waited one second for ...internal/0 »,
+#    pile CameraProviderManager::initialize -> getService du rapport du 21/11), le service camera n'etait jamais
+#    publie : appli Camera qui plante, pas de camera de recul ni d'AV IN. Android 9 n'essayait que legacy/0 et
+#    external/0 sans les attendre. Ne sont plus attendus que les fournisseurs du manifeste deja enregistres ; un
+#    fournisseur enregistre plus tard arrive par la notification d'enregistrement (onRegistration).
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -171,6 +180,10 @@ apply_patch frameworks/base packages/SystemUI/Android.bp librehuSystemUiInSystem
     "$PATCHES/frameworks_base/0002-librehu-systemui-system-priv-app.patch" "SystemUI avant l'ivi-systemui du vendor"
 apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
     "$PATCHES/system_vold/0001-librehu-mac-volumes.patch" "cles USB d'un Mac (HFS, HFS+, APFS)"
+# 10.
+apply_patch frameworks/av services/camera/libcameraservice/common/CameraProviderManager.cpp \
+    librehuCameraProvidersRegistered \
+    "$PATCHES/frameworks_av/0002-librehu-camera-providers-registered.patch" "fournisseurs de camera du manifeste non servis"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk
