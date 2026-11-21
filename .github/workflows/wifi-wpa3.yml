@@ -186,6 +186,11 @@ jobs:
             find $OUT_DIR/soong/.intermediates/hardware/interfaces/wifi/supplicant/1.2 -name '*.so' | head -20; exit 1; }
           echo "HAL 1.2 library: $H"
           cp "$H" $W/lib64/
+          # Pie leaves this vendor variant unstripped (38 MB with its debug info, run 44849517690): stripped like the
+          # installed binaries, dynamic symbols kept (the VNDK 28 check below reads them)
+          ls -la $W/lib64/android.hardware.wifi.supplicant@1.2.so
+          prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-strip --strip-unneeded \
+            $W/lib64/android.hardware.wifi.supplicant@1.2.so
           ls -la $W/bin $W/lib64 $P/vendor/lib64 2>/dev/null | head -60
           file $W/bin/wpa_supplicant
           strings $W/bin/wpa_supplicant | grep -E "^wpa_supplicant v|supplicant@1\.[0-9]" | sort -u
