@@ -162,7 +162,10 @@ jobs:
         run: |
           source build/envsetup.sh
           lunch lineage_ac8257_demo-userdebug
-          m -j"$(nproc)" hostapd > /home/runner/hostapd-build.log 2>&1 || {
+          # The emptied wpa_supplicant/Android.mk no longer defines libwpa_client, which FrameworksWifiTests of Pie lists
+          # (run 44902881517, Kati: "missing libwpa_client"): missing modules allowed, only hostapd is built (a module
+          # hostapd needs and that is missing still fails its own build)
+          ALLOW_MISSING_DEPENDENCIES=true m -j"$(nproc)" hostapd > /home/runner/hostapd-build.log 2>&1 || {
             grep -n -E "FAILED:|error:" /home/runner/hostapd-build.log | head -40; tail -n 40 /home/runner/hostapd-build.log; exit 1; }
           P=$OUT_DIR/target/product/ac8257_demo
           W=/home/runner/hostapd; mkdir -p $W/bin $W/lib64
