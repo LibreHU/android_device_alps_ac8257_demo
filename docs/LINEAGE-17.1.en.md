@@ -110,6 +110,22 @@ one kept: the repository's 10 GB of cache are shared), releases `lineage-17.1-<d
   (`frameworks/base` patch). The 16.0 data was kept: formatting data is still advised.
 - Bluetooth: the MediaTek HAL stops ("TurnOn: failed to init Bluetooth!"): to look at in the next try.
 
+## Camera, reverse camera, AV IN (21/11/2026)
+
+- Camera app crashing, no reverse camera nor AV IN 1 / 2: `cameraserver` never published the camera service
+  ("Camera service is unavailable"). Android 10 takes the camera providers from the VINTF manifest and waits for each
+  in `getService()` (`CameraProviderManager::listServices`, `listManifestByInterface`); the Jancar vendor manifest
+  declares `ICameraProvider/internal/0`, served by nobody (its `camhal3lite` registers `internal/1`): endless wait
+  ("Waited one second for ...ICameraProvider/internal/0"). Android 9 only tried `legacy/0` and `external/0`, without
+  waiting. Fixed (`frameworks/av` patch 0002): only the manifest's providers already registered are waited for, the
+  others come through the registration notification.
+- `atcavm_server` (Autochips 360 server, Android 9 binary of the stock system) refused by the linker at each start:
+  "cannot locate symbol `_ZN7android13GraphicBuffer4lockEjPPv`" (`GraphicBuffer::lock(uint32_t, void**)` took two
+  more parameters in Android 10). The only missing symbol of this binary and of its stock libraries against the 17.1
+  image (checked on `lineage-17.1-20261121-1132-8027ca6`). Shim `librehu/shim_atcavm` (`libshim_atcavm`), loaded by
+  the LineageOS linker for this binary only (`TARGET_LD_SHIM_LIBS`): no `LD_PRELOAD`, ignored for an `AT_SECURE`
+  process.
+
 ## To check on the unit
 
 - Android 10 property order: the stock vendor's are read **after** the system's (`init/property_service.cpp`,
