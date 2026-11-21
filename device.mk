@@ -179,6 +179,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/init/librehu.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/librehu.rc \
     $(LOCAL_PATH)/rootdir/etc/init/atcavm_server.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/atcavm_server.rc
+# Shim d'atcavm_server (GraphicBuffer::lock d'Android 9), voir TARGET_LD_SHIM_LIBS dans BoardConfig.mk
+PRODUCT_PACKAGES += \
+    libshim_atcavm
 
 # Droits des noeuds Autochips que le system stock posait (rootdir/ueventd.ac8257.rc : /dev/backcardrv du HAL backcar,
 # sans lequel la video materielle reste verte). Racine du system (system-as-root : build_image.py y copie root/).
