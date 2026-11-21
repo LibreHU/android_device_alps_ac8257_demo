@@ -58,6 +58,13 @@
 #    APFS acceptees, APFS reconnu a sa signature « NXSB », hfs / hfsplus montes au nom de media_rw (comme vfat),
 #    apfs en lecture seule. Monte seulement si le noyau connait le systeme de fichiers (/proc/filesystems).
 #    NTFS (ntfs-3g, FUSE) et exFAT (noyau + mkfs/fsck.exfat) : deja dans le vold de LineageOS 16.
+#
+# 7. frameworks/av (lineage-patches/frameworks_av) : cameras masquees et orientation forcee, comme la 17.1 (son
+#    correctif n° 11). Le HAL camera Jancar declare des identifiants sans camera derriere (2, 10, 11, 12 sur l'unite
+#    du 21/11 : ouverture en -38) et dit « arriere » de toutes sauf une : l'appli Camera (premiere arriere, premiere
+#    avant) ouvrait la 2, morte. CameraProviderManager lit persist.librehu.camera.hidden (« 2,10,11,12 ») et
+#    persist.librehu.camera.facing (« 3:back,0:front,8:external ») ; LibreHU-service les pose et redemarre
+#    cameraserver. Sans ces proprietes, rien ne change.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -146,6 +153,8 @@ apply_patch packages/apps/Bluetooth src/com/android/bluetooth/a2dpsink/A2dpSinkS
     "$PATCHES/packages_apps_Bluetooth/0001-librehu-a2dp-sink-auto-focus.patch" "focus audio de la musique Bluetooth"
 apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
     "$PATCHES/system_vold/0001-librehu-mac-volumes.patch" "cles USB d'un Mac (HFS, HFS+, APFS)"
+apply_patch frameworks/av services/camera/libcameraservice/common/CameraProviderManager.cpp librehuCameraHiddenFacing \
+    "$PATCHES/frameworks_av/0001-librehu-camera-hidden-facing.patch" "cameras masquees et orientation forcee"
 
 # mode souple sans --check : le build continue meme s'il manque un correctif (deja signale)
 [ "$SOFT" = 1 ] && [ $CHECK = 0 ] && exit 0

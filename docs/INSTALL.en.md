@@ -154,7 +154,12 @@ with both flags can stay. Without TWRP: the SP Flash Tool readback, *Download On
 - Crashes seen on 14/11, fixed in LibreHU-service `b1112ee` (updated through LibreHU Apps, no new build): Settings ->
   Connected devices -> the phone, and "Received files"; LibreHU-service when wired Android Auto starts and on the
   Network tab (`ACCESS_NETWORK_STATE` permission missing: each crash also dropped the cable-internet VPN).
-- Being investigated (14/11): AV IN 1 and 2, audio routing. Bluetooth streaming: the
+- Camera app (21/11): the Jancar HAL declares cameras without a sensor (2, 10, 11, 12: open fails with -38) and
+  calls them "back"; the app opened 2. Next build: `persist.librehu.camera.hidden` (hidden cameras) and
+  `persist.librehu.camera.facing` (forced facing, `3:back,0:front`), set by LibreHU-service (Vehicle -> Video),
+  `frameworks/av` patch (`tools/patch_lineage_sources.sh`, no. 7). AV IN 1 and 2: CVBS IN screen of LibreHU-service
+  (camera 3, analogue switch).
+- Being investigated (14/11): audio routing. Bluetooth streaming: the
   LibreHU-service auto-connect retried an unreachable phone for ever (every 40 s); fixed in the service (`d0debeb`),
   to test again with the phone in range.
 - 5 GHz Wi-Fi: the unit sees 5 GHz (channels 36 to 44 and 157 in a scan of 14/11). Android 9 does not know WPA3

@@ -161,7 +161,12 @@ vbmeta aux deux drapeaux peut rester. Sans TWRP : la lecture SP Flash Tool, *Dow
   Parametres -> Appareils connectes -> le telephone, et « Fichiers recus » ; LibreHU-service au demarrage d'Android
   Auto filaire et sur l'onglet Reseau (permission `ACCESS_NETWORK_STATE` manquante : chaque plantage coupait aussi le
   VPN de l'internet par le cable).
-- En cours d'analyse (14/11) : AV IN 1 et 2, routage audio. Streaming Bluetooth :
+- Appli Camera (21/11) : le HAL Jancar declare des cameras sans capteur (2, 10, 11, 12 : echec -38) et les dit
+  « arriere » ; l'appli ouvrait la 2. Build suivant : `persist.librehu.camera.hidden` (cameras masquees) et
+  `persist.librehu.camera.facing` (orientation forcee, `3:back,0:front`), poses par LibreHU-service
+  (Vehicule -> Video), patch `frameworks/av` (`tools/patch_lineage_sources.sh`, n° 7). AV IN 1 et 2 : ecran
+  CVBS IN de LibreHU-service (camera 3, commutateur analogique).
+- En cours d'analyse (14/11) : routage audio. Streaming Bluetooth :
   la reconnexion automatique de LibreHU-service relancait sans fin un telephone injoignable (toutes les 40 s) ;
   corrige dans le service (`d0debeb`), test a refaire telephone a portee.
 - Wi-Fi 5 GHz : l'unite voit le 5 GHz (canaux 36 a 44 et 157 dans un releve du 14/11). Android 9 ne connait pas le
