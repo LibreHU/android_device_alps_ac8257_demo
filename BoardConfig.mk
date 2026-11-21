@@ -221,3 +221,9 @@ BUILD_BROKEN_INCORRECT_PARTITION_IMAGES := true
 # CI : precompilation (dexpreopt) de l'image de demarrage et de system_server seulement : build bien plus court (les
 # builds depassaient la limite de 6 h des runners GitHub, 19/11/2026) ; les applis sont compilees sur l'unite.
 WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY := true
+
+# atcavm_server (serveur 360 Autochips, binaire Android 9 du system stock) : android::GraphicBuffer::lock(uint32_t,
+# void**) n'existe plus en Android 10, le lieur refusait le binaire a chaque demarrage. Shim librehu/shim_atcavm, charge
+# par le lieur de LineageOS pour ce binaire seulement (bionic, LD_SHIM_LIBS). Pas de LD_PRELOAD dans le .rc : le lieur
+# l'ignore pour un processus AT_SECURE (transition SELinux depuis init sans noatsecure).
+TARGET_LD_SHIM_LIBS := /system/bin/atcavm_server|libshim_atcavm.so

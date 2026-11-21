@@ -1,0 +1,14 @@
+//
+// Copyright (C) 2026 LibreHU
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// Shim of atcavm_server (Autochips 360 server, Android 9 binary of the stock system, rootdir/etc/init/atcavm_server.rc):
+// the one symbol it needs that Android 10 no longer has. Loaded by the linker for that binary only
+// (TARGET_LD_SHIM_LIBS in BoardConfig.mk).
+cc_library_shared {
+    name: "libshim_atcavm",
+    srcs: ["GraphicBuffer.cpp"],
+    shared_libs: ["libui", "libutils"],
+    compile_multilib: "64",
+    cflags: ["-Wall", "-Werror"],
+}
