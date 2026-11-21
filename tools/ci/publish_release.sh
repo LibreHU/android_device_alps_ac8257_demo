@@ -56,15 +56,17 @@ esac
 # accessible by integration" (this repository: every refused release had a CI commit pushed on the branch while it
 # built, d66936b after c81fa57, 2d4292e after ae64541; every published one was still the tip; same pattern in
 # github.com/blinkbitcoin/shared-workflows/issues/29). The release is then tagged on the tip of the branch when only
-# CI files (.github/, tools/ci/) changed since the build commit: same ROM sources. Otherwise it stops, explained.
+# files that are not in the ROM changed since the build commit: same ROM sources. Otherwise it stops, explained.
+# Not in the ROM: .github/, tools/ci/, tools/wifi/ (CI checks), docs (docs/, *.md), and the separate WPA3 hotspot
+# zips (tools/make_hotspot_zips.py, tools/flashable/wifi-hotspot-wpa3.sh: the ROM zip does not take them).
 BRANCH=lineage-$VERSION
 TARGET=$SHA
 CHANGED=$(gh api "repos/$R/compare/$SHA...$BRANCH" --jq 'if .status == "identical" then "" elif .status == "ahead" then ([.files[].filename] | join("\n")) else "DIVERGED" end' || echo FAILED)
 if [ -n "$CHANGED" ] && grep -q '^\.github/workflows/' <<<"$CHANGED" && ! gh release view "$TAG" --repo "$R" >/dev/null 2>&1; then
-	if ! grep -v -q -E '^(\.github/|tools/ci/)' <<<"$CHANGED"; then
+	if ! grep -v -q -E '^(\.github/|tools/ci/|tools/wifi/|docs/|tools/make_hotspot_zips\.py$|tools/flashable/wifi-hotspot-wpa3\.sh$)|\.md$' <<<"$CHANGED"; then
 		TARGET=$(gh api "repos/$R/commits/$BRANCH" --jq .sha)
-		NOTES="$NOTES Tag sur ${TARGET::7}, pointe de $BRANCH : memes sources que ${SHA::7} (seuls des fichiers de CI ont change)."
-		echo "build commit ${SHA::7}, workflows changed since on $BRANCH (CI files only): tag on ${TARGET::7}"
+		NOTES="$NOTES Tag sur ${TARGET::7}, pointe de $BRANCH : memes sources que ${SHA::7} (seuls des fichiers hors ROM ont change)."
+		echo "build commit ${SHA::7}, workflows changed since on $BRANCH (files not in the ROM only): tag on ${TARGET::7}"
 	else
 		echo "::error::workflows of $BRANCH changed since ${SHA::7} together with other files ($(tr '\n' ' ' <<<"$CHANGED")): the workflow token cannot tag ${SHA::7}. Build again from the tip of $BRANCH."
 		exit 1
