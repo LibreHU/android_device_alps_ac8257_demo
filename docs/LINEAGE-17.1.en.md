@@ -126,6 +126,13 @@ one kept: the repository's 10 GB of cache are shared), releases `lineage-17.1-<d
   the LineageOS linker for this binary only (`TARGET_LD_SHIM_LIBS`): no `LD_PRELOAD`, ignored for an `AT_SECURE`
   process.
 
+- Camera app: the Jancar HAL declares cameras without a sensor (2, 10, 11, 12 on the unit of 21/11: open fails with
+  -38) and calls them "back"; the app (first back, first front) opened 2. `frameworks/av` patch 0003:
+  `persist.librehu.camera.hidden` (hidden cameras, `2,10,11,12`) and `persist.librehu.camera.facing` (forced facing,
+  `3:back,0:front,8:external`), set by LibreHU-service (Vehicle -> Video), which restarts `cameraserver`. Unset,
+  nothing changes. Map of the unit of 21/11: 0 = USB camera (front), 3 = CVBS decoder (AV IN 1 / 2 and CVBS rear
+  camera, analogue switch), 8 and 9 = cameras that open (AHD, the 9963 chip's for 8 according to Jancar).
+
 ## To check on the unit
 
 - Android 10 property order: the stock vendor's are read **after** the system's (`init/property_service.cpp`,

@@ -82,6 +82,14 @@
 #    publie : appli Camera qui plante, pas de camera de recul ni d'AV IN. Android 9 n'essayait que legacy/0 et
 #    external/0 sans les attendre. Ne sont plus attendus que les fournisseurs du manifeste deja enregistres ; un
 #    fournisseur enregistre plus tard arrive par la notification d'enregistrement (onRegistration).
+#
+# 11. frameworks/av (lineage-patches/frameworks_av, 0003, apres 0002) : cameras masquees et orientation forcee. Le HAL
+#    camera Jancar declare des identifiants sans camera derriere (2, 10, 11, 12 sur l'unite du 21/11 : ouverture en
+#    -38, « initMipi: Invalid device ID ») et dit « arriere » de toutes sauf une : l'appli Camera (premiere arriere,
+#    premiere avant) ouvrait la 2, morte. CameraProviderManager lit persist.librehu.camera.hidden (« 2,10,11,12 »)
+#    et persist.librehu.camera.facing (« 3:back,0:front,8:external ») ; LibreHU-service les pose et redemarre
+#    cameraserver. Sans ces proprietes, rien ne change. Une camera masquee branchee a chaud (USB) n'est plus
+#    annoncee avec un identifiant vide.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -170,6 +178,10 @@ apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
 apply_patch frameworks/av services/camera/libcameraservice/common/CameraProviderManager.cpp \
     librehuCameraProvidersRegistered \
     "$PATCHES/frameworks_av/0002-librehu-camera-providers-registered.patch" "fournisseurs de camera du manifeste non servis"
+# 11. (apres 10 : meme fichier)
+apply_patch frameworks/av services/camera/libcameraservice/common/CameraProviderManager.cpp \
+    librehuCameraHiddenFacing \
+    "$PATCHES/frameworks_av/0003-librehu-camera-hidden-facing.patch" "cameras masquees et orientation forcee"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk
