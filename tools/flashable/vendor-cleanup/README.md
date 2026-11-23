@@ -34,7 +34,11 @@ see `files.txt`.
 A static runtime resource overlay on Android's `framework-res`. It is applied on top of LineageOS's own settings and
 changes them: automatic brightness offered (this head unit has no light sensor), screen turned on when the power is
 unplugged, multi-user UI with 4 users, navigation bar, MediaTek's Wi-Fi MAC prefix (`00-0C-E7`), the MediaTek IMS
-package, and about 1,200 per-carrier telephony values (VoLTE, video calls, Wi-Fi calling, MTU, APN). None is needed.
+package, and about 1,200 per-carrier telephony values (VoLTE, video calls, Wi-Fi calling, MTU, APN).
+The values that LineageOS lacks and that a board with a modem uses are in LibreHU's own overlay instead: the tethering
+interfaces (`ap\d`, `rndis\d`, `bt-pan`, `bt-dun`, without which the hotspot cannot share a connection), SIM hot swap,
+and the per-carrier tethering APN, MTU, TCP buffers, WAP push and voicemail values. The VoLTE, video call and Wi-Fi
+calling flags are not: LineageOS has no IMS stack for them, so they would only show options that cannot work.
 The other overlays of `/vendor/overlay` (Android's display cutout and dark theme ones) are kept.
 
 ### 3. The uVoice echo canceller and noise reducer for calls (when present)
