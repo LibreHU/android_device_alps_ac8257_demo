@@ -3,7 +3,9 @@
 # Ecrit system (image brute en morceaux de 1 Gio, empreinte relue sur toute la partition), boot (image du noyau LibreHU
 # avec androidboot.selinux=permissive ; « bootmenu » ou « plain » dans le nom du zip, sinon le type deja installe) et les
 # modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois), et installe ou
-# met a jour le pilote ViPER4Android RE dans /vendor (sauf LibreHU/no-viper dans la memoire interne). Ne touche jamais
+# met a jour le pilote ViPER4Android RE dans /vendor (sauf LibreHU/no-viper dans la memoire interne), puis retire les
+# applis du fabricant, le RRO MediaTek et l'ECNR uVoice apres les avoir sauvegardes dans la memoire interne (sauf
+# LibreHU/keep-vendor-apps ; README.md et restore.sh avec la sauvegarde). Ne touche jamais
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
@@ -24,6 +26,8 @@ cleanup() {
 	[ -n "$UJC_TEST" ] && return
 	sync
 	[ $MOUNTED_VEN = 1 ] && umount $VENMNT 2>/dev/null
+	# jancar est montee hors de $TMPD : jamais effacee par le rm qui suit
+	[ "$MOUNTED_JAN" = 1 ] && umount $JANMNT 2>/dev/null && rmdir $JANMNT 2>/dev/null
 	rm -rf $TMPD
 }
 
@@ -404,6 +408,99 @@ if unzip -o -q "$ZIPFILE" 'wifi/*' -d $TMPD 2>/dev/null && [ -f $TMPD/wifi/versi
 		wifi_wpa3_install $TMPD/wifi || ui_print "WPA3: not installed (see above), Wi-Fi unchanged"
 	fi
 fi
+
+# --- applis d'origine et restes du fabricant (confiance zero) : toutes les applis de /vendor/app (Jancar, Autochips,
+# MediaTek, tiers), le RRO MediaTek de framework-res (/vendor/overlay, il passe par-dessus les reglages de la ROM),
+# l'ECNR uVoice des appels (bibliotheques a licence avec client HTTP, chargees par dlopen depuis libecnrhelper.so, qui
+# reste : le HAL audio en a besoin) et les applis de /jancar/oem/app. Tout est d'abord copie dans la memoire interne
+# (LibreHU/backup/vendor-cleanup-<date> : fichiers, droits, proprietaire, contexte SELinux, SHA-256, README.md en
+# anglais, restore.sh), chaque copie relue, puis seulement retire. Pas de memoire interne, pas assez de place ou une
+# copie differente : rien n'est retire. Rien n'est fait si la memoire interne contient LibreHU/keep-vendor-apps. Un echec
+# ici n'arrete pas l'installation : system, boot et modules sont deja ecrits.
+JANMNT=${UJC_JANMNT:-/tmp/librehu_jancar}
+MOUNTED_JAN=0
+CLEAN_LIBS="libEcnrForCustomer.so libuvoice_ecnr_sdk.so libuvoice_ecnr_license.so"
+TAB=$(printf '\t')
+# Chemins a retirer, relatifs a la racine de la partition, un par ligne : « vendor <chemin> » ou « jancar <chemin> »
+clean_targets() {
+	for d in $VENMNT/app/*; do [ -e "$d" ] && echo "vendor app/${d##*/}"; done
+	[ -e $VENMNT/overlay/framework-res__auto_generated_rro.apk ] && echo "vendor overlay/framework-res__auto_generated_rro.apk"
+	for a in lib lib64; do for l in $CLEAN_LIBS; do [ -e $VENMNT/$a/$l ] && echo "vendor $a/$l"; done; done
+	if [ $MOUNTED_JAN = 1 ] || [ -n "$UJC_TEST" ]; then
+		for d in $JANMNT/oem/app/*; do [ -e "$d" ] && echo "jancar oem/app/${d##*/}"; done
+	fi
+}
+root_of() { [ $1 = vendor ] && echo $VENMNT || echo $JANMNT; }
+# Une ligne de files.txt par entree (dossiers avant leur contenu) : partie, type, droits, uid, gid, contexte, sha256 ou
+# cible du lien, chemin
+clean_list() {
+	R=$(root_of $1)
+	find "$R/$2" | while read -r F; do
+		REL=${F#$R/}
+		CTX=$(ls -dZ "$F" 2>/dev/null | awk '{print $1}')
+		case "$CTX" in u:*) ;; *) CTX=-;; esac
+		if [ -L "$F" ]; then T=l; X=$(readlink "$F")
+		elif [ -d "$F" ]; then T=d; X=-
+		else T=f; X=$(sha256sum "$F" | cut -d' ' -f1)
+		fi
+		echo "$1$TAB$T$TAB$(stat -c "%a$TAB%u$TAB%g" "$F")$TAB$CTX$TAB$X$TAB$REL"
+	done
+}
+vendor_cleanup() {
+	if [ -z "$UJC_TEST" ]; then
+		mkdir -p $JANMNT
+		blockdev --setrw $(part jancar) 2>/dev/null
+		if mount -t ext4 -o rw $(part jancar) $JANMNT; then MOUNTED_JAN=1; else ui_print "cleanup: jancar partition not mounted, /jancar/oem/app left alone"; fi
+	fi
+	LIST=$TMPD/clean_targets
+	clean_targets > $LIST
+	if [ ! -s $LIST ]; then
+		ui_print "cleanup: no maker app, MediaTek overlay or uVoice ECNR left: nothing to do"
+		return 0
+	fi
+	[ -n "$BK" ] || { ui_print "cleanup: no internal storage for the backup, nothing removed"; return 1; }
+	NEED=0
+	while read -r P REL; do
+		K=$(du -sk "$(root_of $P)/$REL" 2>/dev/null | awk '{print $1}')
+		NEED=$((NEED + ${K:-0}))
+	done < $LIST
+	FREE=$(df -k $SDCARD 2>/dev/null | tail -1 | awk '{print $4}')
+	[ "${FREE:-0}" -gt $((NEED + 65536)) ] 2>/dev/null || { ui_print "cleanup: $((NEED / 1024)) MiB needed for the backup, $((${FREE:-0} / 1024)) MiB free: nothing removed"; return 1; }
+	CB=$BK/vendor-cleanup-$(date +%Y%m%d-%H%M%S)
+	mkdir -p $CB || { ui_print "cleanup: cannot create $CB, nothing removed"; return 1; }
+	ui_print "cleanup: backing up $((NEED / 1024)) MiB to $CB"
+	: > $CB/files.txt
+	while read -r P REL; do
+		R=$(root_of $P)
+		clean_list $P "$REL" >> $CB/files.txt
+		mkdir -p "$CB/$P/$(dirname "$REL")"
+		cp -a "$R/$REL" "$CB/$P/$(dirname "$REL")/" || { ui_print "cleanup: cannot back up $P/$REL, nothing removed"; return 1; }
+	done < $LIST
+	# chaque fichier relu dans la sauvegarde avant de retirer quoi que ce soit
+	BAD=0
+	while IFS="$TAB" read -r P T MODE U G CTX SUM REL; do
+		[ $T = f ] || continue
+		[ "$(sha256sum "$CB/$P/$REL" 2>/dev/null | cut -d' ' -f1)" = "$SUM" ] || { BAD=$((BAD + 1)); ui_print "cleanup: backup of $P/$REL differs"; }
+	done < $CB/files.txt
+	[ $BAD = 0 ] || { ui_print "cleanup: $BAD file(s) not backed up correctly, nothing removed"; return 1; }
+	unzip -o -q "$ZIPFILE" 'vendor-cleanup/*' -d $TMPD && cp $TMPD/vendor-cleanup/README.md $TMPD/vendor-cleanup/restore.sh $CB/ \
+		|| ui_print "cleanup: README.md / restore.sh not found in the zip (see files.txt)"
+	cp $LIST $CB/removed.txt
+	N=0
+	while read -r P REL; do
+		rm -rf "$(root_of $P)/$REL" && N=$((N + 1))
+	done < $LIST
+	sync
+	ui_print "cleanup: $N item(s) removed: maker apps, MediaTek overlay, uVoice ECNR (list: $CB/removed.txt)"
+	ui_print "cleanup: why, and how to put them back: $CB/README.md"
+	return 0
+}
+if [ -f $SDCARD/LibreHU/keep-vendor-apps ]; then
+	ui_print "cleanup: LibreHU/keep-vendor-apps in internal storage, maker apps left alone"
+elif ! vendor_cleanup; then
+	ui_print "cleanup: the maker apps stay; the rest of the ROM is installed"
+fi
+if [ $MOUNTED_JAN = 1 ]; then sync; umount $JANMNT 2>/dev/null && rmdir $JANMNT 2>/dev/null; MOUNTED_JAN=0; fi
 
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then

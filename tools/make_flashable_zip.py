@@ -9,7 +9,9 @@ LineageOS's own zip (16.0 and 17.1) (`mka bacon`, ota_from_target_files.py) cann
   androidboot.selinux=permissive);
 - modules/: the connectivity modules of that kernel (prebuilt/modules), for /vendor/lib/modules;
 - viper/: the ViPERFX_RE driver of the ROM's ViPER4Android app (prebuilt/viper, tools/fetch_viper.sh), installed or
-  updated in /vendor/lib[64]/soundfx and declared in vendor's audio_effects.
+  updated in /vendor/lib[64]/soundfx and declared in vendor's audio_effects;
+- vendor-cleanup/: README.md (why the maker's apps, MediaTek's framework overlay and the uVoice ECNR are removed) and
+  restore.sh, copied with the backup that update-binary makes before removing them (tools/flashable/vendor-cleanup).
 
     tools/make_flashable_zip.py <system.img (sparse or raw)> <prebuilt dir> <out.zip> [--build NAME] [--chunk-mib N]
         [--lineage-version V]
@@ -151,6 +153,8 @@ def main():
                 z.write(os.path.join(mods, n), f"modules/{n}")
         for n in VIPER_FILES:
             z.write(os.path.join(viper, n), f"viper/{n}")
+        for n in ("README.md", "restore.sh"):
+            z.write(os.path.join(HERE, "flashable", "vendor-cleanup", n), f"vendor-cleanup/{n}")
         if a.wifi:
             for n in ("bin/wpa_supplicant", "lib64/android.hardware.wifi.supplicant@1.2.so", "SHA256SUMS",
                       "vendor_needed.txt", "version"):

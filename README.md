@@ -211,6 +211,11 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
 7. **Builds publies** (images) et mis a jour par l'appli OTA. Zip flashable : ✅ installateur TWRP propre a LibreHU
    (`tools/make_flashable_zip.py`, zip fait par la CI ; LineageOS 16.0 n'en fait pas pour un appareil non A/B sans
    recovery). Publication et mise a jour par l'appli OTA : a faire.
+   Le zip retire aussi, par principe de confiance zero, toutes les applis de `/vendor/app` (Jancar, Autochips,
+   MediaTek, tiers), le RRO MediaTek de `framework-res`, l'ECNR uVoice des appels (bibliotheques a licence avec client
+   HTTP) et `/jancar/oem/app`, apres sauvegarde relue dans `LibreHU/backup/vendor-cleanup-<date>` de la memoire interne
+   avec un `README.md` en anglais (pourquoi) et `restore.sh` (retour) ; `LibreHU/keep-vendor-apps` l'evite
+   (`tools/flashable/vendor-cleanup/`, 23/11/2026).
 
 ## Risques connus
 
