@@ -10,6 +10,8 @@ LineageOS's own zip (16.0 and 17.1) (`mka bacon`, ota_from_target_files.py) cann
 - modules/: the connectivity modules of that kernel (prebuilt/modules), for /vendor/lib/modules;
 - viper/: the ViPERFX_RE driver of the ROM's ViPER4Android app (prebuilt/viper, tools/fetch_viper.sh), installed or
   updated in /vendor/lib[64]/soundfx and declared in vendor's audio_effects;
+- ecnr/: LibreHU's WebRTC ECNR library (prebuilt/ecnr, tools/fetch_ecnr.sh), put in place of the maker's ECNR library
+  next to libecnrhelper.so in /vendor/lib[64] (left out when prebuilt/ecnr is missing);
 - vendor-cleanup/: README.md (why the maker's apps, MediaTek's framework overlay and the uVoice ECNR are removed) and
   restore.sh, copied with the backup that update-binary makes before removing them (tools/flashable/vendor-cleanup).
 
@@ -26,6 +28,7 @@ import zipfile
 
 SPARSE_MAGIC = 0xED26FF3A
 VIPER_FILES = ("libv4a_re_armeabi-v7a.so", "libv4a_re_arm64-v8a.so", "LICENSE", "SOURCE", "version", "SHA256SUMS")
+ECNR_FILES = ("libEcnrForCustomer_armeabi-v7a.so", "libEcnrForCustomer_arm64-v8a.so", "version", "NOTICE", "SHA256SUMS")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -159,6 +162,12 @@ def main():
             z.write(os.path.join(viper, n), f"viper/{n}")
         for n in ("README.md", "restore.sh"):
             z.write(os.path.join(HERE, "flashable", "vendor-cleanup", n), f"vendor-cleanup/{n}")
+        ecnr = os.path.join(a.prebuilt, "ecnr")
+        if all(os.path.isfile(os.path.join(ecnr, n)) for n in ECNR_FILES):
+            for n in ECNR_FILES:
+                z.write(os.path.join(ecnr, n), f"ecnr/{n}")
+        else:
+            print("prebuilt/ecnr incomplete: zip without the WebRTC ECNR (tools/fetch_ecnr.sh)")
         if a.wifi:
             for n in ("bin/wpa_supplicant", "lib64/android.hardware.wifi.supplicant@1.2.so", "SHA256SUMS",
                       "vendor_needed.txt", "version"):

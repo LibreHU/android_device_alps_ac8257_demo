@@ -10,6 +10,7 @@ prebuilt/kernel-librehu
 prebuilt/modules/
 prebuilt/modules.new/
 prebuilt/viper/
+prebuilt/ecnr/
 prebuilt/boot32/
 librehu/ksunext/*.apk
 librehu/ksunext/*.apk.part
