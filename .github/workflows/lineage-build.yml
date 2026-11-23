@@ -120,7 +120,7 @@ jobs:
           du -sh .repo; rm -rf .repo/project-objects .repo/projects
           du -sh /mnt/lineage; df -h / /mnt
 
-      - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh)
+      - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh), ECNR (tools/fetch_ecnr.sh)
         working-directory: /mnt/lineage/device/alps/ac8257_demo
         env:
           GH_TOKEN: ${{ github.token }}
@@ -130,6 +130,9 @@ jobs:
           tools/fetch_kernel.sh
           # ViPERFX_RE driver of the ROM's ViPER4Android app (same version), for the TWRP zip: installed or updated in /vendor
           tools/fetch_viper.sh
+          # WebRTC echo cancellation / noise reduction library (release ecnr-webrtc of LibreHU-flashablesZips) for the
+          # zip's ecnr/: put in place of the maker's ECNR library next to libecnrhelper.so by update-binary
+          tools/fetch_ecnr.sh || echo "::warning::no WebRTC ECNR library: ROM zip without it"
           ls -la prebuilt
 
       - name: ccache

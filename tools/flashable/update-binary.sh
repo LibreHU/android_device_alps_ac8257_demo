@@ -5,7 +5,8 @@
 # modules Wi-Fi / BT / GPS / FM de ce noyau dans /vendor/lib/modules (originaux sauvegardes une fois), et installe ou
 # met a jour le pilote ViPER4Android RE dans /vendor (sauf LibreHU/no-viper dans la memoire interne), puis retire les
 # applis du fabricant, le RRO MediaTek et l'ECNR uVoice apres les avoir sauvegardes dans la memoire interne (sauf
-# LibreHU/keep-vendor-apps ; README.md et restore.sh avec la sauvegarde). Ne touche jamais
+# LibreHU/keep-vendor-apps ; README.md et restore.sh avec la sauvegarde), et met a sa place l'ECNR WebRTC de LibreHU
+# (annulation d'echo et reduction de bruit des appels ; sauf LibreHU/no-ecnr-webrtc). Ne touche jamais
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
@@ -320,12 +321,18 @@ fi
 JANMNT=${UJC_JANMNT:-/tmp/librehu_jancar}
 MOUNTED_JAN=0
 CLEAN_LIBS="libEcnrForCustomer.so libuvoice_ecnr_sdk.so libuvoice_ecnr_license.so"
+ECNR_MARK="LibreHU WebRTC ECNR"
 TAB=$(printf '\t')
 # Chemins a retirer, relatifs a la racine de la partition, un par ligne : « vendor <chemin> » ou « jancar <chemin> »
 clean_targets() {
 	for d in $VENMNT/app/*; do [ -e "$d" ] && echo "vendor app/${d##*/}"; done
 	[ -e $VENMNT/overlay/framework-res__auto_generated_rro.apk ] && echo "vendor overlay/framework-res__auto_generated_rro.apk"
-	for a in lib lib64; do for l in $CLEAN_LIBS; do [ -e $VENMNT/$a/$l ] && echo "vendor $a/$l"; done; done
+	for a in lib lib64; do for l in $CLEAN_LIBS; do
+		[ -e $VENMNT/$a/$l ] || continue
+		# la bibliotheque ECNR WebRTC de LibreHU (posee au meme nom par un flash precedent) reste
+		[ $l = libEcnrForCustomer.so ] && grep -q "$ECNR_MARK" $VENMNT/$a/$l 2>/dev/null && continue
+		echo "vendor $a/$l"
+	done; done
 	if [ $MOUNTED_JAN = 1 ] || [ -n "$UJC_TEST" ]; then
 		for d in $JANMNT/oem/app/*; do [ -e "$d" ] && echo "jancar oem/app/${d##*/}"; done
 	fi
@@ -401,6 +408,66 @@ elif ! vendor_cleanup; then
 	ui_print "cleanup: the maker apps stay; the rest of the ROM is installed"
 fi
 if [ $MOUNTED_JAN = 1 ]; then sync; umount $JANMNT 2>/dev/null && rmdir $JANMNT 2>/dev/null; MOUNTED_JAN=0; fi
+
+# --- annulation d'echo et reduction de bruit WebRTC des appels (ecnr/ du zip : release ecnr-webrtc de
+# LibreHU-flashablesZips, tools/fetch_ecnr.sh) : libEcnrForCustomer.so de LibreHU a la place de la bibliotheque ECNR
+# tierce (uVoice, retiree juste avant par le nettoyage), dans chaque dossier lib / lib64 de vendor qui a libecnrhelper.so
+# (le point d'accroche du HAL audio, qui l'ouvre au debut de chaque appel ; un vendor ancien sans lui n'est pas touche).
+# Comme le zip ecnr-webrtc de LibreHU-flashablesZips : l'original encore en place (LibreHU/keep-vendor-apps) est
+# sauvegarde une fois dans LibreHU/backup/ecnr-orig, que son zip ecnr-webrtc-restore remet. Rien n'est fait si la
+# memoire interne contient LibreHU/no-ecnr-webrtc (cree par ce zip de retour). Un echec ici n'arrete pas l'installation.
+ecnr_install() {
+	unzip -o -q "$ZIPFILE" 'ecnr/*' -d $TMPD 2>/dev/null
+	[ -f $TMPD/ecnr/SHA256SUMS ] || { ui_print "ECNR: no WebRTC library in this zip, ECNR left as it is"; return 0; }
+	while read -r S F; do
+		[ -n "$F" ] || continue
+		[ "$(sha256sum $TMPD/ecnr/$F | cut -d' ' -f1)" = "$S" ] || { ui_print "ECNR: wrong checksum for $F"; return 1; }
+	done < $TMPD/ecnr/SHA256SUMS
+	EV=$(cat $TMPD/ecnr/version)
+	DIRS=""
+	for a in lib lib64; do [ -f $VENMNT/$a/libecnrhelper.so ] && DIRS="$DIRS $a"; done
+	if [ -z "$DIRS" ]; then
+		ui_print "ECNR: no libecnrhelper.so in vendor (this audio HAL has no ECNR hook): WebRTC not installed"
+		return 0
+	fi
+	EB=""
+	[ -n "$BK" ] && EB=$BK/ecnr-orig
+	if [ -n "$EB" ] && [ ! -d $EB ]; then
+		mkdir -p $EB || { ui_print "ECNR: cannot create $EB"; return 1; }
+		for a in $DIRS; do
+			f=$VENMNT/$a/libEcnrForCustomer.so
+			if [ -f $f ] && ! grep -q "$ECNR_MARK" $f; then
+				mkdir -p $EB/$a && cp -p $f $EB/$a/ || { rm -rf $EB; ui_print "ECNR: cannot back up $f"; return 1; }
+				ls -Z $f 2>/dev/null | awk '{print $1}' > $EB/$a/context
+				ui_print "ECNR: original backed up: $EB/$a/libEcnrForCustomer.so"
+			else
+				echo "$a" >> $EB/absent
+			fi
+		done
+		(cd $EB && find . -name '*.so' -exec sha256sum {} \; > SHA256SUMS)
+	fi
+	for a in $DIRS; do
+		f=$VENMNT/$a/libEcnrForCustomer.so
+		if [ -f $f ] && ! grep -q "$ECNR_MARK" $f && [ ! -f $EB/$a/libEcnrForCustomer.so ]; then
+			ui_print "ECNR: $f is the maker's and could not be backed up: left alone"
+			continue
+		fi
+		so=$TMPD/ecnr/libEcnrForCustomer_armeabi-v7a.so; [ $a = lib64 ] && so=$TMPD/ecnr/libEcnrForCustomer_arm64-v8a.so
+		if cmp -s $so $f; then ui_print "ECNR: $f already $EV"; continue; fi
+		cp $so $f.librehu.new || { rm -f $f.librehu.new; ui_print "ECNR: cannot copy into $VENMNT/$a (vendor full?)"; return 1; }
+		chmod 0644 $f.librehu.new; chown 0:0 $f.librehu.new 2>/dev/null
+		[ -z "$UJC_TEST" ] && chcon u:object_r:vendor_file:s0 $f.librehu.new
+		mv -f $f.librehu.new $f || { ui_print "ECNR: cannot replace $f"; return 1; }
+		ui_print "ECNR: $f = WebRTC $EV"
+	done
+	return 0
+}
+if [ -f $SDCARD/LibreHU/no-ecnr-webrtc ]; then
+	ui_print "ECNR: LibreHU/no-ecnr-webrtc in internal storage, ECNR left as it is"
+elif ! ecnr_install; then
+	ui_print "ECNR: WebRTC library not installed, the rest of the ROM is. Try again: zip ecnr-webrtc (LibreHU Apps)"
+fi
+
 
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then
