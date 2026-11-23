@@ -6,4 +6,7 @@
     <string-array name="config_tether_apndata" translatable="false">
         <item>[ApnSettingV3]ATT Hotspot,hotspot,,,,,,,,,310,410,,DUN,IPV4V6,IPV4V6,true,0,,,,,,,,</item>
     </string-array>
+    <!-- 1430 : MTU du reseau AT&T selon AT&T (iotdevices.att.com, MTU settings for FirstNet devices) et valeur du RRO
+         MediaTek pour tous les codes AT&T ; AOSP met 1410. -->
+    <integer name="config_mobile_mtu" translatable="false">1430</integer>
 </resources>
