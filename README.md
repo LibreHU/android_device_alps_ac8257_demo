@@ -42,6 +42,12 @@ Parametres Bluetooth, AV IN, routage audio, Wi-Fi 5 GHz. Chaque build est publie
 (zip signe) et l'appli Mises a jour de LineageOS s'y met a jour. **Installer : [docs/INSTALL.md](docs/INSTALL.md)**
 (vbmeta, flash, mises a jour, depannage) ou la [page du site](https://librehu.github.io/lineageos.html).**
 
+**Point d'acces WPA3** (Android 11+, 23/11/2026) : cette branche le propose (`config_wifi_softap_sae_supported`, overlay
+`LibreHUWifiOverlay`) ; le hostapd d'origine (HAL 1.0) ne sait pas le faire : installer d'abord
+`librehu_wifi_wpa3_hotspot_twrp.zip` (release `wifi-wpa3-hotspot`, HAL hostapd 1.2, sauvegarde et zip de retour). Sans
+le zip, WPA3 est propose mais le point d'acces echoue en WPA3 (WPA2 reste OK). Pas encore essaye (aucun build Android
+11+ publie).
+
 ## Branches du depot
 
 | Branche | Contenu |

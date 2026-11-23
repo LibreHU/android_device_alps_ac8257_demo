@@ -41,6 +41,11 @@ streaming and settings, AV IN, audio routing, 5 GHz Wi-Fi. Every build is publis
 (signed zip) and LineageOS's Updates app updates from them. **Install: [docs/INSTALL.en.md](docs/INSTALL.en.md)**
 (vbmeta, flashing, updates, troubleshooting) or the [website page](https://librehu.github.io/lineageos.html).**
 
+**WPA3 hotspot** (Android 11+, 23/11/2026): this branch offers it (`config_wifi_softap_sae_supported`, overlay
+`LibreHUWifiOverlay`); the stock hostapd (HAL 1.0) cannot do it: install `librehu_wifi_wpa3_hotspot_twrp.zip` first
+(release `wifi-wpa3-hotspot`, hostapd HAL 1.2, backup and restore zip). Without the zip, WPA3 is offered but the
+hotspot fails in WPA3 (WPA2 still works). Not tried yet (no Android 11+ build published).
+
 ## Branches
 
 | Branch | Content |
