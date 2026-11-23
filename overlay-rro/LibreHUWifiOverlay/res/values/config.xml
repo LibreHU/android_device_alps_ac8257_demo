@@ -2,4 +2,9 @@
 <resources>
     <!-- Puce MediaTek connac gen4m bi-bande : 5 GHz (canaux DFS compris selon la region) -->
     <bool name="config_wifi5ghzSupport">true</bool>
+    <!-- WPA3 (SAE) du point d'acces : le pilote gen4m remonte les trames AUTH / ASSOC du point d'acces a hostapd
+         (CFG_SUPPORT_SOFTAP_WPA3) ; Android 11+ ne le propose qu'avec ceci et un hostapd HAL 1.2 : celui du zip
+         librehu_wifi_wpa3_hotspot_twrp.zip (release wifi-wpa3-hotspot, HostapdHal addAccessPoint_1_2). Sans le zip,
+         WPA3 est propose mais le point d'acces echoue en WPA3 (WPA2 reste OK). -->
+    <bool name="config_wifi_softap_sae_supported">true</bool>
 </resources>
