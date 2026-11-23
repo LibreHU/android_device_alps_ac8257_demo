@@ -25,4 +25,28 @@
          (WifiServiceImpl.isDualBandSupported, android10-release), faux par defaut dans AOSP : applis et point d'acces
          (bande 5 GHz) croyaient la puce limitee au 2,4 GHz. -->
     <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
+
+    <!-- Partage de connexion (point d'acces Wi-Fi, USB, Bluetooth) : interfaces que le RRO MediaTek du vendor stock
+         (framework-res__auto_generated_rro.apk, retire par le zip de la ROM) declarait et qui sont vides dans LineageOS
+         et dans vendor/lineage : ap0 du pilote Wi-Fi MediaTek gen4m, rndis0 du gadget USB, bt-pan / bt-dun. Sans elles,
+         plus de partage de connexion. -->
+    <string-array name="config_tether_usb_regexs" translatable="false">
+        <item>rndis\\d</item>
+    </string-array>
+    <string-array name="config_tether_wifi_regexs" translatable="false">
+        <item>ap\\d</item>
+    </string-array>
+    <string-array name="config_tether_bluetooth_regexs" translatable="false">
+        <item>bt-pan</item>
+        <item>bt-dun</item>
+    </string-array>
+
+    <!-- Telephonie des cartes « +4G » (RIL MediaTek du vendor, mtkfusionrild) : reglages generaux du meme RRO, comme le
+         stock. SIM inseree ou retiree a chaud (le RIL MediaTek le gere ; sinon Android demande un redemarrage) ; pas de
+         changement GSM / CDMA du telephone d'Android sur un changement de reseau voix (le modem le fait lui-meme) ;
+         agent MMS. Les reglages par operateur sont dans values-mcc*/ ; VoLTE / IMS pas repris (pas de pile IMS). -->
+    <bool name="config_hotswapCapable">true</bool>
+    <bool name="config_switch_phone_on_voice_reg_state_change">false</bool>
+    <string name="config_mms_user_agent" translatable="false">Android-Mms/0.1</string>
+    <string name="config_mms_user_agent_profile_url" translatable="false">http://www.google.com/oha/rdf/ua-profile-kila.xml</string>
 </resources>

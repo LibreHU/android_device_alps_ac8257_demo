@@ -325,7 +325,9 @@ Toujours ouverts :
   `ro.telephony.sim.count=2`, que le system stock posait. A verifier sur une unite 4G : SIM, donnees, SMS, appels
   sortants. Appels entrants : le modem MediaTek attend l'accord du framework (`setCallIndication` de
   `vendor.mediatek.hardware.radio`), que la telephonie AOSP ne donne pas (meme cas que les GSI) ; VoLTE (IMS MediaTek)
-  non gere.
+  non gere. Reglages du RRO MediaTek repris dans l'overlay (le zip retire le RRO) : interfaces de partage de connexion,
+  SIM a chaud, pas de changement GSM / CDMA sur le reseau voix, agent MMS, et par operateur (`values-mcc*/`, faits
+  par `tools/rro/`) APN de partage, MTU, tampons TCP, WAP push, messagerie vocale ; drapeaux VoLTE / IMS non repris.
 - **Applis Jancar absentes** (`com.jancar.*`, `com.autochips.*`) : leurs fonctions passent par les applis LibreHU ;
   ce qu'aucune appli LibreHU ne couvre encore manquera.
 - **Rotation et affichage** : l'ecran est en 1280 x 720 paysage sur le stock ; a verifier au premier demarrage.
