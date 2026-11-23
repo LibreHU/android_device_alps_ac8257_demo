@@ -12,8 +12,8 @@ VNDK 28, Treble) et le noyau celui de LibreHU : `experimental-4.19.325`, variant
 `lineage-17.1-…` + flux `lineage-17.1-ota`), en service sur l'unité de l'auteur avec le noyau 4.19 `a10-lto32`.
 Essayé : Wi-Fi WPA3 (HAL supplicant 1.2, 300 Mbit/s en 5 GHz), applis caméra (caméras masquées / avant / arrière par
 LibreHU-service), noyau de test `experimental-4.19.325-lcm-mz` (dalle d'après la MetaZone, identifiant de carte
-`A0_AN`). Prochain build (pas encore lancé, attend l'ECNR open source) : nettoyage du vendor par le zip (applis du
-fabricant, RRO MediaTek, uVoice, avec sauvegarde), valeurs télécom du RRO dans l'overlay, scan Wi-Fi en arrière-plan.
+`A0_AN`). Prochain build (pas encore lancé) : nettoyage du vendor par le zip (applis du fabricant, RRO MediaTek,
+uVoice, avec sauvegarde) et ECNR WebRTC de LibreHU à la place d'uVoice (`tools/fetch_ecnr.sh`), valeurs télécom du RRO dans l'overlay, scan Wi-Fi en arrière-plan.
 Connu : SELinux permissif, le flot d'audit avc `proc_ged` remplit `dmesg` en ~30 s. L'historique ci-dessous reste valable.
 
 **État (18/11/2026) : les essais du 18/11 (noyau 4.9, puis 4.19) ne finissaient pas de démarrer : system_server et

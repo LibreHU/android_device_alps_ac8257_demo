@@ -49,8 +49,12 @@ The other overlays of `/vendor/overlay` (Android's display cutout and dark theme
   example `/jancar/ecnr/ecnr_license.bin`.
 - The audio HAL loads them only through `libecnrhelper.so` (kept: the HAL needs it), with `dlopen`. When they are
   missing, the helper logs `libEcnrForAtc dlopen fail` and the call audio goes through without that processing.
-- An open-source replacement with the same interface is planned. Until then, calls have no third-party echo
-  cancellation.
+- Replaced right after this cleanup by LibreHU's open-source library with the same interface (same file name,
+  `libEcnrForCustomer.so`, in each `lib` / `lib64` folder that has `libecnrhelper.so`): WebRTC audio processing (echo
+  canceller AEC3 or AECM, noise suppression, automatic gain), source in `native/ecnr-webrtc` of
+  https://github.com/LibreHU/LibreHU-flashablesZips, settings in LibreHU-service (Audio > Microphone). Its own backup
+  (`LibreHU/backup/ecnr-orig`) and way back: the zip `ecnr-webrtc-restore` (LibreHU Apps), which also stops the ROM
+  zips from installing it again. Put `restore.sh` below back afterwards to get the uVoice files themselves.
 
 ### 4. The apps of the `jancar` partition (`/jancar/oem/app/*`)
 TXZ voice assistant (cloud speech services), factory test and burn-in tools. LineageOS does not even install them

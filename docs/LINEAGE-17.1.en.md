@@ -11,8 +11,8 @@ migrates it by itself (see Install).
 **Status on 23/11/2026**: builds published on 21/11 (`4716bf9`, `8027ca6`, `f9859e6`, `d54fe5c`, release
 `lineage-17.1-…` + feed `lineage-17.1-ota`), in use on the author's unit with the 4.19 `a10-lto32` kernel. Tried: WPA3
 Wi-Fi (supplicant HAL 1.2, 300 Mbit/s on 5 GHz), camera apps (cameras hidden / front / back from LibreHU-service), test
-kernel `experimental-4.19.325-lcm-mz` (panel from the MetaZone, board id `A0_AN`). Next build (not started yet, waits for
-the open-source ECNR): vendor clean-up by the zip (maker's apps, MediaTek RRO, uVoice, with a backup), telephony values
+kernel `experimental-4.19.325-lcm-mz` (panel from the MetaZone, board id `A0_AN`). Next build (not started yet): vendor
+clean-up by the zip (maker's apps, MediaTek RRO, uVoice, with a backup) and LibreHU's WebRTC ECNR in place of uVoice, telephony values
 of the RRO in the overlay, Wi-Fi background scan. Known: SELinux permissive, the avc audit flood on `proc_ged` fills
 `dmesg` in ~30 s. The history below still applies.
 
