@@ -227,6 +227,13 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
    HTTP) et `/jancar/oem/app`, apres sauvegarde relue dans `LibreHU/backup/vendor-cleanup-<date>` de la memoire interne
    avec un `README.md` en anglais (pourquoi) et `restore.sh` (retour) ; `LibreHU/keep-vendor-apps` l'evite
    (`tools/flashable/vendor-cleanup/`, 23/11/2026).
+   A la place de l'ECNR uVoice, le zip pose l'**ECNR WebRTC de LibreHU** (annulation d'echo AEC3 / AECM, reduction de
+   bruit, gain automatique des appels Bluetooth ; source `native/ecnr-webrtc` de LibreHU-flashablesZips, release
+   `ecnr-webrtc` prise par `tools/fetch_ecnr.sh`) : meme nom `libEcnrForCustomer.so`, dans chaque dossier `lib` / `lib64`
+   de vendor qui a `libecnrhelper.so` (le point d'accroche du HAL audio ; un vendor ancien sans lui n'est pas touche) ;
+   original encore en place sauvegarde une fois dans `LibreHU/backup/ecnr-orig` ; reglages dans LibreHU-service (Audio >
+   Microphone) ; retour par le zip `ecnr-webrtc-restore`, qui cree `LibreHU/no-ecnr-webrtc` (le zip de la ROM ne la remet
+   plus).
 
 ## Risques connus
 
