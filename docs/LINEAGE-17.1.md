@@ -8,6 +8,14 @@ VNDK 28, Treble) et le noyau celui de LibreHU : `experimental-4.19.325`, variant
 (`a10` le 18/11 ; un noyau par ROM : la 16.0 garde `stable-4.9.337`). Ce noyau demande une **partition boot de
 32 Mio** : le zip la migre tout seul (voir Installer).
 
+**État au 23/11/2026** : builds publiés le 21/11 (`4716bf9`, `8027ca6`, `f9859e6`, `d54fe5c`, release
+`lineage-17.1-…` + flux `lineage-17.1-ota`), en service sur l'unité de l'auteur avec le noyau 4.19 `a10-lto32`.
+Essayé : Wi-Fi WPA3 (HAL supplicant 1.2, 300 Mbit/s en 5 GHz), applis caméra (caméras masquées / avant / arrière par
+LibreHU-service), noyau de test `experimental-4.19.325-lcm-mz` (dalle d'après la MetaZone, identifiant de carte
+`A0_AN`). Prochain build (pas encore lancé, attend l'ECNR open source) : nettoyage du vendor par le zip (applis du
+fabricant, RRO MediaTek, uVoice, avec sauvegarde), valeurs télécom du RRO dans l'overlay, scan Wi-Fi en arrière-plan.
+Connu : SELinux permissif, le flot d'audit avc `proc_ged` remplit `dmesg` en ~30 s. L'historique ci-dessous reste valable.
+
 **État (18/11/2026) : les essais du 18/11 (noyau 4.9, puis 4.19) ne finissaient pas de démarrer : system_server et
 SystemUI mouraient toutes les 8 s. Codec2 d'Android 10 demande n'importe quel heap ION (`~0`) et recevait
 `ion_mm_heap_for_pa2mva`, un buffer sans mémoire. Corrigé dans les deux noyaux le 18/11 ; build suivant avec le 4.19

@@ -2,7 +2,7 @@
 
 *Français : [README.md](README.md)*
 
-**Branch `lineage-17.1`: LineageOS 17.1 (Android 10), EXPERIMENTAL, never tried on the unit.** Differences with
+**Branch `lineage-17.1`: LineageOS 17.1 (Android 10), EXPERIMENTAL, builds published since 21/11/2026 and in use on the author's unit (kernel 4.19 `a10-lto32`).** Differences with
 16.0, build, CI and the update channel of its own (a 17.1 only updates from the `lineage-17.1-ota` feed):
 [docs/LINEAGE-17.1.en.md](docs/LINEAGE-17.1.en.md). The rest of this README describes the common tree and its history
 under LineageOS 16.0 (branch `lineage-16.0`, the everyday ROM).
