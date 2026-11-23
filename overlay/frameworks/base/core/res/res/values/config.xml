@@ -49,4 +49,11 @@
     <bool name="config_switch_phone_on_voice_reg_state_change">false</bool>
     <string name="config_mms_user_agent" translatable="false">Android-Mms/0.1</string>
     <string name="config_mms_user_agent_profile_url" translatable="false">http://www.google.com/oha/rdf/ua-profile-kila.xml</string>
+
+    <!-- Deux reglages du RRO MediaTek du vendor stock (retire par le zip), vrais pour ce materiel : la puce Wi-Fi
+         MediaTek (connac gen4m) cherche elle-meme les reseaux connus quand Android est deconnecte (recherche de fond),
+         et le compositeur materiel MediaTek applique la matrice de couleur (Night Light, LiveDisplay) sans passer par
+         le GPU. -->
+    <bool name="config_wifi_background_scan_support">true</bool>
+    <bool name="config_setColorTransformAccelerated">true</bool>
 </resources>
