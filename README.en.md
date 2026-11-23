@@ -227,6 +227,11 @@ ROM, the service starts it).
 7. **Published builds** (images) updated by the OTA app. Flashable zip: ✅ TWRP installer of LibreHU's own
    (`tools/make_flashable_zip.py`, zip made by the CI; LineageOS 16.0 makes none for a non-A/B device without a
    recovery). Publishing and updates by the OTA app: to do.
+   Following a zero-trust rule, the zip also removes every app of `/vendor/app` (Jancar, Autochips, MediaTek, third
+   parties), MediaTek's `framework-res` overlay, the uVoice call echo canceller (licensed libraries with an HTTP client)
+   and `/jancar/oem/app`, after a checked backup in `LibreHU/backup/vendor-cleanup-<date>` of the internal storage with
+   an English `README.md` (why) and `restore.sh` (way back); `LibreHU/keep-vendor-apps` skips it
+   (`tools/flashable/vendor-cleanup/`, 23/11/2026).
 
 ## Known risks
 
