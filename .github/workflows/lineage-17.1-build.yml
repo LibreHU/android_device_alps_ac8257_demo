@@ -131,7 +131,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           librehu/fetch_apks.sh
-          # LibreHU kernel experimental-4.19.325, variant a10-lto32: 32 MiB boot images with the stock AVB footer,
+          # LibreHU kernel rc-4.19.325, variant a10-lto32: 32 MiB boot images with the stock AVB footer,
           # androidboot.selinux=permissive added, connectivity built in (no module), and librehu_boot32_twrp.zip
           # (prebuilt/boot32) that the ROM zip runs when the boot partition is still 10 MiB
           tools/fetch_kernel.sh

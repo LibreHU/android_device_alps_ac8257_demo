@@ -4,7 +4,7 @@
 
 Branche **`lineage-17.1`** : le même arbre que `lineage-16.0` (LineageOS 16.0, Android 9), porté sur LineageOS 17.1
 (Android 10). Une vraie ROM construite depuis les sources LineageOS. Le vendor reste celui de l'unité (Android 9,
-VNDK 28, Treble) et le noyau celui de LibreHU : `experimental-4.19.325`, variante `a10-lto32` depuis le 19/11/2026
+VNDK 28, Treble) et le noyau celui de LibreHU : `rc-4.19.325`, variante `a10-lto32` depuis le 19/11/2026
 (`a10` le 18/11 ; un noyau par ROM : la 16.0 garde `stable-4.9.337`). Ce noyau demande une **partition boot de
 32 Mio** : le zip la migre tout seul (voir Installer).
 
