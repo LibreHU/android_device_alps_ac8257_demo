@@ -12,10 +12,10 @@ Image recompressee (gzip -9), DTB inchange (memoire reservee identique aux noyau
 
 Pas de `dtbo.img` : la partition `dtbo` stock est gardee.
 
-`kernel-librehu` et `modules/` (non versionnes) : **noyau LibreHU** de la branche `experimental-4.19.325` de
+`kernel-librehu` et `modules/` (non versionnes) : **noyau LibreHU** de la branche `rc-4.19.325` de
 [android_kernel_autochips_ac8257_4.9](https://github.com/LibreHU/android_kernel_autochips_ac8257_4.9) (Linux
 4.19.325, pilotes Autochips portes, KernelSU Next), variante `a10-lto32` (Android 10, ThinLTO) depuis le 19/11/2026
-(`a10` le 18/11) : `Image.gz-dtb_a10-lto32` de sa release `latest-experimental-4.19.325`. Wi-Fi / BT / GPS / FM sont
+(`a10` le 18/11) : `Image.gz-dtb_a10-lto32` de sa release `latest-rc-4.19.325`. Wi-Fi / BT / GPS / FM sont
 integres a ce noyau : `modules/` n'a aucun `.ko`, seulement `SHA256SUMS` (vide), `BUILTIN`, `kernel_version` (banniere
 de l'Image) et `release.txt` ; l'installateur du zip et `tools/vendor_add_conn_modules.sh` ne touchent alors pas a
 `/vendor/lib/modules`. Ecrits par `tools/fetch_kernel.sh` (`tools/fetch_kernel.sh stable-4.9.337` : noyau 4.9 de
