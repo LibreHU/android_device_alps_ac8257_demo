@@ -4,7 +4,7 @@
 
 Branch **`lineage-17.1`**: the `lineage-16.0` tree (LineageOS 16.0, Android 9) ported to LineageOS 17.1
 (Android 10). A real ROM built from the LineageOS sources. The vendor stays the unit's own (Android 9, VNDK 28,
-Treble) and the kernel the LibreHU one: `experimental-4.19.325`, variant `a10-lto32` since 19/11/2026 (`a10` on
+Treble) and the kernel the LibreHU one: `rc-4.19.325`, variant `a10-lto32` since 19/11/2026 (`a10` on
 18/11; one kernel per ROM: 16.0 keeps `stable-4.9.337`). This kernel needs a **32 MiB boot partition**: the zip
 migrates it by itself (see Install).
 
