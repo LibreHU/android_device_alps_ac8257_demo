@@ -1,0 +1,20 @@
+diff --git a/service/java/com/android/server/wifi/WifiConnectivityManager.java b/service/java/com/android/server/wifi/WifiConnectivityManager.java
+index baa368b..f0ba959 100644
+--- a/service/java/com/android/server/wifi/WifiConnectivityManager.java
++++ b/service/java/com/android/server/wifi/WifiConnectivityManager.java
+@@ -1793,6 +1793,15 @@ public class WifiConnectivityManager {
+         // So at least ignore scans triggered internally by ConnectivityManager
+         // when WFD session is active. We still allow connectivity scans initiated
+         // by other work source.
++        // librehuP2pGroupScanHold (LibreHU, UJC201): as for Miracast below, no internal scan while a Wi-Fi Direct group
++        // is up. The single radio of the MediaTek chip leaves the group's channel for every scan; with the station not
++        // joined, the periodic scan every 160 s cut wireless Android Auto each time (logs of 24/11/2026: link lost 15 s
++        // after each scan). Scans asked by apps (other work sources) still run.
++        if (WIFI_WORK_SOURCE.equals(workSource) && mP2pGroupStarted) {
++            Log.d(TAG, "ignore connectivity scan: a Wi-Fi Direct group is up");
++            return;
++        }
++
+         if (WIFI_WORK_SOURCE.equals(workSource) && mP2pGroupStarted &&
+             (mMiracastMode == WifiP2pManager.MIRACAST_SOURCE ||
+             mMiracastMode == WifiP2pManager.MIRACAST_SINK)) {
