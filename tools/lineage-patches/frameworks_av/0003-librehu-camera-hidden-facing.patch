@@ -1,6 +1,8 @@
+diff --git a/services/camera/libcameraservice/common/CameraProviderManager.cpp b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+index b8bba9b..2abb378 100644
 --- a/services/camera/libcameraservice/common/CameraProviderManager.cpp
 +++ b/services/camera/libcameraservice/common/CameraProviderManager.cpp
-@@ -56,6 +56,38 @@
+@@ -60,6 +60,38 @@ const float CameraProviderManager::kDepthARTolerance = .1f;
  CameraProviderManager::HardwareServiceInteractionProxy
  CameraProviderManager::sHardwareServiceInteractionProxy{};
  
@@ -39,7 +41,7 @@
  CameraProviderManager::~CameraProviderManager() {
  }
  
-@@ -1418,6 +1450,11 @@
+@@ -1641,6 +1673,11 @@ status_t CameraProviderManager::ProviderInfo::addDevice(const std::string& name,
                  type.c_str(), mType.c_str());
          return BAD_VALUE;
      }
@@ -51,21 +53,21 @@
      if (mManager->isValidDeviceLocked(id, major)) {
          ALOGE("%s: Device %s: ID %s is already in use for device major version %d", __FUNCTION__,
                  name.c_str(), id.c_str(), major);
-@@ -1577,7 +1614,10 @@
-                     mProviderName.c_str(), cameraDeviceName.c_str());
-                 return hardware::Void();
-             }
--            addDevice(cameraDeviceName, newStatus, &id);
-+            if (addDevice(cameraDeviceName, newStatus, &id) != OK) {
-+                // librehuCameraHiddenFacing: not added (hidden, or refused): nothing to tell cameraserver
-+                return hardware::Void();
-+            }
-         } else if (newStatus == CameraDeviceStatus::NOT_PRESENT) {
-             removeDevice(id);
+@@ -1895,7 +1932,10 @@ status_t CameraProviderManager::ProviderInfo::cameraDeviceStatusChangeLocked(
+                 mProviderName.c_str(), cameraDeviceName.c_str());
+             return BAD_VALUE;
          }
-@@ -1988,6 +2028,22 @@
+-        addDevice(cameraDeviceName, newStatus, &cameraId);
++        if (addDevice(cameraDeviceName, newStatus, &cameraId) != OK) {
++            // librehuCameraHiddenFacing: not added (hidden, or refused): nothing to tell cameraserver
++            return NAME_NOT_FOUND;
++        }
+     } else if (newStatus == CameraDeviceStatus::NOT_PRESENT) {
+         removeDevice(cameraId);
+     }
+@@ -2353,6 +2393,22 @@ CameraProviderManager::ProviderInfo::DeviceInfo3::DeviceInfo3(const std::string&
  
-     mIsPublicallyHiddenSecureCamera = isPublicallyHiddenSecureCamera();
+     mSystemCameraKind = getSystemCameraKind();
  
 +    // librehuCameraHiddenFacing: facing given by persist.librehu.camera.facing
 +    std::string librehuFacing;

@@ -28,4 +28,20 @@
     <!-- LibreHU : acces aux notifications des applis LibreHU des le premier demarrage, sans demande (titre en cours du
          Launcher, EasySource, clignotement des LED du service) ; librehu_grants l'accorde ensuite a chaque demarrage. -->
     <string name="config_defaultListenerAccessPackages" translatable="false">org.librehu.launcher:org.librehu.easysource:org.librehu.service</string>
+
+    <!-- Telephonie des cartes « +4G » (RIL MediaTek du vendor, mtkfusionrild) : reglages generaux du RRO MediaTek du
+         vendor stock (framework-res__auto_generated_rro.apk, retire par le zip de la ROM), comme le stock. SIM inseree
+         ou retiree a chaud (le RIL MediaTek le gere) ; pas de changement GSM / CDMA du telephone d'Android sur un
+         changement de reseau voix (le modem le fait lui-meme) ; agent MMS. Reglages par operateur dans les dossiers
+         values-mccNNN ; VoLTE / IMS pas repris (pas de pile IMS). Android 11 et plus : les interfaces de partage de
+         connexion sont dans overlay-rro/LibreHUTetheringOverlay (module Tethering) et la recherche Wi-Fi de fond dans
+         overlay-rro/LibreHUWifiOverlay (com.android.wifi.resources). -->
+    <bool name="config_hotswapCapable">true</bool>
+    <bool name="config_switch_phone_on_voice_reg_state_change">false</bool>
+    <string name="config_mms_user_agent" translatable="false">Android-Mms/0.1</string>
+    <string name="config_mms_user_agent_profile_url" translatable="false">http://www.google.com/oha/rdf/ua-profile-kila.xml</string>
+
+    <!-- Reglage du meme RRO, vrai pour ce materiel : le compositeur materiel MediaTek applique la matrice de couleur
+         (Night Light, LiveDisplay) sans passer par le GPU. -->
+    <bool name="config_setColorTransformAccelerated">true</bool>
 </resources>

@@ -95,17 +95,21 @@
 #    et persist.librehu.camera.facing (« 3:back,0:front,8:external ») ; LibreHU-service les pose et redemarre
 #    cameraserver. Sans ces proprietes, rien ne change. Une camera masquee branchee a chaud (USB) n'est plus
 #    annoncee avec un identifiant vide.
+#    Android 12 : correctif regenere sur ses sources (meme logique ; le rappel de changement d'etat rend
+#    NAME_NOT_FOUND pour une camera masquee, l'appelant ne l'annonce pas).
 #
 # 12. frameworks/base (lineage-patches/frameworks_base, 0003) : SystemUI plantait (NullPointerException dans
 #    PhoneStateMonitor.isLauncherShowing, journaux de la 17.1 du 23/11/2026) a chaque tache passee au premier plan
 #    sans activite au sommet (topActivity null) ; bug d'AOSP 10, encore dans Android 11. Une telle tache n'est pas
 #    l'ecran d'accueil.
 #
-# 13. frameworks/opt/net/wifi (lineage-patches/frameworks_opt_net_wifi) : pas de scan Wi-Fi interne d'Android tant
+# 13. packages/modules/Wifi (lineage-patches/packages_modules_Wifi ; frameworks/opt/net/wifi jusqu'a Android 11) : pas de scan Wi-Fi interne d'Android tant
 #    qu'un groupe Wi-Fi Direct est monte (Android Auto / CarPlay sans fil), comme AOSP le fait deja pour Miracast.
 #    La puce MediaTek n'a qu'une radio : chaque scan la sort du canal du groupe ; Wi-Fi de l'autoradio non connecte,
 #    le scan periodique toutes les 160 s coupait Android Auto sans fil a chaque fois (journaux du 24/11/2026 : lien
 #    perdu 15 s apres chaque scan). Les scans demandes par les applis passent toujours.
+#    Android 12+ : WifiConnectivityManager suit deja le groupe Wi-Fi Direct (mP2pGroupStarted, regle Miracast) : une
+#    condition avant celle de Miracast suffit, sans recepteur.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -212,9 +216,9 @@ apply_patch frameworks/base packages/SystemUI/src/com/android/systemui/assist/Ph
     librehuLauncherShowingNull \
     "$PATCHES/frameworks_base/0003-librehu-systemui-launcher-showing-null.patch" "SystemUI : tache sans activite au sommet"
 # 13.
-apply_patch frameworks/opt/net/wifi service/java/com/android/server/wifi/WifiConnectivityManager.java \
+apply_patch packages/modules/Wifi service/java/com/android/server/wifi/WifiConnectivityManager.java \
     librehuP2pGroupScanHold \
-    "$PATCHES/frameworks_opt_net_wifi/0001-librehu-p2p-group-scan-hold.patch" "pas de scan Wi-Fi pendant un groupe Wi-Fi Direct"
+    "$PATCHES/packages_modules_Wifi/0001-librehu-p2p-group-scan-hold.patch" "pas de scan Wi-Fi pendant un groupe Wi-Fi Direct"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk
