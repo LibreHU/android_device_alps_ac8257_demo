@@ -56,4 +56,7 @@
          le GPU. -->
     <bool name="config_wifi_background_scan_support">true</bool>
     <bool name="config_setColorTransformAccelerated">true</bool>
+    <!-- LibreHU : acces aux notifications des applis LibreHU des le premier demarrage, sans demande (titre en cours du
+         Launcher, EasySource, clignotement des LED du service) ; librehu_grants l'accorde ensuite a chaque demarrage. -->
+    <string name="config_defaultListenerAccessPackages" translatable="false">org.librehu.launcher:org.librehu.easysource:org.librehu.service</string>
 </resources>

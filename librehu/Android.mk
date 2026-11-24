@@ -68,6 +68,14 @@ LOCAL_MODULE_RELATIVE_PATH := permissions
 LOCAL_SRC_FILES := privapp-permissions-librehu.xml
 include $(BUILD_PREBUILT)
 
+# Permissions dangereuses des applis LibreHU accordees au premier demarrage (permissions/, /system/etc/default-permissions)
+include $(CLEAR_VARS)
+LOCAL_MODULE := default-permissions-librehu.xml
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_RELATIVE_PATH := default-permissions
+LOCAL_SRC_FILES := permissions/default-permissions-librehu.xml
+include $(BUILD_PREBUILT)
+
 # Gestionnaire KernelSU Next (APK de fetch_apks.sh, version de l'API du noyau LibreHU) : pas une appli systeme, le
 # noyau ne reconnait son gestionnaire que dans /data/app. L'APK est garde dans /system/etc/librehu et
 # librehu_ksunext l'installe dans /data/app au demarrage s'il n'y est pas (ksunext/).
@@ -137,4 +145,13 @@ LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
 LOCAL_SRC_FILES := boot/librehu_modem.sh
 LOCAL_INIT_RC := boot/librehu_modem.rc
+include $(BUILD_PREBUILT)
+
+# Toutes les autorisations aux applis LibreHU a chaque demarrage, sans demande a l'utilisateur (boot/librehu_grants.sh)
+include $(CLEAR_VARS)
+LOCAL_MODULE := librehu_grants
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
+LOCAL_SRC_FILES := boot/librehu_grants.sh
+LOCAL_INIT_RC := boot/librehu_grants.rc
 include $(BUILD_PREBUILT)
