@@ -1,0 +1,8 @@
+// LibreHU : interfaces de partage de connexion pour Android 11 et plus. config_tether_*_regexs (framework-res jusqu'a
+// Android 10) sont dans le module Tethering depuis Android 11 (com.android.networkstack.tethering, overlayable
+// TetheringConfig) : ses valeurs par defaut, plus ap\d (point d'acces du pilote Wi-Fi MediaTek gen4m : ap0) et bt-dun,
+// comme le RRO MediaTek du vendor stock (retire par le zip de la ROM). Sans ap\d, le point d'acces ne partage rien.
+runtime_resource_overlay {
+    name: "LibreHUTetheringOverlay",
+    product_specific: true,
+}
