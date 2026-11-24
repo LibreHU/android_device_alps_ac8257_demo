@@ -145,6 +145,19 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     librehu_modem
 
+# Toutes les autorisations aux applis LibreHU, sans rien demander a l'utilisateur (applis d'un autoradio : Android Auto,
+# CarPlay et le service demarrent sans ecran visible, ou aucune demande ne peut s'afficher) :
+# - default-permissions-librehu.xml (librehu/permissions) : permissions dangereuses accordees par Android au premier
+#   demarrage, avant qu'aucune appli ne demarre ;
+# - librehu_grants (librehu/boot/librehu_grants.sh), a chaque demarrage : toutes les permissions dangereuses demandees
+#   (applis mises a jour comprises), superposition, reglages, installation, VPN et capture d'ecran sans demande, pas
+#   d'economie de batterie, acces aux notifications, accessibilite (BtnRemap), administrateur (Android Auto), LibreHU
+#   Launcher ecran d'accueil par defaut tant qu'aucun n'est choisi ;
+# - config_defaultListenerAccessPackages (overlay) : acces aux notifications au premier demarrage.
+PRODUCT_PACKAGES += \
+    default-permissions-librehu.xml \
+    librehu_grants
+
 # Ethernet (adaptateurs USB RTL8152/8153, ASIX..., pilotes integres au noyau LibreHU) : sans la fonctionnalite
 # android.hardware.ethernet (le system stock la declarait, celui de LineageOS rien), le service Ethernet d'Android
 # n'est lance que si l'hote USB est declare, et l'interface eth0 n'est pas prise comme reseau.
