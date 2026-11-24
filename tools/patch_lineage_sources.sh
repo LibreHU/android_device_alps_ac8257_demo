@@ -95,6 +95,8 @@
 #    et persist.librehu.camera.facing (« 3:back,0:front,8:external ») ; LibreHU-service les pose et redemarre
 #    cameraserver. Sans ces proprietes, rien ne change. Une camera masquee branchee a chaud (USB) n'est plus
 #    annoncee avec un identifiant vide.
+#    Android 11 : correctif regenere sur ses sources (meme logique ; le rappel de changement d'etat rend
+#    NAME_NOT_FOUND pour une camera masquee, l'appelant ne l'annonce pas).
 #
 # 12. frameworks/base (lineage-patches/frameworks_base, 0003) : SystemUI plantait (NullPointerException dans
 #    PhoneStateMonitor.isLauncherShowing, journaux de la 17.1 du 23/11/2026) a chaque tache passee au premier plan
@@ -106,6 +108,7 @@
 #    La puce MediaTek n'a qu'une radio : chaque scan la sort du canal du groupe ; Wi-Fi de l'autoradio non connecte,
 #    le scan periodique toutes les 160 s coupait Android Auto sans fil a chaque fois (journaux du 24/11/2026 : lien
 #    perdu 15 s apres chaque scan). Les scans demandes par les applis passent toujours.
+#    Android 11 : meme correctif regenere sur ses sources (recepteur sur le Handler du constructeur).
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
