@@ -7,4 +7,7 @@
          librehu_wifi_wpa3_hotspot_twrp.zip (release wifi-wpa3-hotspot, HostapdHal addAccessPoint_1_2). Sans le zip,
          WPA3 est propose mais le point d'acces echoue en WPA3 (WPA2 reste OK). -->
     <bool name="config_wifi_softap_sae_supported">true</bool>
+    <!-- RRO MediaTek du vendor stock (retire par le zip) : la puce cherche elle-meme les reseaux connus quand Android
+         est deconnecte (recherche de fond ; framework-res jusqu'a Android 10). -->
+    <bool name="config_wifi_background_scan_support">true</bool>
 </resources>

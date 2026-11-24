@@ -12,6 +12,8 @@ PRODUCT_SHIPPING_API_LEVEL := 28
 
 # Wi-Fi bi-bande pour Android 11+ (overlay-rro/LibreHUWifiOverlay : config_wifi5ghzSupport de com.android.wifi.resources)
 PRODUCT_PACKAGES += LibreHUWifiOverlay
+# Partage de connexion Android 11+ (overlay-rro/LibreHUTetheringOverlay : ap\d, bt-dun du module Tethering)
+PRODUCT_PACKAGES += LibreHUTetheringOverlay
 
 # Android 12+ : les APK prebuilt LibreHU declarent des <uses-library> optionnelles (androidx.window.*) inconnues
 # du build (run 44502045895 : « mismatch in the <uses-library> tags ») ; verification coupee.
