@@ -1,0 +1,13 @@
+# Copyright (C) 2026 LibreHU
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Toutes les autorisations aux applis LibreHU a chaque demarrage d'Android (voir librehu_grants.sh).
+on property:sys.boot_completed=1
+    start librehu_grants
+
+service librehu_grants /system/bin/librehu_grants
+    class late_start
+    user root
+    group root
+    oneshot
+    disabled
