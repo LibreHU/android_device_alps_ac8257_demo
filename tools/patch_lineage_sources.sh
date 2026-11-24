@@ -63,6 +63,12 @@
 #    avant) ouvrait la 2, morte. CameraProviderManager lit persist.librehu.camera.hidden (« 2,10,11,12 ») et
 #    persist.librehu.camera.facing (« 3:back,0:front,8:external ») ; LibreHU-service les pose et redemarre
 #    cameraserver. Sans ces proprietes, rien ne change.
+#
+# 8. frameworks/opt/net/wifi (lineage-patches/frameworks_opt_net_wifi) : pas de scan Wi-Fi interne d'Android tant
+#    qu'un groupe Wi-Fi Direct est monte (Android Auto / CarPlay sans fil), comme AOSP le fait deja pour Miracast.
+#    La puce MediaTek n'a qu'une radio : chaque scan la sort du canal du groupe ; Wi-Fi de l'autoradio non connecte,
+#    le scan periodique toutes les 160 s coupait Android Auto sans fil a chaque fois (journaux du 24/11/2026 : lien
+#    perdu 15 s apres chaque scan). Les scans demandes par les applis passent toujours.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -144,5 +150,9 @@ apply_patch system/vold model/PublicVolume.cpp librehu.mac_volumes \
     "$PATCHES/system_vold/0001-librehu-mac-volumes.patch" "cles USB d'un Mac (HFS, HFS+, APFS)"
 apply_patch frameworks/av services/camera/libcameraservice/common/CameraProviderManager.cpp librehuCameraHiddenFacing \
     "$PATCHES/frameworks_av/0001-librehu-camera-hidden-facing.patch" "cameras masquees et orientation forcee"
+# 8.
+apply_patch frameworks/opt/net/wifi service/java/com/android/server/wifi/WifiConnectivityManager.java \
+    librehuP2pGroupScanHold \
+    "$PATCHES/frameworks_opt_net_wifi/0001-librehu-p2p-group-scan-hold.patch" "pas de scan Wi-Fi pendant un groupe Wi-Fi Direct"
 
 exit $TODO
