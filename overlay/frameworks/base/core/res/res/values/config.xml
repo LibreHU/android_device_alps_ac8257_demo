@@ -25,4 +25,7 @@
          (WifiServiceImpl.isDualBandSupported, android10-release), faux par defaut dans AOSP : applis et point d'acces
          (bande 5 GHz) croyaient la puce limitee au 2,4 GHz. -->
     <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
+    <!-- LibreHU : acces aux notifications des applis LibreHU des le premier demarrage, sans demande (titre en cours du
+         Launcher, EasySource, clignotement des LED du service) ; librehu_grants l'accorde ensuite a chaque demarrage. -->
+    <string name="config_defaultListenerAccessPackages" translatable="false">org.librehu.launcher:org.librehu.easysource:org.librehu.service</string>
 </resources>

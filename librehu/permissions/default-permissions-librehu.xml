@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 LibreHU
+     SPDX-License-Identifier: AGPL-3.0-or-later
+
+     Permissions dangereuses des applis LibreHU accordees par Android au premier demarrage
+     (DefaultPermissionGrantPolicy.grantDefaultPermissionExceptions, /system/etc/default-permissions/, Android 9 et 10),
+     avant qu'aucune appli ne demarre : Android Auto et CarPlay sans fil montent leur groupe Wi-Fi des le demarrage, sans
+     ecran visible. Seules les permissions que l'APK de la ROM demande sont accordees (une permission absente de cette
+     version d'Android, comme ACCESS_BACKGROUND_LOCATION sous Android 9, est ignoree). librehu/boot/librehu_grants.sh
+     accorde ensuite, a chaque demarrage, toutes les permissions dangereuses demandees, y compris celles d'une appli
+     mise a jour par LibreHU Apps.
+-->
+<exceptions>
+    <!-- Android Auto (Open Headunit LibreHU) -->
+    <exception package="org.librehu.headunit">
+        <permission name="android.permission.ACCESS_FINE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_COARSE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_BACKGROUND_LOCATION" fixed="false"/>
+        <permission name="android.permission.RECORD_AUDIO" fixed="false"/>
+        <permission name="android.permission.READ_PHONE_STATE" fixed="false"/>
+        <permission name="android.permission.READ_EXTERNAL_STORAGE" fixed="false"/>
+        <permission name="android.permission.WRITE_EXTERNAL_STORAGE" fixed="false"/>
+    </exception>
+    <!-- CarPlay (xcertplay LibreHU) -->
+    <exception package="org.librehu.carplay">
+        <permission name="android.permission.ACCESS_FINE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_COARSE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_BACKGROUND_LOCATION" fixed="false"/>
+        <permission name="android.permission.RECORD_AUDIO" fixed="false"/>
+    </exception>
+    <exception package="org.librehu.service">
+        <permission name="android.permission.ACCESS_FINE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_COARSE_LOCATION" fixed="false"/>
+        <permission name="android.permission.CAMERA" fixed="false"/>
+        <permission name="android.permission.READ_CONTACTS" fixed="false"/>
+        <permission name="android.permission.READ_CALL_LOG" fixed="false"/>
+        <permission name="android.permission.RECORD_AUDIO" fixed="false"/>
+        <permission name="android.permission.READ_EXTERNAL_STORAGE" fixed="false"/>
+        <permission name="android.permission.WRITE_EXTERNAL_STORAGE" fixed="false"/>
+    </exception>
+    <exception package="org.librehu.launcher">
+        <permission name="android.permission.ACCESS_FINE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_COARSE_LOCATION" fixed="false"/>
+        <permission name="android.permission.CALL_PHONE" fixed="false"/>
+        <permission name="android.permission.SEND_SMS" fixed="false"/>
+        <permission name="android.permission.RECORD_AUDIO" fixed="false"/>
+    </exception>
+    <exception package="org.librehu.dialer">
+        <permission name="android.permission.READ_CONTACTS" fixed="false"/>
+        <permission name="android.permission.READ_CALL_LOG" fixed="false"/>
+    </exception>
+    <exception package="org.librehu.fm">
+        <permission name="android.permission.RECORD_AUDIO" fixed="false"/>
+    </exception>
+    <exception package="org.librehu.disc">
+        <permission name="android.permission.READ_EXTERNAL_STORAGE" fixed="false"/>
+        <permission name="android.permission.WRITE_EXTERNAL_STORAGE" fixed="false"/>
+    </exception>
+</exceptions>
