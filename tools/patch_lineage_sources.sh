@@ -95,6 +95,11 @@
 #    et persist.librehu.camera.facing (« 3:back,0:front,8:external ») ; LibreHU-service les pose et redemarre
 #    cameraserver. Sans ces proprietes, rien ne change. Une camera masquee branchee a chaud (USB) n'est plus
 #    annoncee avec un identifiant vide.
+#
+# 12. frameworks/base (lineage-patches/frameworks_base, 0003) : SystemUI plantait (NullPointerException dans
+#    PhoneStateMonitor.isLauncherShowing, journaux de la 17.1 du 23/11/2026) a chaque tache passee au premier plan
+#    sans activite au sommet (topActivity null) ; bug d'AOSP 10, encore dans Android 11. Une telle tache n'est pas
+#    l'ecran d'accueil.
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -196,6 +201,10 @@ apply_patch frameworks/av services/camera/libcameraservice/common/CameraProvider
 apply_patch frameworks/av services/camera/libcameraservice/common/CameraProviderManager.cpp \
     librehuCameraHiddenFacing \
     "$PATCHES/frameworks_av/0003-librehu-camera-hidden-facing.patch" "cameras masquees et orientation forcee"
+# 12.
+apply_patch frameworks/base packages/SystemUI/src/com/android/systemui/assist/PhoneStateMonitor.java \
+    librehuLauncherShowingNull \
+    "$PATCHES/frameworks_base/0003-librehu-systemui-launcher-showing-null.patch" "SystemUI : tache sans activite au sommet"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk
