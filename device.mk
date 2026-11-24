@@ -12,6 +12,8 @@ PRODUCT_SHIPPING_API_LEVEL := 28
 
 # Wi-Fi bi-bande pour Android 11+ (overlay-rro/LibreHUWifiOverlay : config_wifi5ghzSupport de com.android.wifi.resources)
 PRODUCT_PACKAGES += LibreHUWifiOverlay
+# Partage de connexion Android 11+ (overlay-rro/LibreHUTetheringOverlay : ap\d, bt-dun du module Tethering)
+PRODUCT_PACKAGES += LibreHUTetheringOverlay
 
 # Vendor stock d'Android 9 sous un system Android 10 : ses bibliotheques sont liees aux bibliotheques VNDK de la
 # version 28, que le system garde a cote des siennes (/system/lib*/vndk-28, vndk-sp-28 ; prebuilts/vndk/v28, choisies
