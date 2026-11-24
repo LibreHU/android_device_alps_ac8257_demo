@@ -38,7 +38,7 @@ TARGET_BOARD_PLATFORM := ac8257
 # Display (1280 x 720 en paysage, ro.sf.lcd_density=160 du stock)
 TARGET_SCREEN_DENSITY := 160
 
-# Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche experimental-4.19.325, variante a10 depuis le
+# Kernel : noyau LibreHU (android_kernel_autochips_ac8257_4.9, branche rc-4.19.325, variante a10 depuis le
 # 18/11/2026 : Linux 4.19.325, KernelSU Next ; la 16.0 garde stable-4.9.337) : image de boot de sa CI
 # (BOARD_PREBUILT_BOOTIMAGE ci-dessous), avec ses modules Wi-Fi / BT / GPS / FM a mettre dans l'image vendor
 # (tools/vendor_add_conn_modules.sh : il refuse ceux du stock). Voir prebuilt/README.md.
