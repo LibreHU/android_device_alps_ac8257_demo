@@ -1,0 +1,13 @@
+--- a/packages/SystemUI/src/com/android/systemui/assist/PhoneStateMonitor.java
++++ b/packages/SystemUI/src/com/android/systemui/assist/PhoneStateMonitor.java
+@@ -169,7 +169,9 @@
+     }
+ 
+     private boolean isLauncherShowing(ActivityManager.RunningTaskInfo runningTaskInfo) {
+-        if (runningTaskInfo == null) {
++        // librehuLauncherShowingNull (LibreHU, UJC201): a task with no activity on top (topActivity null) made
++        // SystemUI crash on every such task move (NullPointerException, logs of 23/11/2026); not the launcher.
++        if (runningTaskInfo == null || runningTaskInfo.topActivity == null) {
+             return false;
+         } else {
+             return runningTaskInfo.topActivity.equals(mDefaultHome);
