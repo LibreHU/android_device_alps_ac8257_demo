@@ -17,7 +17,7 @@ Seules deux choses changent d'un fichier à l'autre ; tout le reste est l'octet 
 2.50, 44 entrées, fins de ligne CRLF) :
 
 - **`boot10MiB`** = table d'origine ; **`boot32MiB`** = table de `librehu_boot32_twrp.zip` (dépôt du noyau 4.19,
-  release `latest-experimental-4.19.325`) : boot `0x1F200000` / **`0x2000000`**, dtbo **`0x21200000` / `0x100000`**,
+  release `latest-rc-4.19.325`) : boot `0x1F200000` / **`0x2000000`**, dtbo **`0x21200000` / `0x100000`**,
   tee1 **`0x21300000`**, tee2 **`0x21800000`**, vendor **`0x21F00000` / `0x7F100000`** (2033 Mio). system et la suite
   ne bougent pas.
 - **taille de l'eMMC** = taille de userdata, la dernière partition (elle commence à `0x1A0000000` et finit

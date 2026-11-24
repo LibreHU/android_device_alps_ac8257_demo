@@ -6,7 +6,7 @@
 # Zips TWRP de LibreHU embarques dans l'image TWRP (recovery/root/system/etc/librehu, ajoutes au ramdisk par
 # tools/ujc201_postprocess.py --overlay recovery/root) : librehu_boot32_twrp.zip (partition boot 10 -> 32 Mio, pour
 # les noyaux 32 Mio d'Android 10 et plus) et librehu_boot32_restore_twrp.zip (retour a 10 Mio), de la release
-# latest-experimental-4.19.325 du depot du noyau (compiles et testes par sa CI : gpt32, coupures de courant simulees).
+# latest-rc-4.19.325 du depot du noyau (compiles et testes par sa CI : gpt32, coupures de courant simulees).
 # Menu Advanced de TWRP (tools/ujc201_theme.py) : flashes par la page de confirmation, comme un zip de la memoire.
 # Empreintes verifiees (celles que GitHub donne pour les fichiers de la release). Non versionnes (.gitignore).
 #   tools/fetch_librehu_zips.sh
@@ -16,7 +16,7 @@ set -e
 MY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT="$MY_DIR/../recovery/root/system/etc/librehu"
 REPO=LibreHU/android_kernel_autochips_ac8257_4.9
-TAG=latest-experimental-4.19.325
+TAG=latest-rc-4.19.325
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 

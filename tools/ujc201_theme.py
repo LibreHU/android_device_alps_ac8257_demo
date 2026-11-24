@@ -33,7 +33,7 @@ def term_item(name, cmd, title):
     return ('\t\t\t\t<listitem name="%s">\n\t\t\t\t\t<actions>\n%s\t\t\t\t\t</actions>\n\t\t\t\t</listitem>\n'
             % (name, term_actions(cmd, title, 'advanced', 6)))
 
-# Zips TWRP de LibreHU embarques dans l'image (CI : release latest-experimental-4.19.325 du noyau), flashes comme un
+# Zips TWRP de LibreHU embarques dans l'image (CI : release latest-rc-4.19.325 du noyau), flashes comme un
 # zip choisi dans Install : file d'attente puis page de confirmation (glisser pour flasher) de TWRP
 ZIP_DIR = '/system/etc/librehu'
 

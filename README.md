@@ -214,7 +214,7 @@ Les entrees Advanced passent par `terminalcommand` : la sortie des scripts s'aff
 Partition boot 32 Mio (Android 10 et plus : noyaux `-lto32` seulement depuis le 19/11/2026) : Advanced >
 *Boot partition: grow to 32 MiB (Android 10+)* et *Boot partition: back to 10 MiB* flashent les zips
 `librehu_boot32_twrp.zip` / `librehu_boot32_restore_twrp.zip` embarques dans l'image (`/system/etc/librehu`, recuperes
-par `tools/fetch_librehu_zips.sh` dans la release `latest-experimental-4.19.325` du noyau, empreintes verifiees) par
+par `tools/fetch_librehu_zips.sh` dans la release `latest-rc-4.19.325` du noyau, empreintes verifiees) par
 la page de confirmation de TWRP. Memes verifications que les zips : vbmeta en VERIFICATION_DISABLED, 4,4 Go libres,
 sauvegardes dans `/sdcard/LibreHU/boot32`. Le zip de la ROM LineageOS 17.1 et plus lance aussi la migration tout seul.
 LED des touches : commande `0F 04 <panneau> R G B <mode>` (R,G,B 0..99 ; mode 1 auto, 2 manuel, 3 semi-auto ;
