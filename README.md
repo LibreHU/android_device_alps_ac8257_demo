@@ -336,7 +336,7 @@ Toujours ouverts :
   LibreHU-service l'envoie (assistant root `ril/MtkCallHelper`, carte « Modem 4G » de la page Telephone, experimental,
   non teste avec une SIM) ; VoLTE (IMS MediaTek) non gere. Reglages du RRO MediaTek repris dans l'overlay (le zip retire le RRO) : interfaces de partage de connexion,
   SIM a chaud, pas de changement GSM / CDMA sur le reseau voix, agent MMS, et par operateur (`values-mcc*/`, faits
-  par `tools/rro/`) APN de partage, MTU, tampons TCP, WAP push, messagerie vocale ; drapeaux VoLTE / IMS non repris.
+  par `tools/rro/`) APN de partage (Android 9), MTU, tampons TCP, WAP push ; drapeaux VoLTE / IMS non repris.
 - **Applis Jancar absentes** (`com.jancar.*`, `com.autochips.*`) : leurs fonctions passent par les applis LibreHU ;
   ce qu'aucune appli LibreHU ne couvre encore manquera.
 - **Rotation et affichage** : l'ecran est en 1280 x 720 paysage sur le stock ; a verifier au premier demarrage.
