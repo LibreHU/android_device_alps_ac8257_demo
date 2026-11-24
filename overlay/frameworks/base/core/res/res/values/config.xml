@@ -44,7 +44,7 @@
     <!-- Telephonie des cartes « +4G » (RIL MediaTek du vendor, mtkfusionrild) : reglages generaux du meme RRO, comme le
          stock. SIM inseree ou retiree a chaud (le RIL MediaTek le gere ; sinon Android demande un redemarrage) ; pas de
          changement GSM / CDMA du telephone d'Android sur un changement de reseau voix (le modem le fait lui-meme) ;
-         agent MMS. Les reglages par operateur sont dans values-mcc*/ ; VoLTE / IMS pas repris (pas de pile IMS). -->
+         agent MMS. Les reglages par operateur sont dans les dossiers values-mccNNN ; VoLTE / IMS pas repris (pas de pile IMS). -->
     <bool name="config_hotswapCapable">true</bool>
     <bool name="config_switch_phone_on_voice_reg_state_change">false</bool>
     <string name="config_mms_user_agent" translatable="false">Android-Mms/0.1</string>
