@@ -3,7 +3,7 @@
 # Copyright (C) 2026 LibreHU
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Telecharge le noyau LibreHU de LineageOS 18.1 (Android 11) : branche experimental-4.19.325 de android_kernel_autochips_ac8257_4.9,
+# Telecharge le noyau LibreHU de LineageOS 18.1 (Android 11) : branche rc-4.19.325 de android_kernel_autochips_ac8257_4.9,
 # variante a11-lto32 (config ac8257_a10.config + ac8257_a11.config + ac8257_lto32.config : Android 11+, ThinLTO,
 # connectivite integree, image de 32 Mio pour la partition boot agrandie ; le zip de la ROM fait la migration). Un noyau par ROM : 16.0 (Android 9)
 # avec stable-4.9.337, 17.1 (Android 10) avec 4.19. Depuis la release latest-<branche>, compilee par la CI du depot
@@ -25,13 +25,13 @@
 # Le correctif ION d'Android 10 (Codec2 demande n'importe quel heap, ~0 : il recevait ion_mm_heap_for_pa2mva, un
 # buffer sans memoire, et system_server mourait a chaque demarrage) est dans les deux branches depuis le 18/11/2026.
 # Ces fichiers ne sont pas versionnes (.gitignore) : a relancer pour prendre un nouveau build.
-#   tools/fetch_kernel.sh [branche [variante]]     (defaut : experimental-4.19.325 a11-lto32 ; stable-4.9.337 sans variante)
+#   tools/fetch_kernel.sh [branche [variante]]     (defaut : rc-4.19.325 a11-lto32 ; stable-4.9.337 sans variante)
 #
 
 set -e
 
 MY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BRANCH="${1:-experimental-4.19.325}"
+BRANCH="${1:-rc-4.19.325}"
 # les releases 4.19 publient une variante par fichier (suffixe _a9 / _a9-lto32 / _a10-lto32 / _a11-lto32), celles de
 # 4.9 aucune. Android 10 et plus : noyaux -lto32 seulement depuis le 19/11/2026 (partition boot de 32 Mio, connectivite
 # integree au noyau, aucun module ; les noyaux 10 Mio a10 / a11 ne tenaient plus)
