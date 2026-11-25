@@ -2,7 +2,9 @@ name: lineage delete a build release
 # Deletes the GitHub release (and its tag) of one LineageOS build of this repository: a build that must not be
 # installed any more (e.g. lineage-17.1-20261124-2349-390e669, kernel r237 that stayed on the boot menu). The Updater
 # feed (release lineage-<version>-ota, updater.json) is not touched here: point it first at another build ("publish an
-# existing build" workflow). By hand only: Actions > "lineage delete a build release" > Run workflow, tag = the release.
+# existing build" workflow). By hand only: Actions > "lineage delete a build release" > Run workflow (branch lineage-…),
+# tag = the release. Copy on the default branch (twrp): GitHub only lists and dispatches a workflow found there. Run it
+# with a ROM branch (gh workflow run … --ref lineage-…): that branch's own file runs. Run on twrp, its job is skipped.
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +13,7 @@ on:
         required: true
 jobs:
   delete:
+    if: startsWith(github.ref, 'refs/heads/lineage-')
     permissions:
       contents: write
     runs-on: ubuntu-22.04
