@@ -469,6 +469,15 @@ elif ! ecnr_install; then
 fi
 
 
+# --- SELinux : la politique ODM des commandes GED (/vendor/odm/etc/selinux/odm_sepolicy.cil) des ROM Android 10 et
+# plus de LibreHU n'a pas lieu d'etre sous Android 9, ou la politique vendor stock suffit (aucune liste blanche
+# d'ioctl sur les fichiers) : retiree si un flash d'une ROM Android 10+ l'a laissee. Un fichier qui n'est pas de
+# LibreHU (premiere ligne) n'est jamais touche.
+O=$VENMNT/odm/etc/selinux/odm_sepolicy.cil
+if [ -f $O ] && head -n 1 $O | grep -q '^; LibreHU: GED ioctls (/proc/ged)'; then
+	rm -f $O && ui_print "SELinux GED: policy of an Android 10+ ROM removed (not needed on Android 9)"
+fi
+
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then
 	ui_print " "

@@ -85,6 +85,8 @@ $b[123] = $b[123] -bor 3
    `/vendor/lib[64]/soundfx` et le declare dans `/vendor/etc/audio_effects.xml` (copie d'origine `.v4a-orig` a cote) :
    plus besoin du zip `viper4android-re`. Le zip `viper4android-re-restore` le retire et cree
    `/sdcard/LibreHU/no-viper`, qui empeche les zips suivants de le remettre (le zip `viper4android-re` le supprime).
+   Il retire la politique SELinux des commandes GED (`/vendor/odm/etc/selinux/odm_sepolicy.cil`) qu'une ROM
+   Android 10+ de LibreHU aurait laissee : inutile sous Android 9, ou la politique vendor stock suffit.
 6. *Reboot -> System*. Le premier demarrage prend quelques minutes ; le menu de demarrage lance Android tout seul au
    bout de 3 secondes.
 
