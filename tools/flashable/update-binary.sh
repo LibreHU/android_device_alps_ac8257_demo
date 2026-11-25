@@ -568,6 +568,54 @@ elif ! ecnr_install; then
 	ui_print "ECNR: WebRTC library not installed, the rest of the ROM is. Try again: zip ecnr-webrtc (LibreHU Apps)"
 fi
 
+# --- SELinux : commandes GED (/proc/ged, pilote GPU MediaTek) a nouveau permises (tools/flashable/odm-sepolicy.sh).
+# Android 10 met tous les ioctl sur fichiers sous liste blanche (system/sepolicy/public/domain.te, FIOCLEX) ; la
+# politique vendor stock (Android 9) n'autorise les commandes GED que par des regles « ioctl » sans liste : refusees,
+# journalisees des milliers de fois par minute (logcat et dmesg ecrases en quelques minutes). Politique ODM generee
+# depuis la politique vendor installee (memes sources que ses regles ioctl sur proc_ged), dans
+# /vendor/odm/etc/selinux/odm_sepolicy.cil : sans partition odm, /odm pointe sur /vendor/odm et l'init (Android 10 a 14,
+# init/selinux.cpp) l'ajoute a la politique qu'il compile au demarrage. Refaite a chaque flash ; un odm_sepolicy.cil
+# qui n'est pas de LibreHU n'est jamais touche. Un echec ici n'arrete pas l'installation : le GPU marche sans (SELinux
+# permissif, les refus ne sont que journalises).
+odm_sepolicy_install() {
+	unzip -o -q "$ZIPFILE" 'librehu/odm-sepolicy.sh' -d $TMPD 2>/dev/null
+	[ -f $TMPD/librehu/odm-sepolicy.sh ] || { ui_print "SELinux GED: no generator in this zip"; return 1; }
+	. $TMPD/librehu/odm-sepolicy.sh
+	OD=$VENMNT/odm/etc/selinux
+	O=$OD/odm_sepolicy.cil
+	if [ -f $O ] && ! head -n 1 $O | grep -qF "$ODM_SEPOLICY_MARK"; then
+		ui_print "SELinux GED: $O is not LibreHU's: left alone"
+		return 0
+	fi
+	ged_odm_cil $VENMNT/etc/selinux/vendor_sepolicy.cil > $TMPD/odm_sepolicy.cil || {
+		ui_print "SELinux GED: cannot read vendor_sepolicy.cil"; return 1; }
+	if [ ! -s $TMPD/odm_sepolicy.cil ]; then
+		rm -f $O
+		ui_print "SELinux GED: no GED rule in the vendor policy, nothing to add"
+		return 0
+	fi
+	if cmp -s $TMPD/odm_sepolicy.cil $O; then
+		ui_print "SELinux GED: policy already in place"
+		return 0
+	fi
+	# dossiers crees au besoin, labels de la politique de la plateforme (/vendor/odm : vendor_file, etc : vendor_configs_file)
+	for d in $VENMNT/odm:vendor_file $VENMNT/odm/etc:vendor_configs_file $OD:vendor_configs_file; do
+		p=${d%%:*}
+		[ -d $p ] && continue
+		mkdir $p && chmod 0755 $p || { ui_print "SELinux GED: cannot create $p"; return 1; }
+		chown 0:0 $p 2>/dev/null
+		[ -z "$UJC_TEST" ] && chcon u:object_r:${d#*:}:s0 $p
+	done
+	cp $TMPD/odm_sepolicy.cil $O.librehu.new || {
+		rm -f $O.librehu.new; ui_print "SELinux GED: cannot write into $OD (vendor full?)"; return 1; }
+	chmod 0644 $O.librehu.new; chown 0:0 $O.librehu.new 2>/dev/null
+	[ -z "$UJC_TEST" ] && chcon u:object_r:vendor_configs_file:s0 $O.librehu.new
+	mv -f $O.librehu.new $O || { rm -f $O.librehu.new; ui_print "SELinux GED: cannot install $O"; return 1; }
+	ui_print "SELinux GED: $(grep -c '^(allowx' $O) rule(s) in /vendor/odm/etc/selinux/odm_sepolicy.cil"
+	return 0
+}
+odm_sepolicy_install || ui_print "SELinux GED: policy not installed, the rest of the ROM is (the GPU works without it)"
+
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then
 	ui_print " "

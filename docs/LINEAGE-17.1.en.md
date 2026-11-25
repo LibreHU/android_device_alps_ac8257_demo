@@ -141,6 +141,34 @@ one kept: the repository's 10 GB of cache are shared), releases `lineage-17.1-<d
   nothing changes. Map of the unit of 21/11: 0 = USB camera (front), 3 = CVBS decoder (AV IN 1 / 2 and CVBS rear
   camera, analogue switch), 8 and 9 = cameras that open (AHD, the 9963 chip's for 8 according to Jancar).
 
+## SELinux: GED commands (`/proc/ged`) of the GPU driver (25/11/2026)
+
+- Seen (LibreHU Helper reports of 25/11, 17.1): thousands of SELinux `ioctl` denials on `/proc/ged` (`proc_ged`) per
+  minute, from `hal_graphics_composer_default` (by far the first), apps, `bootanim`, `mediacodec`, `surfaceflinger`,
+  `hal_graphics_allocator_default`, `system_server`; commands `0x6701`, `0x6704`, `0x6765`, `0x6766`, `0x6769`
+  (GED: GPU log, 3D fences, buffer info; `ged_bridge_id.h`). Permissive mode lets the calls through, but `dmesg` and
+  logcat are overwritten within minutes (`audit_lost` at 5.38 million).
+- Cause: Android 10 adds, for every domain and every file,
+  `allowxperm domain { file_type fs_type domain dev_type }:{ dir notdevfile_class_set blk_file } ioctl { FIOCLEX FIONCLEX };`
+  (`system/sepolicy/public/domain.te`, LineageOS 17.1 to 21.0; not in 16.0). Once an `allowxperm` rule exists for a
+  source / target pair, only the listed ioctls pass. The stock vendor policy (Android 9) allows GED with plain
+  `ioctl` rules only (`(allow X proc_ged (file (ioctl ...)))`, 30 sources): under Android 10, no GED command is
+  allowed any more.
+- Fix: the ROM zip generates `/vendor/odm/etc/selinux/odm_sepolicy.cil` from the installed vendor policy
+  (`tools/flashable/odm-sepolicy.sh`): for every source the vendor gives `ioctl` on `proc_ged`,
+  `(allowx SRC proc_ged (ioctl file ((range 0x6700 0x670c) (range 0x6764 0x6769))))`, the 19 commands of the GED
+  driver (the same in 4.9 and 4.19). Without an odm partition, `/odm` points to `/vendor/odm` and init adds the file to
+  the policy it compiles at boot (`init/selinux.cpp`, Android 10 to 14). Only the installed vendor's sources are used:
+  every name exists in the compiled policy. The `chr_file` class is left out (not allow-listed: a rule would make it
+  so). An `odm_sepolicy.cil` that is not LibreHU's is never touched.
+- Checked offline: `secilc` compile with init's options (`-m -M true -G -N`) of the LineageOS platform (28.0 mapping)
+  + the unit's stock vendor + this file: OK, the same 26 pre-existing `neverallow` failures with and without it (none
+  involves it); `sesearch`: the 11 domains denied in the logs have the rule. `tools/ci/test_odm_sepolicy.sh` (CI)
+  compiles the generator's output in a minimal policy (the unit's vendor is never published) and rejects a malformed
+  rule.
+- The Android 9 zips (16.0, crDroid 9.0) remove this file when an Android 10+ ROM left it: the stock vendor policy is
+  enough there.
+
 ## To check on the unit
 
 - Android 10 property order: the stock vendor's are read **after** the system's (`init/property_service.cpp`,

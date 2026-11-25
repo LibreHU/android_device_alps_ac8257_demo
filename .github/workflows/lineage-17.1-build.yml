@@ -146,6 +146,14 @@ jobs:
           tools/ci/fetch_wifi_wpa3.sh /home/runner/wifi-wpa3 || echo "::warning::no WPA3 package: ROM zip without WPA3"
           ls -la prebuilt
 
+      - name: ODM SELinux policy of the GED ioctls (tools/flashable/odm-sepolicy.sh, run by update-binary on the unit)
+        working-directory: /mnt/lineage/device/alps/ac8257_demo
+        run: |
+          # Compiled by secilc with the options of the init (a malformed rule would stop the unit's boot); the real
+          # policy compile, with the unit's vendor policy (never published), was checked by hand (docs/LINEAGE-17.1.md).
+          sudo apt-get install -y -qq secilc >/dev/null
+          tools/ci/test_odm_sepolicy.sh
+
       - name: ccache
         uses: actions/cache/restore@v4
         with:
