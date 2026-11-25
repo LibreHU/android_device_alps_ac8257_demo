@@ -71,6 +71,17 @@
 #    La puce MediaTek n'a qu'une radio : chaque scan la sort du canal du groupe ; Wi-Fi de l'autoradio non connecte,
 #    le scan periodique toutes les 160 s coupait Android Auto sans fil a chaque fois (journaux du 24/11/2026 : lien
 #    perdu 15 s apres chaque scan). Les scans demandes par les applis passent toujours.
+#
+# 9. packages/apps/Bluetooth (lineage-patches/packages_apps_Bluetooth) : appels Bluetooth sans son (kit mains libres,
+#    cote voiture). Telecom d'AOSP met un appel HFP en MODE_IN_CALL : le HAL audio Autochips ouvre alors la voix d'un
+#    modem que l'unite n'a pas (AudioALSASpeechPhoneCallController, SpeechDriverDummy « modem not ready », plus de 1000
+#    fois pendant un appel des journaux du 25/11/2026), et rien ne passe. Le stock garde un appel Bluetooth en
+#    MODE_IN_COMMUNICATION (son Telecom : CallAudioModeStateMachine, « [hj_bt]BT call in MODE_IN_COMMUNICATION ») et son
+#    appli Bluetooth envoie au HAL les cles Autochips atc_hfp_set_sampling_rate, atc_hfp_enable et atc_hfp_volume au
+#    lieu des hfp_* d'AOSP (HeadsetClientStateMachine, AtcUtils.isAtcAOSPSupport). Le correctif fait de meme dans
+#    l'appli Bluetooth : la connexion HFP est declaree VoIP (Telecom choisit alors MODE_IN_COMMUNICATION) et les cles
+#    deviennent atc_hfp_*, si ro.librehu.hfp_atc_keys vaut bluetooth (device.mk). Limite connue : un appel en conference
+#    (deux appels fusionnes) n'a pas de mode VoIP dans l'API de Telecom (android.telecom.Conference).
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -165,6 +176,9 @@ apply_patch frameworks/av services/camera/libcameraservice/common/CameraProvider
 apply_patch frameworks/opt/net/wifi service/java/com/android/server/wifi/WifiConnectivityManager.java \
     librehuP2pGroupScanHold \
     "$PATCHES/frameworks_opt_net_wifi/0001-librehu-p2p-group-scan-hold.patch" "pas de scan Wi-Fi pendant un groupe Wi-Fi Direct"
+# 9.
+apply_patch packages/apps/Bluetooth src/com/android/bluetooth/hfpclient/connserv/HfpClientConnection.java librehuHfpVoipAudioMode \
+    "$PATCHES/packages_apps_Bluetooth/0002-librehu-hfp-call-audio-autochips.patch" "audio des appels Bluetooth (voie Autochips)"
 
 # mode souple sans --check : le build continue meme s'il manque un correctif (deja signale)
 [ "$SOFT" = 1 ] && [ $CHECK = 0 ] && exit 0

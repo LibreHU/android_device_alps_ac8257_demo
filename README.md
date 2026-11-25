@@ -321,10 +321,13 @@ Toujours ouverts :
   `persist.vendor.sys.pq.*` et couleurs `persist.sys.rgb.*` (lecteurs inconnus sans les fichiers du vendor), proprietes
   des applis Jancar et de leur pile Bluetooth, choix de l'utilisateur (voiture, langue, fuseau) et
   `persist.netd.stable_secret` (propre a chaque unite).
-- **Son des appels Bluetooth** : en HFP client, le Bluetooth d'Android 9 confie le son de l'appel au HAL audio du
-  vendor (parametres `hfp_enable`, `hfp_set_sampling_rate`, appareils BT SCO de `audio_policy_configuration.xml`) ;
-  le HAL audio MediaTek du stock les gere-t-il ? A essayer (sur le stock, c'est la pile Bluetooth de Jancar qui
-  passait les appels).
+- **Son des appels Bluetooth** : cause trouvee (journaux du 25/11/2026), correctif n° 9 de
+  `tools/patch_lineage_sources.sh`, a confirmer sur l'unite. Telecom d'AOSP met l'appel HFP en `MODE_IN_CALL` : le HAL
+  audio Autochips ouvre alors la voix d'un modem que l'unite n'a pas (`SpeechDriverDummy` « modem not ready ») et rien
+  ne passe. Le stock garde l'appel en `MODE_IN_COMMUNICATION` et son appli Bluetooth envoie les cles du HAL
+  `atc_hfp_set_sampling_rate`, `atc_hfp_enable` et `atc_hfp_volume` au lieu des `hfp_*` d'AOSP. L'appli Bluetooth
+  corrigee fait de meme (`ro.librehu.hfp_atc_keys=bluetooth`, `device.mk`). Reste a voir : un appel en conference
+  (deux appels fusionnes), qui n'a pas de mode VoIP dans l'API de Telecom.
 
 - **RIL** : modem MediaTek integre au SoC des cartes « +4G » (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`) avec
   la telephonie AOSP de LineageOS. `librehu_modem` (`librehu/boot/`) lit `/sys/kernel/ccci/md_en` au demarrage : sans
