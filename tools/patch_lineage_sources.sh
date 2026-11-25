@@ -108,6 +108,19 @@
 #    perdu 15 s apres chaque scan). Les scans demandes par les applis passent toujours.
 #    Android 12+ : WifiConnectivityManager suit deja le groupe Wi-Fi Direct (mP2pGroupStarted, regle Miracast) : une
 #    condition avant celle de Miracast suffit, sans recepteur.
+#
+# 14. packages/modules/Bluetooth (lineage-patches/packages_modules_Bluetooth ; packages/apps/Bluetooth jusqu'a Android
+#    12) : appels Bluetooth sans son (kit mains libres, cote voiture). Telecom d'AOSP met un appel HFP en MODE_IN_CALL :
+#    le HAL audio Autochips ouvre alors la voix d'un modem que l'unite n'a pas (AudioALSASpeechPhoneCallController,
+#    SpeechDriverDummy « modem not ready », plus de 1000 fois pendant un appel des journaux du 25/11/2026), et rien ne
+#    passe. Le stock garde un appel Bluetooth en MODE_IN_COMMUNICATION (son Telecom : CallAudioModeStateMachine,
+#    « [hj_bt]BT call in MODE_IN_COMMUNICATION ») et son appli Bluetooth envoie au HAL les cles Autochips
+#    atc_hfp_set_sampling_rate, atc_hfp_enable et atc_hfp_volume au lieu des hfp_* d'AOSP (ici
+#    AudioManager.setHfpEnabled / setHfpSamplingRate / setHfpVolume) (HeadsetClientStateMachine,
+#    AtcUtils.isAtcAOSPSupport). Le correctif fait de meme dans l'appli Bluetooth : la connexion HFP est declaree VoIP
+#    (Telecom choisit alors MODE_IN_COMMUNICATION) et les cles deviennent atc_hfp_*, si ro.librehu.hfp_atc_keys vaut
+#    bluetooth (device.mk). Limite connue : un appel en conference (deux appels fusionnes) n'a pas de mode VoIP dans
+#    l'API de Telecom (android.telecom.Conference).
 
 set -e
 TOP=${ANDROID_BUILD_TOP:-$PWD}
@@ -213,6 +226,9 @@ apply_patch frameworks/av services/camera/libcameraservice/common/CameraProvider
 apply_patch packages/modules/Wifi service/java/com/android/server/wifi/WifiConnectivityManager.java \
     librehuP2pGroupScanHold \
     "$PATCHES/packages_modules_Wifi/0001-librehu-p2p-group-scan-hold.patch" "pas de scan Wi-Fi pendant un groupe Wi-Fi Direct"
+# 14.
+apply_patch packages/modules/Bluetooth android/app/src/com/android/bluetooth/hfpclient/connserv/HfpClientConnection.java librehuHfpVoipAudioMode \
+    "$PATCHES/packages_modules_Bluetooth/0001-librehu-hfp-call-audio-autochips.patch" "audio des appels Bluetooth (voie Autochips)"
 
 # 6. autochips.jar en module Soong (copie locale du depot vendor)
 VMK=$VENDOR/Android.mk
