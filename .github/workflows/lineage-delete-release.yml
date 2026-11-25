@@ -1,0 +1,35 @@
+name: lineage delete a build release
+# Deletes the GitHub release (and its tag) of one LineageOS build of this repository: a build that must not be
+# installed any more (e.g. lineage-17.1-20261124-2349-390e669, kernel r237 that stayed on the boot menu). The Updater
+# feed (release lineage-<version>-ota, updater.json) is not touched here: point it first at another build ("publish an
+# existing build" workflow). By hand only: Actions > "lineage delete a build release" > Run workflow (branch lineage-…),
+# tag = the release. Copy on the default branch (twrp): GitHub only lists and dispatches a workflow found there. Run it
+# with a ROM branch (gh workflow run … --ref lineage-…): that branch's own file runs. Run on twrp, its job is skipped.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release of a build to delete (lineage-<version>-<YYYYMMDD>-<HHMM>-<sha>)'
+        required: true
+jobs:
+  delete:
+    if: startsWith(github.ref, 'refs/heads/lineage-')
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Delete the release and its tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # Build releases only: never the -ota feeds nor any other release
+          [[ "$TAG" =~ ^lineage-[0-9]+\.[0-9]+-[0-9]{8}-[0-9]{4}-[0-9a-f]{7}$ ]] || { echo "::error::not a build release: $TAG"; exit 1; }
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+          VER=$(sed -E 's/^lineage-([0-9]+\.[0-9]+)-.*/\1/' <<<"$TAG")
+          # The Updater feed of that version must not point at the build any more
+          feed=$(gh release download "lineage-$VER-ota" --repo "$GITHUB_REPOSITORY" -p updater.json -O - 2>/dev/null || true)
+          case "$feed" in *"/download/$TAG/"*) echo "::error::lineage-$VER-ota still points at $TAG: move it first"; exit 1;; esac
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+          echo "deleted: $TAG"
