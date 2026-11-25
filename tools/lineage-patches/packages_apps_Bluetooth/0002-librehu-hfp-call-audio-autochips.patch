@@ -1,0 +1,89 @@
+--- a/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
++++ b/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
+@@ -48,6 +48,7 @@
+ import android.os.Message;
+ import android.os.ParcelUuid;
+ import android.os.SystemClock;
++import android.os.SystemProperties;
+ import android.support.annotation.VisibleForTesting;
+ import android.util.Log;
+ import android.util.Pair;
+@@ -741,6 +742,19 @@
+         return hfcsm;
+     }
+ 
++    // librehuAtcHfpKeys (LibreHU, UJC201): the Autochips audio HAL opens its Bluetooth call path (BT CVSD and echo
++    // canceller) on its own keys atc_hfp_set_sampling_rate, atc_hfp_enable and atc_hfp_volume, which the stock
++    // Bluetooth app of the Jancar firmware sends instead of the AOSP hfp_* ones (com.android.bluetooth,
++    // HeadsetClientStateMachine.enableScoAudio / routeHfpAudio, AtcUtils.isAtcAOSPSupport). On when the device sets
++    // ro.librehu.hfp_atc_keys=bluetooth (device.mk); LibreHU-service then leaves these keys to this app.
++    private static boolean librehuAtcHfpKeys() {
++        return "bluetooth".equals(SystemProperties.get("ro.librehu.hfp_atc_keys"));
++    }
++
++    private void librehuSetHfpParameters(String keyValue) {
++        mAudioManager.setParameters(librehuAtcHfpKeys() ? "atc_" + keyValue : keyValue);
++    }
++
+     synchronized void routeHfpAudio(boolean enable) {
+         if (mAudioManager == null) {
+             Log.e(TAG, "AudioManager is null!");
+@@ -750,9 +764,9 @@
+             Log.d(TAG, "hfp_enable=" + enable);
+         }
+         if (enable && !sAudioIsRouted) {
+-            mAudioManager.setParameters("hfp_enable=true");
++            librehuSetHfpParameters("hfp_enable=true");
+         } else if (!enable) {
+-            mAudioManager.setParameters("hfp_enable=false");
++            librehuSetHfpParameters("hfp_enable=false");
+         }
+         sAudioIsRouted = enable;
+     }
+@@ -1533,19 +1547,19 @@
+                         if (DBG) {
+                             Log.d(TAG, "Setting sampling rate as 16000");
+                         }
+-                        mAudioManager.setParameters("hfp_set_sampling_rate=16000");
++                        librehuSetHfpParameters("hfp_set_sampling_rate=16000");
+                     } else {
+                         if (DBG) {
+                             Log.d(TAG, "Setting sampling rate as 8000");
+                         }
+-                        mAudioManager.setParameters("hfp_set_sampling_rate=8000");
++                        librehuSetHfpParameters("hfp_set_sampling_rate=8000");
+                     }
+                     if (DBG) {
+                         Log.d(TAG, "hf_volume " + hfVol);
+                     }
+                     routeHfpAudio(true);
+                     mAudioFocusRequest = requestAudioFocus();
+-                    mAudioManager.setParameters("hfp_volume=" + hfVol);
++                    librehuSetHfpParameters("hfp_volume=" + hfVol);
+                     transitionTo(mAudioOn);
+                     break;
+ 
+--- a/src/com/android/bluetooth/hfpclient/connserv/HfpClientConnection.java
++++ b/src/com/android/bluetooth/hfpclient/connserv/HfpClientConnection.java
+@@ -20,6 +20,7 @@
+ import android.bluetooth.BluetoothHeadsetClientCall;
+ import android.content.Context;
+ import android.net.Uri;
++import android.os.SystemProperties;
+ import android.telecom.Connection;
+ import android.telecom.DisconnectCause;
+ import android.telecom.PhoneAccount;
+@@ -88,7 +89,12 @@
+ 
+     void finishInitializing() {
+         mClientHasEcc = HfpClientConnectionService.hasHfpClientEcc(mHeadsetProfile, mDevice);
+-        setAudioModeIsVoip(false);
++        // librehuHfpVoipAudioMode (LibreHU, UJC201): the call audio of the car hands-free link goes through the
++        // Autochips audio HAL in MODE_IN_COMMUNICATION, as on the stock firmware (its Telecom keeps a Bluetooth call
++        // in that mode: CallAudioModeStateMachine.SimCallFocusState, "[hj_bt]"). In MODE_IN_CALL the HAL opens the
++        // speech path of a modem this unit does not have (SpeechDriverDummy "modem not ready"): a call without audio.
++        // A VoIP connection makes Telecom pick MODE_IN_COMMUNICATION. On with ro.librehu.hfp_atc_keys=bluetooth.
++        setAudioModeIsVoip("bluetooth".equals(SystemProperties.get("ro.librehu.hfp_atc_keys")));
+         Uri number = Uri.fromParts(PhoneAccount.SCHEME_TEL, mCurrentCall.getNumber(), null);
+         setAddress(number, TelecomManager.PRESENTATION_ALLOWED);
+         setConnectionCapabilities(

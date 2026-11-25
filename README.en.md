@@ -308,9 +308,13 @@ Still open:
   `persist.vendor.sys.pq.*` and colours `persist.sys.rgb.*` (readers unknown without the vendor files), properties of
   the Jancar apps and their Bluetooth stack, user choices (car, language, time zone) and `persist.netd.stable_secret`
   (specific to each unit).
-- **Bluetooth call audio**: as HFP client, Android 9's Bluetooth hands the call audio to the vendor audio HAL
-  (`hfp_enable`, `hfp_set_sampling_rate` parameters, BT SCO devices of `audio_policy_configuration.xml`); does the
-  stock MediaTek audio HAL handle them? To be tried (on the stock, Jancar's Bluetooth stack handled calls).
+- **Bluetooth call audio**: cause found (logs of 25/11/2026), fix no. 9 of `tools/patch_lineage_sources.sh`, to be
+  confirmed on the unit. AOSP Telecom puts the HFP call in `MODE_IN_CALL`: the Autochips audio HAL then opens the
+  speech path of a modem the unit does not have (`SpeechDriverDummy` "modem not ready") and no audio goes through. The
+  stock keeps the call in `MODE_IN_COMMUNICATION` and its Bluetooth app sends the HAL keys
+  `atc_hfp_set_sampling_rate`, `atc_hfp_enable` and `atc_hfp_volume` instead of the AOSP `hfp_*` ones. The patched
+  Bluetooth app does the same (`ro.librehu.hfp_atc_keys=bluetooth`, `device.mk`). Still to be checked: a conference
+  call (two merged calls), which has no VoIP mode in the Telecom API.
 
 - **RIL**: MediaTek modem built into the SoC of the "+4G" boards (`ro.vendor.mtk_ril_mode=c6m_1rild`, `mtk-ril.so`)
   with LineageOS's AOSP telephony. `librehu_modem` (`librehu/boot/`) reads `/sys/kernel/ccci/md_en` at boot: without

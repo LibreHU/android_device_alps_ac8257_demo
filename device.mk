@@ -80,6 +80,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.librehu.backlight_inverted=true \
     ro.librehu.backlight_min=179
 
+# Appels Bluetooth (kit mains libres, cote voiture) par la voie Autochips du HAL audio, comme le stock : l'appli
+# Bluetooth corrigee (tools/patch_lineage_sources.sh) met l'appel en MODE_IN_COMMUNICATION (connexion VoIP pour
+# Telecom) et envoie les cles atc_hfp_* au lieu de hfp_* ; LibreHU-service ne les envoie alors plus lui-meme.
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.librehu.hfp_atc_keys=bluetooth
+
 # Calibration d'usine de la dalle tactile au demarrage (librehu/touchcal), avant que LibreHU-service ait le root.
 PRODUCT_PACKAGES += \
     librehu_touchcal
