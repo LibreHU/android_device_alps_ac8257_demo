@@ -14,6 +14,8 @@ LineageOS's own zip (16.0 and 17.1) (`mka bacon`, ota_from_target_files.py) cann
   next to libecnrhelper.so in /vendor/lib[64] (left out when prebuilt/ecnr is missing);
 - vendor-cleanup/: README.md (why the maker's apps, MediaTek's framework overlay and the uVoice ECNR are removed) and
   restore.sh, copied with the backup that update-binary makes before removing them (tools/flashable/vendor-cleanup).
+- librehu/odm-sepolicy.sh: the GED ioctls (/proc/ged) allowed again under Android 10+, as an ODM SELinux policy that
+  update-binary generates from the unit's own vendor policy (tools/flashable/odm-sepolicy.sh).
 
     tools/make_flashable_zip.py <system.img (sparse or raw)> <prebuilt dir> <out.zip> [--build NAME] [--chunk-mib N]
         [--lineage-version V]
@@ -162,6 +164,9 @@ def main():
             z.write(os.path.join(viper, n), f"viper/{n}")
         for n in ("README.md", "restore.sh"):
             z.write(os.path.join(HERE, "flashable", "vendor-cleanup", n), f"vendor-cleanup/{n}")
+        # SELinux: generator of the ODM policy of the GED ioctls (/proc/ged), run by update-binary on the unit's own
+        # vendor policy (tools/flashable/odm-sepolicy.sh, tested by tools/ci/test_odm_sepolicy.sh)
+        z.write(os.path.join(HERE, "flashable", "odm-sepolicy.sh"), "librehu/odm-sepolicy.sh")
         ecnr = os.path.join(a.prebuilt, "ecnr")
         if all(os.path.isfile(os.path.join(ecnr, n)) for n in ECNR_FILES):
             for n in ECNR_FILES:
