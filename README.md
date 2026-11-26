@@ -219,6 +219,12 @@ reglage active (sur la ROM stock, c'est le service qui le demarre).
 
 ## Risques connus
 
+- **Animation de demarrage sans fin (16.0 du 24/11 et du 26/11/2026)** : trouve et corrige sur l'unite par
+  **Reo Au In**, merci a lui. `default-permissions-librehu.xml` accordait `ACCESS_BACKGROUND_LOCATION` (permission
+  d'Android 10) a Android Auto et CarPlay ; Android 9 leve alors « Unknown permission » au demarrage et
+  `system_server` redemarre en boucle. Lignes retirees (`f413274`), et `tools/ci/check_default_permissions.sh` refuse
+  desormais au build toute permission inconnue de la version d'Android. Corrige au build suivant.
+
 Essais des builds de la CI du 12/11/2026 (zip TWRP, vbmeta avec les deux options) : menu de demarrage, puis l'unite
 redemarre en fastboot, deux fois. L'init de LineageOS rencontrait deux erreurs fatales, trouvees hors de l'unite dans
 les sources ; son `LOG(FATAL)` redemarre en bootloader (`system/core/init/log.cpp`).
