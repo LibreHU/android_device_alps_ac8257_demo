@@ -221,6 +221,12 @@ ROM, the service starts it).
 
 ## Known risks
 
+- **Endless boot animation (16.0 of 24/11 and 26/11/2026)**: found and fixed on the unit by **Reo Au In**, thanks to
+  him. `default-permissions-librehu.xml` granted `ACCESS_BACKGROUND_LOCATION` (an Android 10 permission) to Android
+  Auto and CarPlay; Android 9 then throws "Unknown permission" at boot and `system_server` restarts forever. Lines
+  removed (`bbd3c9a`), and `tools/ci/check_default_permissions.sh` now rejects at build time any permission unknown to
+  the Android version. Fixed in the next build.
+
 Tries of the CI builds of 12/11/2026 (TWRP zip, vbmeta with both options): boot menu, then the unit reboots to
 fastboot, twice. LineageOS's init hit two fatal errors, found off the unit in the sources; its `LOG(FATAL)` reboots to
 the bootloader (`system/core/init/log.cpp`).

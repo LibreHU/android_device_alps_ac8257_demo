@@ -8,9 +8,10 @@
      avant qu'aucune appli ne demarre : Android Auto et CarPlay sans fil montent leur groupe Wi-Fi des le demarrage, sans
      ecran visible. Seules les permissions que l'APK de la ROM demande sont accordees. Une permission inconnue de cette
      version d'Android ne doit JAMAIS figurer ici : Android 9 leve alors IllegalArgumentException (« Unknown
-     permission », PermissionManagerService, non rattrapee par DefaultPermissionGrantPolicy) et system_server redemarre en boucle
-     sur l'animation de demarrage (16.0 du 24/11/2026). ACCESS_BACKGROUND_LOCATION n'existe qu'a partir d'Android 10 :
-     absente ici (tools/ci/check_default_permissions.sh le verifie). librehu/boot/librehu_grants.sh
+     permission », PermissionManagerService, non rattrapee par DefaultPermissionGrantPolicy) et system_server redemarre
+     en boucle sur l'animation de demarrage (16.0 du 24/11/2026, trouve et corrige sur l'unite par Reo Au In).
+     ACCESS_BACKGROUND_LOCATION n'existe qu'a partir d'Android 10 : absente ici (tools/ci/check_default_permissions.sh
+     le verifie). librehu/boot/librehu_grants.sh
      accorde ensuite, a chaque demarrage, toutes les permissions dangereuses demandees, y compris celles d'une appli
      mise a jour par LibreHU Apps.
 -->
