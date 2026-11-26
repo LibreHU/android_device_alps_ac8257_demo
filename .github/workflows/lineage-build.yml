@@ -114,6 +114,9 @@ jobs:
           # fuseblk goes (it conflicts with the Jancar vendor policy: init could not compile SELinux). BoardConfig.mk
           # stops the build if this was not done.
           device/alps/ac8257_demo/tools/patch_lineage_sources.sh
+          # Every permission granted by default must exist in this Android version: an unknown one makes
+          # system_server crash at boot ("Unknown permission", boot animation forever, 16.0 of 24/11/2026).
+          device/alps/ac8257_demo/tools/ci/check_default_permissions.sh .
           # The Git objects of the checkout go: room for the output (run 43227394988 stopped at 94 %, 94181/99724, on
           # "No space left on device"). The build reads no Git metadata: prebuilt kernel (TARGET_NO_KERNEL), no OTA
           # package, and repo is not run again; .repo/manifests and .repo/repo stay.
