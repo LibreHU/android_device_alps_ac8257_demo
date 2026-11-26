@@ -6,8 +6,11 @@
      Permissions dangereuses des applis LibreHU accordees par Android au premier demarrage
      (DefaultPermissionGrantPolicy.grantDefaultPermissionExceptions, /system/etc/default-permissions/, Android 9 et 10),
      avant qu'aucune appli ne demarre : Android Auto et CarPlay sans fil montent leur groupe Wi-Fi des le demarrage, sans
-     ecran visible. Seules les permissions que l'APK de la ROM demande sont accordees (une permission absente de cette
-     version d'Android, comme ACCESS_BACKGROUND_LOCATION sous Android 9, est ignoree). librehu/boot/librehu_grants.sh
+     ecran visible. Seules les permissions que l'APK de la ROM demande sont accordees. Une permission inconnue de cette
+     version d'Android ne doit JAMAIS figurer ici : Android leve alors IllegalArgumentException (« Unknown permission »,
+     non rattrapee par DefaultPermissionGrantPolicy) et system_server redemarre en boucle sur l'animation de demarrage
+     (16.0 du 24/11/2026, avec ACCESS_BACKGROUND_LOCATION qui n'existe qu'a partir d'Android 10) ;
+     tools/ci/check_default_permissions.sh le verifie. librehu/boot/librehu_grants.sh
      accorde ensuite, a chaque demarrage, toutes les permissions dangereuses demandees, y compris celles d'une appli
      mise a jour par LibreHU Apps.
 -->
