@@ -9,8 +9,8 @@
      ecran visible. Seules les permissions que l'APK de la ROM demande sont accordees. Une permission inconnue de cette
      version d'Android ne doit JAMAIS figurer ici : Android leve alors IllegalArgumentException (« Unknown permission »,
      non rattrapee par DefaultPermissionGrantPolicy) et system_server redemarre en boucle sur l'animation de demarrage
-     (16.0 du 24/11/2026, avec ACCESS_BACKGROUND_LOCATION qui n'existe qu'a partir d'Android 10) ;
-     tools/ci/check_default_permissions.sh le verifie. librehu/boot/librehu_grants.sh
+     (16.0 du 24/11/2026, trouve et corrige sur l'unite par Reo Au In, avec ACCESS_BACKGROUND_LOCATION qui n'existe qu'a
+     partir d'Android 10) ; tools/ci/check_default_permissions.sh le verifie. librehu/boot/librehu_grants.sh
      accorde ensuite, a chaque demarrage, toutes les permissions dangereuses demandees, y compris celles d'une appli
      mise a jour par LibreHU Apps.
 -->
