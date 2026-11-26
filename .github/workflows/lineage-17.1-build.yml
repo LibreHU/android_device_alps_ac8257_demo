@@ -128,7 +128,7 @@ jobs:
           du -sh .repo; rm -rf .repo/project-objects .repo/projects
           du -sh /mnt/lineage; df -h / /mnt
 
-      - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh), ECNR (tools/fetch_ecnr.sh)
+      - name: LibreHU apps (librehu/fetch_apks.sh), boot images (tools/fetch_kernel.sh), ViPER driver (tools/fetch_viper.sh), ECNR (tools/fetch_ecnr.sh), Vulkan package (tools/fetch_vulkan.sh)
         working-directory: /mnt/lineage/device/alps/ac8257_demo
         env:
           GH_TOKEN: ${{ github.token }}
@@ -143,6 +143,13 @@ jobs:
           # WebRTC echo cancellation / noise reduction library (release ecnr-webrtc of LibreHU-flashablesZips) for the
           # zip's ecnr/: put in place of the maker's ECNR library next to libecnrhelper.so by update-binary
           tools/fetch_ecnr.sh || echo "::warning::no WebRTC ECNR library: ROM zip without it"
+          # Vulkan package (PowerVR DDK 1.11 user space, release latest-rc-4.19.325-vulkan of the kernel) for the zip's
+          # gpu/: installed by update-binary, inert under the ROM's kernel, active under a -vulkan kernel. Its step is
+          # tested on a fake stock vendor with the real package; a release still missing only leaves it out.
+          rc=0; tools/fetch_vulkan.sh || rc=$?
+          if [ $rc = 0 ]; then tools/ci/test_vulkan_step.sh
+          elif [ $rc = 3 ]; then echo "::warning::no Vulkan package: ROM zip without it"
+          else exit $rc; fi
           # WPA3 (SAE), OWE and named Wi-Fi Direct groups: wpa_supplicant with the supplicant HAL 1.2 of release
           # wifi-wpa3-17.1 (.github/workflows/wifi-wpa3.yml), into the zip's wifi/ (installed in /vendor by update-binary,
           # tools/flashable/wifi-wpa3.sh). Without it the ROM is built anyway, its installer leaves the stock supplicant.

@@ -12,6 +12,7 @@ prebuilt/modules.new/
 prebuilt/viper/
 prebuilt/ecnr/
 prebuilt/boot32/
+prebuilt/gpu/
 librehu/ksunext/*.apk
 librehu/ksunext/*.apk.part
 librehu/userapps/

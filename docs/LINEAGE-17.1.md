@@ -175,6 +175,19 @@ la main. Séparée de celle de `lineage-16.0` : groupe de concurrence `lineage-1
 - Les zips Android 9 (16.0, crDroid 9.0) retirent ce fichier s'il a été laissé par une ROM Android 10+ : la
   politique vendor stock y suffit.
 
+## Paquet Vulkan dans le zip (26/11/2026)
+
+Le zip de la ROM contient le paquet Vulkan de LibreHU (`gpu/librehu_gpu_ddk111_twrp.zip`, espace utilisateur PowerVR
+DDK 1.11 de la release `latest-rc-4.19.325-vulkan` du noyau, récupéré par `tools/fetch_vulkan.sh`) et lance son propre
+installateur à la fin, dans un processus à part : ses vérifications sont celles du zip flashé à la main, et un refus
+laisse la ROM installée. Le paquet n'écrase aucun fichier du vendor et ne s'active que sous un noyau `-vulkan`
+(`ro.boot.librehu_gpu=1.11`, déclencheur de `/vendor/etc/init/librehu_gpu_ddk111.rc`) : avec le noyau de la ROM, rien
+ne change (pas de montage, pas de `ro.hardware.vulkan`, firmware 1.11 jamais demandé) ; flasher ensuite
+`librehu_kernel32_twrp_a10.zip` de la release `-vulkan` suffit pour avoir Vulkan. Fichier
+`LibreHU/no-vulkan-package` dans la mémoire interne : paquet non installé. Retrait : `librehu_gpu_ddk111_remove_twrp.zip`
+(sous un noyau standard). Test de l'étape en CI : `tools/ci/test_vulkan_step.sh` (vrai paquet, faux vendor :
+installation, réinstallation, refus du paquet, paquet abîmé, fichier d'exclusion).
+
 ## Points à vérifier sur l'unité
 
 - Ordre des propriétés d'Android 10 : celles du vendor stock passent **après** celles du system

@@ -10,6 +10,8 @@ LineageOS's own zip (16.0 and 17.1) (`mka bacon`, ota_from_target_files.py) cann
 - modules/: the connectivity modules of that kernel (prebuilt/modules), for /vendor/lib/modules;
 - viper/: the ViPERFX_RE driver of the ROM's ViPER4Android app (prebuilt/viper, tools/fetch_viper.sh), installed or
   updated in /vendor/lib[64]/soundfx and declared in vendor's audio_effects;
+- gpu/librehu_gpu_ddk111_twrp.zip: LibreHU's Vulkan package (prebuilt/gpu, tools/fetch_vulkan.sh), installed by the
+  zip at the end; inert under the ROM's kernel, active under a -vulkan kernel (left out when prebuilt/gpu is missing);
 - ecnr/: LibreHU's WebRTC ECNR library (prebuilt/ecnr, tools/fetch_ecnr.sh), put in place of the maker's ECNR library
   next to libecnrhelper.so in /vendor/lib[64] (left out when prebuilt/ecnr is missing);
 - vendor-cleanup/: README.md (why the maker's apps, MediaTek's framework overlay and the uVoice ECNR are removed) and
@@ -180,6 +182,16 @@ def main():
         if os.path.isfile(b32):
             z.write(b32, "boot32/librehu_boot32_twrp.zip")
             boot_sums.append(f"{sha256(b32)}  boot32/librehu_boot32_twrp.zip")
+
+        # paquet Vulkan (espace utilisateur PowerVR DDK 1.11, release latest-rc-4.19.325-vulkan du noyau,
+        # tools/fetch_vulkan.sh) : son installateur est lance par update-binary a la fin ; sans effet sous le noyau de
+        # la ROM, Vulkan des qu'un noyau -vulkan est flashe
+        gpu = os.path.join(a.prebuilt, "gpu", "librehu_gpu_ddk111_twrp.zip")
+        if os.path.isfile(gpu):
+            z.write(gpu, "gpu/librehu_gpu_ddk111_twrp.zip")
+            boot_sums.append(f"{sha256(gpu)}  gpu/librehu_gpu_ddk111_twrp.zip")
+        else:
+            print("prebuilt/gpu missing: zip without the Vulkan package (tools/fetch_vulkan.sh)")
 
         add_bytes("info/build", (a.build or "unknown") + "\n")
         if a.lineage_version:

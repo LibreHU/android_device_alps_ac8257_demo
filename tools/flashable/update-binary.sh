@@ -6,7 +6,8 @@
 # met a jour le pilote ViPER4Android RE dans /vendor (sauf LibreHU/no-viper dans la memoire interne), puis retire les
 # applis du fabricant, le RRO MediaTek et l'ECNR uVoice apres les avoir sauvegardes dans la memoire interne (sauf
 # LibreHU/keep-vendor-apps ; README.md et restore.sh avec la sauvegarde), et met a sa place l'ECNR WebRTC de LibreHU
-# (annulation d'echo et reduction de bruit des appels ; sauf LibreHU/no-ecnr-webrtc). Ne touche jamais
+# (annulation d'echo et reduction de bruit des appels ; sauf LibreHU/no-ecnr-webrtc), et installe le paquet Vulkan
+# (inactif sous le noyau de la ROM, actif sous un noyau -vulkan ; sauf LibreHU/no-vulkan-package). Ne touche jamais
 # vbmeta : s'arrete sans rien ecrire si sa verification n'est pas desactivee. N'efface pas /data.
 OUTFD=$2
 ZIPFILE=$3
@@ -615,6 +616,38 @@ odm_sepolicy_install() {
 	return 0
 }
 odm_sepolicy_install || ui_print "SELinux GED: policy not installed, the rest of the ROM is (the GPU works without it)"
+
+# --- Vulkan (paquet librehu_gpu_ddk111_twrp.zip de la release latest-rc-4.19.325-vulkan du noyau, dossier gpu/ du zip,
+# tools/fetch_vulkan.sh) : espace utilisateur PowerVR DDK 1.11 a cote du vendor stock, sans en ecraser aucun fichier.
+# Il ne s'active que sous un noyau -vulkan (ro.boot.librehu_gpu=1.11 : /vendor/etc/init/librehu_gpu_ddk111.rc) ; avec
+# le noyau de cette ROM, rien ne change, et flasher ensuite le noyau -vulkan suffit pour avoir Vulkan. Lance avec son
+# propre installateur (memes verifications que flashe a la main), dans un processus a part : un refus laisse la ROM
+# installee. Il monte et demonte lui-meme vendor et system. Sauf LibreHU/no-vulkan-package dans la memoire interne.
+vulkan_install() {
+	unzip -o -q "$ZIPFILE" 'gpu/librehu_gpu_ddk111_twrp.zip' -d $TMPD 2>/dev/null
+	VZ=$TMPD/gpu/librehu_gpu_ddk111_twrp.zip
+	[ -f $VZ ] || { ui_print "Vulkan: no package in this zip"; return 0; }
+	if [ -f $SDCARD/LibreHU/no-vulkan-package ]; then
+		ui_print "Vulkan: LibreHU/no-vulkan-package found: package not installed"
+		rm -rf $TMPD/gpu
+		return 0
+	fi
+	E=$(grep ' gpu/librehu_gpu_ddk111_twrp.zip$' $TMPD/info/SHA256SUMS | cut -d' ' -f1)
+	[ -n "$E" ] && [ "$(sha256sum $VZ | cut -d' ' -f1)" = "$E" ] || { ui_print "Vulkan: package damaged (checksum)"; return 1; }
+	VX=$TMPD/gpux; rm -rf $VX; mkdir -p $VX
+	unzip -o -q $VZ META-INF/com/google/android/update-binary -d $VX || { ui_print "Vulkan: cannot extract the package"; return 1; }
+	sync
+	if [ $MOUNTED_VEN = 1 ]; then umount $VENMNT 2>/dev/null && MOUNTED_VEN=0; fi
+	ui_print " "
+	ui_print "Vulkan package (inactive with this ROM's kernel, active with a -vulkan kernel):"
+	ui_print "-----------------------------------------------------------"
+	sh $VX/META-INF/com/google/android/update-binary 3 "$OUTFD" $VZ
+	_rc=$?
+	ui_print "-----------------------------------------------------------"
+	rm -rf $VX $TMPD/gpu
+	return $_rc
+}
+vulkan_install || ui_print "Vulkan: package not installed, the rest of the ROM is (Vulkan only matters with a -vulkan kernel)"
 
 # --- /data : jamais effacee ici
 if [ -f /data/system/packages.xml ] && ! grep -q "org.lineageos" /data/system/packages.xml 2>/dev/null; then
